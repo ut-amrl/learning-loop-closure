@@ -32,11 +32,10 @@ def scan_to_point_cloud(scan):
     cloud = list()
     for r in scan.ranges:
         if r >= scan.range_min and r <= scan.range_max:
-            point = np.array((r, 0))
-            theta = np.radians(angle_offset)
-            cos, sin = np.cos(theta), np.sin(theta)
-            rotation = np.array((cos, -sin), (sin, cos))
-            point = rotation * point
+            point = np.transpose(np.array([[r, 0]]))
+            cos, sin = np.cos(angle_offset), np.sin(angle_offset)
+            rotation = np.array([(cos, -sin), (sin, cos)])
+            point = np.matmul(rotation, point)
             cloud.append(point)
         angle_offset += scan.angle_increment
     return cloud
@@ -45,7 +44,7 @@ base_path = './data/' + args.dataset_name + '/'
 os.makedirs(base_path, exist_ok=True)
 
 data = []
-for timestamp, scan in list(scans.items())[:10]:
+for timestamp, scan in scans.items():
     d, idx = localizationTree.query([timestamp])
     locTimestamp = sorted(localizations.keys())[idx]
     location = localizations[locTimestamp]
