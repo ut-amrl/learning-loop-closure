@@ -1,3 +1,4 @@
 data/*
 learning/__pycache__/*
 learning/cls/*
+learning/embeddings/*

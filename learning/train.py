@@ -42,7 +42,6 @@ parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='pretrained model to evaluate');
 
 opt = parser.parse_args()
-print(opt)
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
 
@@ -97,7 +96,6 @@ for epoch in range(opt.nepoch):
         point_clouds, locations = data
         similar_point_clouds, sLoc = dataset.get_similar_points(locations)
         distant_point_clouds, dLoc = dataset.get_random_points(opt.batchSize)
-
         point_clouds = point_clouds.transpose(2, 1)
         similar_point_clouds = similar_point_clouds.transpose(2, 1)
         distant_point_clouds = distant_point_clouds.transpose(2, 1)
@@ -128,23 +126,9 @@ for epoch in range(opt.nepoch):
         # loss += feature_transform_regularizer(trans_feat) * 0.001
         loss.backward()
         optimizer.step()
-        print('[%d: %d/%d] train loss: %f' % (epoch, i, num_batch, loss.item()))
+        if epoch % 10 == 0:
+            print('[%d: %d/%d] train loss: %f' % (epoch, i, num_batch, loss.item()))
     
     scheduler.step()
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
 
-# total_correct = 0
-# total_testset = 0
-# for i,data in tqdm(enumerate(testdataloader, 0)):
-#     points, target = data
-#     target = target[:, 0]
-#     points = points.transpose(2, 1)
-#     points, target = points.cuda(), target.cuda()
-#     classifier = classifier.eval()
-#     pred, _, _ = classifier(points)
-#     pred_choice = pred.data.max(1)[1]
-#     correct = pred_choice.eq(target.data).cpu().sum()
-#     total_correct += correct.item()
-#     total_testset += points.size()[0]
-
-# print("final accuracy {}".format(total_correct / float(total_testset)))
