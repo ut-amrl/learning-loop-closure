@@ -1,3 +1,16 @@
 data/*
 learning/__pycache__/*
 learning/cls/*
+__pycache__/*
+bin
+cmake-build-debug
+Debug
+build
+data
+lib
+*.kdev4
+.kdev4
+.settings
+.idea
+.project
+.cproject
