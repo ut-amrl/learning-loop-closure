@@ -1,4 +1,4 @@
-##Learning Loop Closure
+## Learning Loop Closure
 Using embeddings of point clouds to determine good locations for loop closure.
 
 This repository trains a neural net based loosely on PointNet (Qi et. al, 2016) to create rotation and translation-invariant embeddings of Point Clouds from laser scans.
@@ -10,24 +10,27 @@ The `learning` folder contains the necessary logic for training.
 `model.py` defines the network itself.
 `trian.py` handles the training of the network.
 `embed.py` can take a pretrained network and output embeddings.
-
+#### Training
 To train the network, simply run
 ```
-python learning/train.py --dataset data/dataset_name
+python train.py --dataset ../data/dataset_name
 ```
-This will train with the default parameters. See
+This will train with the default parameters, saving completed models' state dicts in the `cls` folder.
+
+See
 ```
-python learning/train.py --help
+python train.py --help
 ```
 For additional options.
 
+#### Creating Embeddings
 To get the embeddings for a particular set of point clouds using a particular pretrained PyTorch model, run:
 ```
 python learning/embed.py --model [model_path] --data_path [data_path] --out_path [out_path]
 ```
 if `data_path` points to a directory, we will create a directory of corresponding `.embedding` files at `out_path`
 
-
+#### Data
 The `data` folder contains training data, which should be of the following structure:
 
 ```
