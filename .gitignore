@@ -1,6 +1,7 @@
 data/*
 learning/__pycache__/*
 learning/cls/*
+learning/embeddings/*
 __pycache__/*
 bin
 cmake-build-debug
