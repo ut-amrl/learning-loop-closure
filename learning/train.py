@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '--batchSize', type=int, default=2, help='input batch size')
 parser.add_argument(
-    '--num_points', type=int, default=800, help='number of points in each point cloud')
+    '--num_points', type=int, default=1200, help='number of points in each point cloud')
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
@@ -94,36 +94,36 @@ num_batch = len(dataset) / opt.batchSize
 
 for epoch in range(opt.nepoch):
     for i, data in enumerate(dataloader, 0):
-        points, loc = data
-        similar_points, sLoc = dataset.get_similar_points(loc)
-        distant_points, dLoc = dataset.get_random_points(opt.batchSize)
+        point_clouds, locations = data
+        similar_point_clouds, sLoc = dataset.get_similar_points(locations)
+        distant_point_clouds, dLoc = dataset.get_random_points(opt.batchSize)
 
-        points = points.transpose(2, 1)
-        similar_points = similar_points.transpose(2, 1)
-        distant_points = distant_points.transpose(2, 1)
+        point_clouds = point_clouds.transpose(2, 1)
+        similar_point_clouds = similar_point_clouds.transpose(2, 1)
+        distant_point_clouds = distant_point_clouds.transpose(2, 1)
         
-        points = points.cuda()
-        similar_points = similar_points.cuda()
-        distant_points = distant_points.cuda()
-        print("DATA:")
-        print(points.shape)
-        print(similar_points.shape)
-        print(distant_points.shape)
+        point_clouds = point_clouds.cuda()
+        similar_point_clouds = similar_point_clouds.cuda()
+        distant_point_clouds = distant_point_clouds.cuda()
+        # print("DATA:")
+        # print(point_clouds.shape)
+        # print(similar_point_clouds.shape)
+        # print(distant_point_clouds.shape)
 
         optimizer.zero_grad()
         embedder.train()
 
-        anchor_embedding, trans, trans_feat = embedder(points)
-        similar_embedding, _, _ = embedder(similar_points)
-        distant_embedding, _, _ = embedder(distant_points)
+        anchor_embeddings, trans, trans_feat = embedder(point_clouds)
+        similar_embeddings, _, _ = embedder(similar_point_clouds)
+        distant_embeddings, _, _ = embedder(distant_point_clouds)
 
-        print("EMBEDDINGS:")
-        print(anchor_embedding.shape)
-        print(similar_embedding.shape)
-        print(distant_embedding.shape)
+        # print("EMBEDDINGS:")
+        # print(anchor_embeddings.shape)
+        # print(similar_embeddings.shape)
+        # print(distant_embeddings.shape)
 
         # Compute loss here
-        loss = lossFn.forward(anchor_embedding, similar_embedding, distant_embedding)
+        loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
 
         # loss += feature_transform_regularizer(trans_feat) * 0.001
         loss.backward()
