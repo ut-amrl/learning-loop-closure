@@ -89,7 +89,7 @@ embedder = PointNetLC()
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
 
-optimizer = optim.Adam(embedder.parameters(), lr=0.001, betas=(0.9, 0.999))
+optimizer = optim.Adam(embedder.parameters(), lr=0.001, weight_decay=1e-5)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 embedder.cuda()
 lossFn = TripletLoss(1)
