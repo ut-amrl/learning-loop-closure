@@ -1,4 +1,4 @@
-(cl:in-package lidar_slam-msg)
+(cl:in-package visualize_loop_closure-msg)
 (cl:export '(HEADER-VAL
           HEADER
           DR-VAL

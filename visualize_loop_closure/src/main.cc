@@ -1,4 +1,8 @@
 #include <csignal>
+#include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include "ros/node_handle.h"
 #include "gflags/gflags.h"
@@ -7,12 +11,12 @@
 #include "rosbag/view.h"
 #include "sensor_msgs/LaserScan.h"
 #include "nav_msgs/Odometry.h"
-#include "sensor_msgs/"
+#include "sensor_msgs/PointCloud2.h"
 
 #include "./slam_type_builder.h"
 #include "./slam_types.h"
-#include "./solver.h"
 #include "lidar_slam/CobotOdometryMsg.h"
+#include "pointcloud_helpers.h"
 
 using std::string;
 using std::vector;
@@ -20,6 +24,8 @@ using slam_types::SLAMNodeSolution2D;
 using slam_types::SLAMProblem2D;
 using slam_types::SLAMNode2D;
 using lidar_slam::CobotOdometryMsg;
+using std::ofstream;
+using std::ifstream;
 
 DEFINE_string(
   bag_path,
@@ -33,18 +39,6 @@ DEFINE_string(
   lidar_topic,
   "/velodyne_2dscan_high_beams",
   "The topic that lidar messages are published over.");
-DEFINE_double(
-  translation_weight,
-  1.0,
-  "Weight multiplier for changing the odometry predicted translation.");
-DEFINE_double(
-  rotation_weight,
-  1.0,
-  "Weight multiplier for changing the odometry predicted rotation.");
-DEFINE_double(
-  stopping_accuracy,
-  0.05,
-  "Threshold of accuracy for stopping.");
 DEFINE_int64(
   pose_num,
   30,
@@ -53,6 +47,14 @@ DEFINE_bool(
   diff_odom,
   false,
   "Is the odometry differential (True for CobotOdometryMsgs)?");
+DEFINE_double(
+  embedding_distance,
+  10,
+  "The threshold to judge if two embeddings are different or not.");
+DEFINE_string(
+  model,
+  "",
+  "The path to the model.");
 
 SLAMProblem2D ProcessBagFile(const char* bag_path,
                              const ros::NodeHandle& n) {
@@ -108,12 +110,63 @@ SLAMProblem2D ProcessBagFile(const char* bag_path,
   return slam_builder.GetSlamProblem();
 }
 
-void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
-  ros::Publisher pointcloud_pub = n.advertise<>
-  double last_vis_embedding_norm = 0 /* Norm of first scan */;
-  for (SLAMNode2D node : problem.nodes) {
+#define TEMP_ASCII_FILENAME "temp_pc_file.txt"
+#define TEMP_OUTPUT_FILENAME "output.txt"
 
+void WritePointCloudToAscii(vector<Vector2f>& pointcloud) {
+  ofstream pc_file;
+  pc_file.open(TEMP_ASCII_FILENAME);
+  for (Vector2f point : pointcloud) {
+    pc_file << point.x() << " " << point.y() << std::endl;
   }
+  pc_file.close();
+}
+
+Eigen::MatrixXd LoadEmbedding() {
+  ifstream embed_file;
+  embed_file.open(TEMP_OUTPUT_FILENAME);
+  Eigen::MatrixXd m(1024, 2);
+  for (size_t i = 0; i < 1024; i++) {
+    double val;
+    embed_file >> val;
+    m(i, 0) = val;
+  }
+  embed_file.close();
+  return m;
+}
+
+Eigen::MatrixXd GetEmbedding(vector<Vector2f>& pointcloud) {
+  WritePointCloudToAscii(pointcloud);
+  std::stringstream command;
+  command << "python3 ../learning/embed.py --model ";
+  command << FLAGS_model << " ";
+  command << "--data_path " << TEMP_ASCII_FILENAME << " ";
+  command << "--out_path " << TEMP_OUTPUT_FILENAME;
+  int ret_val = system(command.str().c_str());
+  (void) ret_val; // TODO: For now we are just gonna ignore this.
+  return LoadEmbedding();
+}
+
+void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
+  ros::Publisher pointcloud_pub =
+    n.advertise<sensor_msgs::PointCloud2>("/points", 10);
+  PointCloud2 vis_points_marker;
+  vector<Eigen::Vector2f> vis_points;
+  Eigen::MatrixXd last_vis_embedding_norm =
+    GetEmbedding(problem.nodes[0].lidar_factor.pointcloud);
+  for (SLAMNode2D node : problem.nodes) {
+    Eigen::MatrixXd current_embedding =
+      GetEmbedding(node.lidar_factor.pointcloud);
+    if ((last_vis_embedding_norm - current_embedding).norm() >
+        FLAGS_embedding_distance) {
+      last_vis_embedding_norm = current_embedding;
+      vis_points.insert(vis_points.end(),
+                        node.lidar_factor.pointcloud.begin(),
+                        node.lidar_factor.pointcloud.end());
+    }
+  }
+  pointcloud_helpers::InitPointcloud(&vis_points_marker);
+  pointcloud_helpers::PublishPointcloud(vis_points, vis_points_marker, pointcloud_pub);
 }
 
 void SignalHandler(int signum) {
@@ -128,6 +181,10 @@ int main(int argc, char** argv) {
     printf("Must specify an input bag!");
     exit(0);
   }
+  if (FLAGS_model.compare("") == 0) {
+    printf("Must specify a model");
+    exit(0);
+  }
   ros::init(argc, argv, "lidar_slam");
   ros::NodeHandle n;
   signal(SIGINT, SignalHandler);
@@ -137,6 +194,6 @@ int main(int argc, char** argv) {
   CHECK_GT(slam_problem.nodes.size(), 1)
     << "Not enough nodes were processed"
     << "you probably didn't specify the correct topics!\n";
-  VisualizePointClouds(slam_problem);
+  VisualizePointClouds(slam_problem, n);
   return 0;
 }

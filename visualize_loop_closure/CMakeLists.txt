@@ -38,7 +38,6 @@ SET(libs roslib roscpp rosbag console_bridge cv_bridge glog gflags boost_system 
 ROSBUILD_ADD_EXECUTABLE(vis_loop_closure
                         src/main.cc
                         src/pointcloud_helpers.cc
-                        src/solver.cc
                         src/slam_type_builder.cc
                         src/kdtree.cc)
 

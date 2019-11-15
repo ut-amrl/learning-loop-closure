@@ -1,7 +1,7 @@
 ; Auto-generated. Do not edit!
 
 
-(cl:in-package lidar_slam-msg)
+(cl:in-package visualize_loop_closure-msg)
 
 
 ;//! \htmlinclude CobotOdometryMsg.msg.html
@@ -80,71 +80,71 @@
 (cl:defmethod cl:initialize-instance :after ((m <CobotOdometryMsg>) cl:&rest args)
   (cl:declare (cl:ignorable args))
   (cl:unless (cl:typep m 'CobotOdometryMsg)
-    (roslisp-msg-protocol:msg-deprecation-warning "using old message class name lidar_slam-msg:<CobotOdometryMsg> is deprecated: use lidar_slam-msg:CobotOdometryMsg instead.")))
+    (roslisp-msg-protocol:msg-deprecation-warning "using old message class name visualize_loop_closure-msg:<CobotOdometryMsg> is deprecated: use visualize_loop_closure-msg:CobotOdometryMsg instead.")))
 
 (cl:ensure-generic-function 'header-val :lambda-list '(m))
 (cl:defmethod header-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:header-val is deprecated.  Use lidar_slam-msg:header instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:header-val is deprecated.  Use visualize_loop_closure-msg:header instead.")
   (header m))
 
 (cl:ensure-generic-function 'dr-val :lambda-list '(m))
 (cl:defmethod dr-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:dr-val is deprecated.  Use lidar_slam-msg:dr instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:dr-val is deprecated.  Use visualize_loop_closure-msg:dr instead.")
   (dr m))
 
 (cl:ensure-generic-function 'dx-val :lambda-list '(m))
 (cl:defmethod dx-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:dx-val is deprecated.  Use lidar_slam-msg:dx instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:dx-val is deprecated.  Use visualize_loop_closure-msg:dx instead.")
   (dx m))
 
 (cl:ensure-generic-function 'dy-val :lambda-list '(m))
 (cl:defmethod dy-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:dy-val is deprecated.  Use lidar_slam-msg:dy instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:dy-val is deprecated.  Use visualize_loop_closure-msg:dy instead.")
   (dy m))
 
 (cl:ensure-generic-function 'v0-val :lambda-list '(m))
 (cl:defmethod v0-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:v0-val is deprecated.  Use lidar_slam-msg:v0 instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:v0-val is deprecated.  Use visualize_loop_closure-msg:v0 instead.")
   (v0 m))
 
 (cl:ensure-generic-function 'v1-val :lambda-list '(m))
 (cl:defmethod v1-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:v1-val is deprecated.  Use lidar_slam-msg:v1 instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:v1-val is deprecated.  Use visualize_loop_closure-msg:v1 instead.")
   (v1 m))
 
 (cl:ensure-generic-function 'v2-val :lambda-list '(m))
 (cl:defmethod v2-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:v2-val is deprecated.  Use lidar_slam-msg:v2 instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:v2-val is deprecated.  Use visualize_loop_closure-msg:v2 instead.")
   (v2 m))
 
 (cl:ensure-generic-function 'v3-val :lambda-list '(m))
 (cl:defmethod v3-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:v3-val is deprecated.  Use lidar_slam-msg:v3 instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:v3-val is deprecated.  Use visualize_loop_closure-msg:v3 instead.")
   (v3 m))
 
 (cl:ensure-generic-function 'vr-val :lambda-list '(m))
 (cl:defmethod vr-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:vr-val is deprecated.  Use lidar_slam-msg:vr instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:vr-val is deprecated.  Use visualize_loop_closure-msg:vr instead.")
   (vr m))
 
 (cl:ensure-generic-function 'vx-val :lambda-list '(m))
 (cl:defmethod vx-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:vx-val is deprecated.  Use lidar_slam-msg:vx instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:vx-val is deprecated.  Use visualize_loop_closure-msg:vx instead.")
   (vx m))
 
 (cl:ensure-generic-function 'vy-val :lambda-list '(m))
 (cl:defmethod vy-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:vy-val is deprecated.  Use lidar_slam-msg:vy instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:vy-val is deprecated.  Use visualize_loop_closure-msg:vy instead.")
   (vy m))
 
 (cl:ensure-generic-function 'VBatt-val :lambda-list '(m))
 (cl:defmethod VBatt-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:VBatt-val is deprecated.  Use lidar_slam-msg:VBatt instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:VBatt-val is deprecated.  Use visualize_loop_closure-msg:VBatt instead.")
   (VBatt m))
 
 (cl:ensure-generic-function 'status-val :lambda-list '(m))
 (cl:defmethod status-val ((m <CobotOdometryMsg>))
-  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader lidar_slam-msg:status-val is deprecated.  Use lidar_slam-msg:status instead.")
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader visualize_loop_closure-msg:status-val is deprecated.  Use visualize_loop_closure-msg:status instead.")
   (status m))
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <CobotOdometryMsg>) ostream)
   "Serializes a message object of type '<CobotOdometryMsg>"
@@ -280,10 +280,10 @@
 )
 (cl:defmethod roslisp-msg-protocol:ros-datatype ((msg (cl:eql '<CobotOdometryMsg>)))
   "Returns string type for a message object of type '<CobotOdometryMsg>"
-  "lidar_slam/CobotOdometryMsg")
+  "visualize_loop_closure/CobotOdometryMsg")
 (cl:defmethod roslisp-msg-protocol:ros-datatype ((msg (cl:eql 'CobotOdometryMsg)))
   "Returns string type for a message object of type 'CobotOdometryMsg"
-  "lidar_slam/CobotOdometryMsg")
+  "visualize_loop_closure/CobotOdometryMsg")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<CobotOdometryMsg>)))
   "Returns md5sum for a message object of type '<CobotOdometryMsg>"
   "aa3d834c58b9c20e209a4310ffd09de1")

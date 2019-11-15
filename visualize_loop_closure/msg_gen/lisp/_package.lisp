@@ -1,4 +1,4 @@
-(cl:defpackage lidar_slam-msg
+(cl:defpackage visualize_loop_closure-msg
   (:use )
   (:export
    "<COBOTODOMETRYMSG>"
