@@ -96,6 +96,7 @@ lossFn = TripletLoss(1)
 num_batch = len(dataset) / opt.batch_size
 
 for epoch in range(opt.nepoch):
+    total_loss = 0
     for i, data in enumerate(dataloader, 0):
         point_clouds, locations = data
         similar_point_clouds, sLoc = dataset.get_similar_points(locations)
@@ -132,9 +133,9 @@ for epoch in range(opt.nepoch):
 
         loss.backward()
         optimizer.step()
-        if epoch % 10 == 0:
-            print('[%d: %d/%d] train loss: %f' % (epoch, i, num_batch, loss.item()))
-    
+        total_loss += loss.item()
+
+    print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     scheduler.step()
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
 
