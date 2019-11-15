@@ -30,13 +30,15 @@ class TripletLoss(torch.nn.Module):
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--batchSize', type=int, default=2, help='input batch size')
+    '--batch_size', type=int, default=2, help='input batch size')
 parser.add_argument(
     '--num_points', type=int, default=1200, help='number of points in each point cloud')
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
+parser.add_argument(
+    '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, test, train].')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='pretrained model to evaluate');
@@ -52,6 +54,7 @@ torch.manual_seed(opt.manualSeed)
 
 dataset = LCDataset(
     root=opt.dataset,
+    split=opt.train_set,
     num_points=opt.num_points)
 
 test_dataset = LCDataset(
@@ -61,14 +64,14 @@ test_dataset = LCDataset(
 
 dataloader = torch.utils.data.DataLoader(
     dataset,
-    batch_size=opt.batchSize,
+    batch_size=opt.batch_size,
     shuffle=True,
     num_workers=int(opt.workers),
     drop_last=True)
 
 testdataloader = torch.utils.data.DataLoader(
     test_dataset,
-    batch_size=opt.batchSize,
+    batch_size=opt.batch_size,
     shuffle=True,
     num_workers=int(opt.workers),
     drop_last=True)
@@ -89,7 +92,7 @@ optimizer = optim.Adam(embedder.parameters(), lr=0.001, betas=(0.9, 0.999))
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 embedder.cuda()
 lossFn = TripletLoss(1)
-num_batch = len(dataset) / opt.batchSize
+num_batch = len(dataset) / opt.batch_size
 
 for epoch in range(opt.nepoch):
     for i, data in enumerate(dataloader, 0):
