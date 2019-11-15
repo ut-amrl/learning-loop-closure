@@ -118,7 +118,7 @@ void WritePointCloudToAscii(vector<Vector2f>& pointcloud) {
   ofstream pc_file;
   pc_file.open(TEMP_ASCII_FILENAME);
   for (Vector2f point : pointcloud) {
-    pc_file << point.x() << " " << point.y() << std::endl;
+    pc_file << point.x() << " " << point.y() << " 0.0" << std::endl;
   }
   pc_file.close();
 }
@@ -149,25 +149,48 @@ Eigen::MatrixXd GetEmbedding(vector<Vector2f>& pointcloud) {
   return LoadEmbedding();
 }
 
+vector<Eigen::Vector2f> AugmentPoints(vector<Eigen::Vector2f>& pointcloud, RobotPose2D& pose) {
+  vector<Eigen::Vector2f> augmented_point_cloud;
+  Eigen::Affine2f point_to_world = pose.RobotToWorldTf();
+  for (Eigen::Vector2f point : pointcloud) {
+    Eigen::Vector2f aug_point = point_to_world * point;
+    augmented_point_cloud.push_back(aug_point);
+  }
+  return augmented_point_cloud;
+}
+
 void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
   ros::Publisher pointcloud_pub =
     n.advertise<sensor_msgs::PointCloud2>("/points", 10);
   PointCloud2 vis_points_marker;
   vector<Eigen::Vector2f> vis_points;
+  pointcloud_helpers::InitPointcloud(&vis_points_marker);
+  CHECK_GT(problem.nodes.size(), 0);
   Eigen::MatrixXd last_vis_embedding_norm =
     GetEmbedding(problem.nodes[0].lidar_factor.pointcloud);
+  vector<Eigen::Vector2f> first_scan =
+          AugmentPoints(problem.nodes[0].lidar_factor.pointcloud,
+                        problem.nodes[0].pose);
+  vis_points.insert(vis_points.end(),
+                    first_scan.begin(),
+                    first_scan.end());
   for (SLAMNode2D node : problem.nodes) {
     Eigen::MatrixXd current_embedding =
       GetEmbedding(node.lidar_factor.pointcloud);
+    std::cout << "Current difference: " << (last_vis_embedding_norm - current_embedding).norm();
     if ((last_vis_embedding_norm - current_embedding).norm() >
         FLAGS_embedding_distance) {
       last_vis_embedding_norm = current_embedding;
+      vector<Eigen::Vector2f> augmented_points =
+        AugmentPoints(node.lidar_factor.pointcloud, node.pose);
       vis_points.insert(vis_points.end(),
-                        node.lidar_factor.pointcloud.begin(),
-                        node.lidar_factor.pointcloud.end());
+                        augmented_points.begin(),
+                        augmented_points.end());
+      pointcloud_helpers::PublishPointcloud(vis_points, vis_points_marker, pointcloud_pub);
+      std::cout << " CHOSEN";
     }
+    std::cout << std::endl;
   }
-  pointcloud_helpers::InitPointcloud(&vis_points_marker);
   pointcloud_helpers::PublishPointcloud(vis_points, vis_points_marker, pointcloud_pub);
 }
 

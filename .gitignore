@@ -16,3 +16,4 @@ lib
 .project
 .cproject
 pointnet.pytorch
+bags
