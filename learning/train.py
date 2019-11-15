@@ -95,7 +95,7 @@ for epoch in range(opt.nepoch):
     for i, data in enumerate(dataloader, 0):
         point_clouds, locations = data
         similar_point_clouds, sLoc = dataset.get_similar_points(locations)
-        distant_point_clouds, dLoc = dataset.get_random_points(opt.batchSize)
+        distant_point_clouds, dLoc = dataset.get_distant_points(locations)
         point_clouds = point_clouds.transpose(2, 1)
         similar_point_clouds = similar_point_clouds.transpose(2, 1)
         distant_point_clouds = distant_point_clouds.transpose(2, 1)

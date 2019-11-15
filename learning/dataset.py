@@ -10,6 +10,8 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
+DISTANCE_THRESHOLD = 0.5
+
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -60,7 +62,7 @@ class LCDataset(data.Dataset):
         return out_points, loc
 
     def get_similar_points(self, locations):
-        neighbor_matrix = self.location_tree.query_ball_point(locations, 3)
+        neighbor_matrix = self.location_tree.query_ball_point(locations, DISTANCE_THRESHOLD)
         similar_points = torch.tensor([])
         similar_locs = torch.tensor([])
         for i, neighbors in enumerate(neighbor_matrix):
@@ -70,6 +72,23 @@ class LCDataset(data.Dataset):
             similar_locs = torch.cat((similar_locs, loc.unsqueeze(0)), 0)
 
         return similar_points, similar_locs
+
+    def get_distant_points(self, locations):
+        neighbor_matrix = self.location_tree.query_ball_point(locations, DISTANCE_THRESHOLD)
+        distant_points = torch.tensor([])
+        distant_locs = torch.tensor([])
+
+        for i in range(locations.shape[0]):
+            idx = random.randint(0, len(self.datapath) - 1)
+            while idx in neighbor_matrix[i]:
+                idx = random.randint(0, len(self.datapath) - 1)
+
+            points, loc = self[idx]
+
+            distant_points = torch.cat((distant_points, points.unsqueeze(0)), 0)
+            distant_locs = torch.cat((distant_locs, loc.unsqueeze(0)), 0)
+
+        return distant_points, distant_locs
 
     def get_random_points(self, batch_size):
         distant_points = torch.tensor([])
