@@ -10,6 +10,23 @@ The `learning` folder contains the necessary logic for training.
 `model.py` defines the network itself.
 `trian.py` handles the training of the network.
 `embed.py` can take a pretrained network and output embeddings.
+
+### Installing
+
+First you have to install this package:
+https://github.com/fxia22/pointnet.pytorch
+
+You can do this by cloning the above repo then:
+```
+cd pointnet.pytorch
+pip3 install -e .
+```
+
+You will also need some dependencies:
+```
+pip3 install torch scipy
+```
+
 #### Training
 To train the network, simply run
 ```
