@@ -114,6 +114,7 @@ SLAMProblem2D ProcessBagFile(const char* bag_path,
 #define TEMP_OUTPUT_FILENAME "output.txt"
 
 void WritePointCloudToAscii(vector<Vector2f>& pointcloud) {
+  remove(TEMP_ASCII_FILENAME); // Delete the last file.
   ofstream pc_file;
   pc_file.open(TEMP_ASCII_FILENAME);
   for (Vector2f point : pointcloud) {
@@ -137,6 +138,7 @@ Eigen::MatrixXd LoadEmbedding() {
 
 Eigen::MatrixXd GetEmbedding(vector<Vector2f>& pointcloud) {
   WritePointCloudToAscii(pointcloud);
+  remove(TEMP_OUTPUT_FILENAME);
   std::stringstream command;
   command << "python3 ../learning/embed.py --model ";
   command << FLAGS_model << " ";
