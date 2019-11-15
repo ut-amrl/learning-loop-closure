@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 from model import PointNetLC
+from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset
 from tqdm import tqdm
 
@@ -115,8 +116,8 @@ for epoch in range(opt.nepoch):
         embedder.train()
 
         anchor_embeddings, trans, trans_feat = embedder(point_clouds)
-        similar_embeddings, _, _ = embedder(similar_point_clouds)
-        distant_embeddings, _, _ = embedder(distant_point_clouds)
+        similar_embeddings, _, sim_feat = embedder(similar_point_clouds)
+        distant_embeddings, _, dist_feat = embedder(distant_point_clouds)
 
         # print("EMBEDDINGS:")
         # print(anchor_embeddings.shape)
@@ -125,8 +126,10 @@ for epoch in range(opt.nepoch):
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
+        loss += feature_transform_regularizer(trans_feat) * 0.001
+        loss += feature_transform_regularizer(sim_feat) * 0.001
+        loss += feature_transform_regularizer(dist_feat) * 0.001
 
-        # loss += feature_transform_regularizer(trans_feat) * 0.001
         loss.backward()
         optimizer.step()
         if epoch % 10 == 0:
