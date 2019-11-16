@@ -126,8 +126,6 @@ for epoch in range(opt.nepoch):
         loss += torch.abs(torch.mean(similar_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
         loss += torch.abs(torch.mean(distant_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
 
-        print(torch.mean(anchor_embeddings.norm(dim=1)))
-        print(anchor_embeddings[0])
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
