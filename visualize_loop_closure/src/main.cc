@@ -126,7 +126,7 @@ void WritePointCloudToAscii(vector<Vector2f>& pointcloud) {
 Eigen::MatrixXd LoadEmbedding() {
   ifstream embed_file;
   embed_file.open(TEMP_OUTPUT_FILENAME);
-  Eigen::MatrixXd m(1024, 2);
+  Eigen::MatrixXd m(1024, 1);
   for (size_t i = 0; i < 1024; i++) {
     double val;
     embed_file >> val;
@@ -136,16 +136,20 @@ Eigen::MatrixXd LoadEmbedding() {
   return m;
 }
 
-Eigen::MatrixXd GetEmbedding(vector<Vector2f>& pointcloud) {
+void WriteEmbeddingToFile(vector<Vector2f>& pointcloud, string fileName=TEMP_OUTPUT_FILENAME) {
   WritePointCloudToAscii(pointcloud);
-  remove(TEMP_OUTPUT_FILENAME);
+  remove(fileName.c_str());
   std::stringstream command;
   command << "python3 ../learning/embed.py --model ";
   command << FLAGS_model << " ";
   command << "--data_path " << TEMP_ASCII_FILENAME << " ";
-  command << "--out_path " << TEMP_OUTPUT_FILENAME;
+  command << "--out_path " << fileName;
   int ret_val = system(command.str().c_str());
   (void) ret_val; // TODO: For now we are just gonna ignore this.
+}
+
+Eigen::MatrixXd GetEmbedding(vector<Vector2f>& pointcloud) {
+  WriteEmbeddingToFile(pointcloud);
   return LoadEmbedding();
 }
 
@@ -166,21 +170,30 @@ void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
   vector<Eigen::Vector2f> vis_points;
   pointcloud_helpers::InitPointcloud(&vis_points_marker);
   CHECK_GT(problem.nodes.size(), 0);
-  Eigen::MatrixXd last_vis_embedding_norm =
+  Eigen::MatrixXd last_vis_embedding =
     GetEmbedding(problem.nodes[0].lidar_factor.pointcloud);
+  int last_embedding_idx = 0;
   vector<Eigen::Vector2f> first_scan =
           AugmentPoints(problem.nodes[0].lidar_factor.pointcloud,
                         problem.nodes[0].pose);
   vis_points.insert(vis_points.end(),
                     first_scan.begin(),
                     first_scan.end());
-  for (SLAMNode2D node : problem.nodes) {
+  for (unsigned int i = 0; i < problem.nodes.size(); i++) {
+    SLAMNode2D node = problem.nodes[i];
     Eigen::MatrixXd current_embedding =
       GetEmbedding(node.lidar_factor.pointcloud);
-    std::cout << "Current difference: " << (last_vis_embedding_norm - current_embedding).norm();
-    if ((last_vis_embedding_norm - current_embedding).norm() >
-        FLAGS_embedding_distance) {
-      last_vis_embedding_norm = current_embedding;
+    double norm = (last_vis_embedding - current_embedding).norm();
+    if (isinf(norm)) {
+      std::cout << "Found infinite difference" << std::endl;
+      WriteEmbeddingToFile(problem.nodes[last_embedding_idx].lidar_factor.pointcloud, "inf_" + std::to_string(last_embedding_idx) + ".txt");
+      WriteEmbeddingToFile(node.lidar_factor.pointcloud, "inf_" + std::to_string(i) + ".txt");
+    }
+    
+    std::cout << "Current difference: " << norm;
+    if (norm > FLAGS_embedding_distance) {
+      last_vis_embedding = current_embedding;
+      last_embedding_idx = i;
       vector<Eigen::Vector2f> augmented_points =
         AugmentPoints(node.lidar_factor.pointcloud, node.pose);
       vis_points.insert(vis_points.end(),

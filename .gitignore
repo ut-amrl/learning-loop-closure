@@ -1,4 +1,5 @@
 data/*
+.vscode/*
 learning/__pycache__/*
 learning/cls/*
 learning/embeddings/*

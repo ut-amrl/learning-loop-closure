@@ -47,7 +47,6 @@ parser.add_argument('--model', type=str, default='', help='pretrained model to e
 opt = parser.parse_args()
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
-TARGET_NORM = 10
 
 opt.manualSeed = random.randint(1, 10000)  # fix seed
 print("Random Seed: ", opt.manualSeed)
@@ -90,7 +89,7 @@ embedder = PointNetLC()
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
 
-optimizer = optim.Adam(embedder.parameters(), lr=0.001, weight_decay=1e-3)
+optimizer = optim.Adam(embedder.parameters(), lr=0.001, weight_decay=1e-5)
 embedder.cuda()
 lossFn = TripletLoss(1)
 num_batch = len(dataset) / opt.batch_size
@@ -98,7 +97,7 @@ num_batch = len(dataset) / opt.batch_size
 for epoch in range(opt.nepoch):
     total_loss = 0
     for i, data in enumerate(dataloader, 0):
-        point_clouds, locations = data
+        point_clouds, locations, fname = data
         similar_point_clouds, sLoc = dataset.get_similar_points(locations)
         distant_point_clouds, dLoc = dataset.get_distant_points(locations)
         point_clouds = point_clouds.transpose(2, 1)
@@ -121,10 +120,6 @@ for epoch in range(opt.nepoch):
         loss += feature_transform_regularizer(trans_feat) * 1e-3
         loss += feature_transform_regularizer(sim_feat) * 1e-3
         loss += feature_transform_regularizer(dist_feat) * 1e-3
-
-        loss += torch.abs(torch.mean(anchor_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
-        loss += torch.abs(torch.mean(similar_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
-        loss += torch.abs(torch.mean(distant_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
 
         loss.backward()
         optimizer.step()

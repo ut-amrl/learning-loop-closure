@@ -4,6 +4,7 @@ import json
 import numpy as np
 import os
 from model import PointNetLC
+from dataset import get_point_cloud_from_file
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -19,10 +20,10 @@ model = PointNetLC()
 model.load_state_dict(torch.load(opt.model))
 model.eval()
 
+# TODO: do dataset.py stuff
+
 f = opt.data_path
-fname = os.path.basename(f)
-point_set = np.loadtxt(fname).astype(np.float32)
-point_set = torch.tensor([point_set])
+point_set = torch.tensor([get_point_cloud_from_file(f)])
 point_set = point_set.transpose(2, 1)
 embedding, trans, _ = model.forward(point_set)
 np.savetxt(opt.out_path, embedding.detach().numpy())

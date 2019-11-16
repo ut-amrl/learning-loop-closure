@@ -12,6 +12,15 @@ from plyfile import PlyData, PlyElement
 
 DISTANCE_THRESHOLD = 0.5
 
+def get_point_cloud_from_file(filename):
+    point_set = np.loadtxt(filename).astype(np.float32)
+    point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
+    # normalize 
+    dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)),0)
+    point_set = point_set / dist #scale
+    return point_set
+
+
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -37,15 +46,8 @@ class LCDataset(data.Dataset):
 
     def __getitem__(self, index):
         fn = self.datapath[index]
-        point_set = np.loadtxt(fn[0]).astype(np.float32)
         loc = fn[1]
-
-        point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
-        
-        # normalize 
-        dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)),0)
-        point_set = point_set / dist #scale
-
+        point_set = get_point_cloud_from_file(fn[0])
         # random perturbations, because why not
         if self.data_augmentation:
             theta = np.random.uniform(0,np.pi*2)
@@ -59,7 +61,7 @@ class LCDataset(data.Dataset):
         out_points = torch.from_numpy(out_points)
         loc = torch.from_numpy(loc)
 
-        return out_points, loc
+        return out_points, loc, fn[0]
 
     def get_similar_points(self, locations):
         neighbor_matrix = self.location_tree.query_ball_point(locations, DISTANCE_THRESHOLD)
@@ -67,7 +69,7 @@ class LCDataset(data.Dataset):
         similar_locs = torch.tensor([])
         for i, neighbors in enumerate(neighbor_matrix):
             idx = random.randint(0, len(neighbors) - 1)
-            points, loc = self[idx]
+            points, loc, _ = self[idx]
             similar_points = torch.cat((similar_points, points.unsqueeze(0)), 0)
             similar_locs = torch.cat((similar_locs, loc.unsqueeze(0)), 0)
 
@@ -83,7 +85,7 @@ class LCDataset(data.Dataset):
             while idx in neighbor_matrix[i]:
                 idx = random.randint(0, len(self.datapath) - 1)
 
-            points, loc = self[idx]
+            points, loc, _ = self[idx]
 
             distant_points = torch.cat((distant_points, points.unsqueeze(0)), 0)
             distant_locs = torch.cat((distant_locs, loc.unsqueeze(0)), 0)
