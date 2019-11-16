@@ -24,8 +24,8 @@ class TripletLoss(torch.nn.Module):
         self.margin = margin
 
     def forward(self, anchor, positive, negative):
-        distance_positive = torch.norm(anchor - positive, p=2, dim=1)
-        distance_negative = torch.norm(anchor - negative, p=2, dim=1)
+        distance_positive = torch.norm(anchor - positive, p=2, dim=1) * 1e-1
+        distance_negative = torch.norm(anchor - negative, p=2, dim=1) * 1e-1
         losses = F.relu(distance_positive - distance_negative + self.margin)
         return losses.sum()
 
@@ -47,6 +47,7 @@ parser.add_argument('--model', type=str, default='', help='pretrained model to e
 opt = parser.parse_args()
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
+TARGET_NORM = 10
 
 opt.manualSeed = random.randint(1, 10000)  # fix seed
 print("Random Seed: ", opt.manualSeed)
@@ -89,8 +90,7 @@ embedder = PointNetLC()
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
 
-optimizer = optim.Adam(embedder.parameters(), lr=0.001, weight_decay=1e-5)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
+optimizer = optim.Adam(embedder.parameters(), lr=0.001, weight_decay=1e-3)
 embedder.cuda()
 lossFn = TripletLoss(1)
 num_batch = len(dataset) / opt.batch_size
@@ -108,10 +108,6 @@ for epoch in range(opt.nepoch):
         point_clouds = point_clouds.cuda()
         similar_point_clouds = similar_point_clouds.cuda()
         distant_point_clouds = distant_point_clouds.cuda()
-        # print("DATA:")
-        # print(point_clouds.shape)
-        # print(similar_point_clouds.shape)
-        # print(distant_point_clouds.shape)
 
         optimizer.zero_grad()
         embedder.train()
@@ -120,22 +116,21 @@ for epoch in range(opt.nepoch):
         similar_embeddings, _, sim_feat = embedder(similar_point_clouds)
         distant_embeddings, _, dist_feat = embedder(distant_point_clouds)
 
-        # print("EMBEDDINGS:")
-        # print(anchor_embeddings.shape)
-        # print(similar_embeddings.shape)
-        # print(distant_embeddings.shape)
-
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
-        loss += feature_transform_regularizer(trans_feat) * 0.001
-        loss += feature_transform_regularizer(sim_feat) * 0.001
-        loss += feature_transform_regularizer(dist_feat) * 0.001
+        loss += feature_transform_regularizer(trans_feat) * 1e-3
+        loss += feature_transform_regularizer(sim_feat) * 1e-3
+        loss += feature_transform_regularizer(dist_feat) * 1e-3
 
+        loss += torch.abs(torch.mean(anchor_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
+        loss += torch.abs(torch.mean(similar_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
+        loss += torch.abs(torch.mean(distant_embeddings.norm(dim=1)) - TARGET_NORM) * 5e-2
+
+        print(torch.mean(anchor_embeddings.norm(dim=1)))
+        print(anchor_embeddings[0])
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-
     print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
-    scheduler.step()
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
 
