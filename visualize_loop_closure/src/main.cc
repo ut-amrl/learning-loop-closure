@@ -112,6 +112,7 @@ SLAMProblem2D ProcessBagFile(const char* bag_path,
 
 #define TEMP_ASCII_FILENAME "temp_pc_file.txt"
 #define TEMP_OUTPUT_FILENAME "output.txt"
+#define START_IDX 15
 
 void WritePointCloudToAscii(vector<Vector2f>& pointcloud) {
   remove(TEMP_ASCII_FILENAME); // Delete the last file.
@@ -169,17 +170,17 @@ void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
   PointCloud2 vis_points_marker;
   vector<Eigen::Vector2f> vis_points;
   pointcloud_helpers::InitPointcloud(&vis_points_marker);
-  CHECK_GT(problem.nodes.size(), 0);
+  CHECK_GT(problem.nodes.size(), START_IDX);
   Eigen::MatrixXd last_vis_embedding =
-    GetEmbedding(problem.nodes[0].lidar_factor.pointcloud);
-  int last_embedding_idx = 0;
+    GetEmbedding(problem.nodes[START_IDX].lidar_factor.pointcloud);
+  int last_embedding_idx = START_IDX;
   vector<Eigen::Vector2f> first_scan =
-          AugmentPoints(problem.nodes[0].lidar_factor.pointcloud,
-                        problem.nodes[0].pose);
+          AugmentPoints(problem.nodes[START_IDX].lidar_factor.pointcloud,
+                        problem.nodes[START_IDX].pose);
   vis_points.insert(vis_points.end(),
                     first_scan.begin(),
                     first_scan.end());
-  for (unsigned int i = 0; i < problem.nodes.size(); i++) {
+  for (unsigned int i = START_IDX; i < problem.nodes.size(); i++) {
     SLAMNode2D node = problem.nodes[i];
     Eigen::MatrixXd current_embedding =
       GetEmbedding(node.lidar_factor.pointcloud);
@@ -191,7 +192,7 @@ void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
     }
     
     std::cout << "Current difference: " << norm;
-    if (norm > FLAGS_embedding_distance) {
+    if (norm > FLAGS_embedding_distance || i == START_IDX) {
       last_vis_embedding = current_embedding;
       last_embedding_idx = i;
       vector<Eigen::Vector2f> augmented_points =
