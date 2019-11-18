@@ -19,6 +19,7 @@ def get_point_cloud_from_file(filename):
 
 def normalize_point_cloud(point_set):
     point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
+    point_set = np.delete(point_set, 2, axis=1)
     # normalize 
     dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)),0)
     point_set = point_set / dist #scale
@@ -55,10 +56,10 @@ class LCDataset(data.Dataset):
         if self.data_augmentation:
             theta = np.random.uniform(0,np.pi*2)
             rotation_matrix = np.array([[np.cos(theta), -np.sin(theta)],[np.sin(theta), np.cos(theta)]])
-            point_set[:,[0,2]] = point_set[:,[0,2]].dot(rotation_matrix) # random rotation
+            point_set[:,[0,1]] = point_set[:,[0,1]].dot(rotation_matrix) # random rotation
             point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
-        out_points = np.zeros((self.num_points, 3)).astype(np.float32)
+        out_points = np.zeros((self.num_points, 2)).astype(np.float32)
         out_points[:point_set.shape[0]] = point_set
 
         out_points = torch.from_numpy(out_points)
