@@ -167,6 +167,8 @@ vector<Eigen::Vector2f> AugmentPoints(vector<Eigen::Vector2f>& pointcloud, Robot
 void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
   ros::Publisher pointcloud_pub =
     n.advertise<sensor_msgs::PointCloud2>("/points", 10);
+  ros::Publisher pointcloud_skipped_pub =
+    n.advertise<sensor_msgs::PointCloud2>("/skipped_points", 10);
   PointCloud2 vis_points_marker;
   vector<Eigen::Vector2f> vis_points;
   pointcloud_helpers::InitPointcloud(&vis_points_marker);
@@ -192,16 +194,18 @@ void VisualizePointClouds(SLAMProblem2D problem, ros::NodeHandle& n) {
     }
     
     std::cout << "Current difference: " << norm;
+    vector<Eigen::Vector2f> augmented_points =
+      AugmentPoints(node.lidar_factor.pointcloud, node.pose);
+    vis_points.insert(vis_points.end(),
+                      augmented_points.begin(),
+                      augmented_points.end());
     if (norm > FLAGS_embedding_distance || i == START_IDX) {
       last_vis_embedding = current_embedding;
       last_embedding_idx = i;
-      vector<Eigen::Vector2f> augmented_points =
-        AugmentPoints(node.lidar_factor.pointcloud, node.pose);
-      vis_points.insert(vis_points.end(),
-                        augmented_points.begin(),
-                        augmented_points.end());
       pointcloud_helpers::PublishPointcloud(vis_points, vis_points_marker, pointcloud_pub);
       std::cout << " CHOSEN";
+    } else {
+      pointcloud_helpers::PublishPointcloud(vis_points, vis_points_marker, pointcloud_skipped_pub);
     }
     std::cout << std::endl;
   }
