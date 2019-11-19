@@ -5,6 +5,7 @@ import os
 import random
 import json
 from scipy import spatial
+from pc_helpers import scan_to_point_cloud
 
 parser = argparse.ArgumentParser(description='Create some training data from ROS bags')
 parser.add_argument('--bag_file', type=str, help='path to the bag file containing training data')
@@ -20,29 +21,12 @@ bag = rosbag.Bag(args.bag_file)
 scans = {}
 localizations = {}
 
-
-def scan_to_point_cloud(scan):
-    angle_offset = 0.0
-    cloud = list()
-    if args.partitions_only:
-        return cloud
-
-    for r in scan.ranges:
-        if r >= scan.range_min and r <= scan.range_max:
-            point = np.transpose(np.array([[r, 0]]))
-            cos, sin = np.cos(angle_offset), np.sin(angle_offset)
-            rotation = np.array([(cos, -sin), (sin, cos)])
-            point = np.matmul(rotation, point)
-            cloud.append(point)
-        angle_offset += scan.angle_increment
-    return cloud
-
 print ("Loading scans & Localization from Bag file")
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
     if len(scans.keys()) < args.max_scans:
         timestamp = t.secs + t.nsecs * 1e-9
         if (topic == args.lidar_topic):
-            scans[timestamp] = scan_to_point_cloud(msg)
+            scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
         elif (topic == args.localization_topic):
             localizations[timestamp] = msg
 

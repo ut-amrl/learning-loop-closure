@@ -14,12 +14,14 @@ DISTANCE_THRESHOLD = 0.5
 
 def get_point_cloud_from_file(filename):
     point_set = np.loadtxt(filename).astype(np.float32)
+    return normalize_point_cloud(point_set)
+
+def normalize_point_cloud(point_set):
     point_set = point_set - np.expand_dims(np.mean(point_set, axis = 0), 0) # center
     # normalize 
     dist = np.max(np.sqrt(np.sum(point_set ** 2, axis = 1)),0)
     point_set = point_set / dist #scale
     return point_set
-
 
 class LCDataset(data.Dataset):
     def __init__(self,
