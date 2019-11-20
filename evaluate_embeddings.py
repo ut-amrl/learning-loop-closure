@@ -28,14 +28,14 @@ print ("End time:", bag.get_end_time())
 
 last_loc_timestamp = 0.0
 last_scan_timestamp = 0.0
-
+start_time = bag.get_start_time()
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
-    timestamp = t.secs + t.nsecs * 1e-9
+    timestamp = t.secs + t.nsecs * 1e-9 - start_time
     if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.1):
         last_scan_timestamp = timestamp
         scans[timestamp] = scan_to_point_cloud(msg)
     elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.15):
-        localizations[timestamp] = np.asarray([msg.x, msg.y])
+        localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
         last_loc_timestamp = timestamp
 bag.close()
 print ("Finished processing Bag file", len(scans.keys()), "scans", len(localizations.keys()), "localizations")
@@ -43,12 +43,12 @@ print ("Finished processing Bag file", len(scans.keys()), "scans", len(localizat
 
 print("Finding location matches")
 localization_timestamps = sorted(localizations.keys())
-loc_infos = np.asarray([localizations[t] for t in localization_timestamps])
+loc_infos = np.asarray([localizations[t][:2] for t in localization_timestamps])
 localizationTree = spatial.KDTree(loc_infos)
 
 location_matches = localizationTree.query_pairs(.05)
 # Only keep location matches that are distant in time-space, since these are the only ones that would be good for loop closure
-filtered_location_matches = [m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 10]
+filtered_location_matches = [m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 15]
 print(len(filtered_location_matches))
 print("Finished finding location matches")
 
@@ -105,6 +105,8 @@ with torch.no_grad():
         match_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):
             correct += 1
+        else:
+            print("MISSED MATCH", loc_time1, localizations[loc_time1], loc_time2, localizations[loc_time2])
         # if len(match_distances) % 1000 == 0:
         #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
 
