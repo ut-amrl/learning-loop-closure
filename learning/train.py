@@ -117,9 +117,9 @@ for epoch in range(opt.nepoch):
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
-        loss += feature_transform_regularizer(trans_feat) * 1e-2
-        loss += feature_transform_regularizer(sim_feat) * 1e-2
-        loss += feature_transform_regularizer(dist_feat) * 1e-2
+        loss += feature_transform_regularizer(trans_feat) * 1e-3
+        loss += feature_transform_regularizer(sim_feat) * 1e-3
+        loss += feature_transform_regularizer(dist_feat) * 1e-3
 
         loss.backward()
         optimizer.step()

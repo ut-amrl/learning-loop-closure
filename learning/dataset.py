@@ -10,7 +10,7 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
-DISTANCE_THRESHOLD = 0.5
+DISTANCE_THRESHOLD = 0.25
 
 def get_point_cloud_from_file(filename):
     point_set = np.loadtxt(filename).astype(np.float32)

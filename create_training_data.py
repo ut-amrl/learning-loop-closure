@@ -12,7 +12,6 @@ parser.add_argument('--bag_file', type=str, help='path to the bag file containin
 parser.add_argument('--lidar_topic', type=str, help='name of topic containing lidar information')
 parser.add_argument('--localization_topic', type=str, help='name of topic containing localization information')
 parser.add_argument('--dataset_name', type=str, help='defines the folder in which this generated data will be placed')
-parser.add_argument('--max_scans', type=int, help='maximum number of scans to keep track of')
 parser.add_argument('--partitions_only', type=bool, help='if set, only write partition files, assuming the data has already been written')
 
 args = parser.parse_args()
@@ -20,15 +19,18 @@ bag = rosbag.Bag(args.bag_file)
 
 scans = {}
 localizations = {}
+last_scan_timestamp = 0
+last_loc_timestamp = 0
 
 print ("Loading scans & Localization from Bag file")
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
-    if len(scans.keys()) < args.max_scans:
-        timestamp = t.secs + t.nsecs * 1e-9
-        if (topic == args.lidar_topic):
-            scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
-        elif (topic == args.localization_topic):
-            localizations[timestamp] = msg
+    timestamp = t.secs + t.nsecs * 1e-9
+    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.1):
+        last_scan_timestamp = timestamp
+        scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
+    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.1):
+        localizations[timestamp] = np.asarray([msg.x, msg.y])
+        last_loc_timestamp = timestamp
 
 bag.close()
 print ("Finished processing Bag file")
@@ -39,9 +41,9 @@ base_path = './data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
     os.makedirs(base_path)
 
-print ("Writing data to disk...")
+print ("Writing data to disk for {0} scans...".format(len(scans.keys())))
 filenames = []
-for timestamp, cloud in list(scans.items())[:args.max_scans]:
+for timestamp, cloud in list(scans.items()):
     d, idx = localizationTree.query([timestamp])
     locTimestamp = sorted(localizations.keys())[idx]
     location = localizations[locTimestamp]
@@ -50,12 +52,12 @@ for timestamp, cloud in list(scans.items())[:args.max_scans]:
         f = open(base_path + cloud_file_name, 'w')
         cloudString = ''
         for p in cloud:
-            cloudString += '{0} {1} 0\n'.format(p[0][0], p[1][0])
+            cloudString += '{0} {1} 0\n'.format(p[0], p[1])
         f.write(cloudString)
         f.close()
         loc_file_name = 'point_' + str(timestamp) + '.data.location'
         f2 = open(base_path + loc_file_name, 'w')
-        f2.write('{0} {1} 0\n'.format(location.x, location.y))
+        f2.write('{0} {1} 0\n'.format(location[0], location[1]))
         f2.close()
     filenames.append(cloud_file_name)
 
