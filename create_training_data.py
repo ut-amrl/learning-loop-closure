@@ -25,10 +25,10 @@ last_loc_timestamp = 0
 print ("Loading scans & Localization from Bag file")
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
     timestamp = t.secs + t.nsecs * 1e-9
-    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.1):
+    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.05):
         last_scan_timestamp = timestamp
         scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
-    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.1):
+    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.05):
         localizations[timestamp] = np.asarray([msg.x, msg.y])
         last_loc_timestamp = timestamp
 
@@ -63,8 +63,8 @@ for timestamp, cloud in list(scans.items()):
 
 print ("Writing partition information...", len(filenames))
 count = len(filenames)
-train_data = random.sample(list(range(count)), round(count * 0.15))
-test_data = random.sample(list(range(count)), round(count * 0.4))
+train_data = random.sample(list(range(count)), int(round(count * 0.15)))
+test_data = random.sample(list(range(count)), int(round(count * 0.4)))
 val_data = list(range(count))
 
 split_path = os.path.join(base_path, 'train_test_split')
