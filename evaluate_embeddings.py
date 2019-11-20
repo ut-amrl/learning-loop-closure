@@ -1,11 +1,9 @@
 import rosbag
 import argparse
 import numpy as np
-import os
 import random
-import json
 import torch
-import time
+from statistics import mean, median, stdev
 from learning.model import PointNetLC
 from learning.dataset import normalize_point_cloud
 from pc_helpers import scan_to_point_cloud
@@ -33,10 +31,10 @@ last_scan_timestamp = 0.0
 
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
     timestamp = t.secs + t.nsecs * 1e-9
-    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.5):
+    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.1):
         last_scan_timestamp = timestamp
         scans[timestamp] = scan_to_point_cloud(msg)
-    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.5):
+    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.15):
         localizations[timestamp] = np.asarray([msg.x, msg.y])
         last_loc_timestamp = timestamp
 bag.close()
@@ -48,7 +46,7 @@ localization_timestamps = sorted(localizations.keys())
 loc_infos = np.asarray([localizations[t] for t in localization_timestamps])
 localizationTree = spatial.KDTree(loc_infos)
 
-location_matches = localizationTree.query_pairs(.15)
+location_matches = localizationTree.query_pairs(.05)
 # Only keep location matches that are distant in time-space, since these are the only ones that would be good for loop closure
 filtered_location_matches = [m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 10]
 print(len(filtered_location_matches))
@@ -73,26 +71,42 @@ with torch.no_grad():
         return model(point_set)
         del point_set
 
-    # for each location match, check if the embeddings are close
-    print("Evaluating embeddings for matches...")
     DISTANCE_THRESHOLD = 10
     correct = 0
-    avg_distance = 0
+    random_distances = []
+    print("Evaluating some random embeddings...")
+    for idx in range(2000):
+        scan1 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
+        scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
+
+        embedding1, _, _ = embedding_for_scan(scan1)
+        embedding2, _, _ = embedding_for_scan(scan2)
+        distance = torch.norm(embedding1 - embedding2).item()
+        random_distances.append(distance)
+        if (distance < DISTANCE_THRESHOLD):
+            correct += 1
+    print("For random embeddings (avg: {0}, med: {1}, stdev: {2})".format(mean(random_distances), median(random_distances), stdev(random_distances)))
+    print("{0} embeddings were 'close' out of {1} random locations".format(correct, len(random_distances)))
+    # for each location match, check if the embeddings are close
+    print("Evaluating embeddings for matches...")
+    match_distances = []
+    correct = 0
     for idx1, idx2 in filtered_location_matches:
         loc_time1 = localization_timestamps[idx1]
         loc_time2 = localization_timestamps[idx2]
         [_, [scan_idx1, scan_idx2]] = scanTimeTree.query([[loc_time1], [loc_time2]])
-
+        
         scan1 = scans[scan_timestamps[scan_idx1]]
         scan2 = scans[scan_timestamps[scan_idx2]]
 
         embedding1, _, _ = embedding_for_scan(scan1)
         embedding2, _, _ = embedding_for_scan(scan2)
         distance = torch.norm(embedding1 - embedding2).item()
-        avg_distance += distance
+        match_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):
             correct += 1
-    
-    avg_distance /= len(filtered_location_matches)
-    print("Average distance for embeddings that should have matched: ", avg_distance)
-    print("{0} embeddings were 'close' out of {1} potential loop closure locations".format(correct, len(filtered_location_matches)))
+        # if len(match_distances) % 1000 == 0:
+        #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
+
+    print("For embeddings that should have matched (avg: {0}, med: {1}, stdev: {2})".format(mean(match_distances), median(match_distances), stdev(match_distances)))
+    print("{0} embeddings were 'close' out of {1} potential loop closure locations".format(correct, len(match_distances)))
