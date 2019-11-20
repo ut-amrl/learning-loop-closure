@@ -10,7 +10,8 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
-DISTANCE_THRESHOLD = 0.25
+CLOSE_DISTANCE_THRESHOLD = 0.25
+FAR_DISTANCE_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
     point_set = np.loadtxt(filename).astype(np.float32)
@@ -66,7 +67,7 @@ class LCDataset(data.Dataset):
         return out_points, loc, fn[0]
 
     def get_similar_points(self, locations):
-        neighbor_matrix = self.location_tree.query_ball_point(locations, DISTANCE_THRESHOLD)
+        neighbor_matrix = self.location_tree.query_ball_point(locations, CLOSE_DISTANCE_THRESHOLD)
         similar_points = torch.tensor([])
         similar_locs = torch.tensor([])
         for i, neighbors in enumerate(neighbor_matrix):
@@ -78,7 +79,7 @@ class LCDataset(data.Dataset):
         return similar_points, similar_locs
 
     def get_distant_points(self, locations):
-        neighbor_matrix = self.location_tree.query_ball_point(locations, DISTANCE_THRESHOLD)
+        neighbor_matrix = self.location_tree.query_ball_point(locations, FAR_DISTANCE_THRESHOLD)
         distant_points = torch.tensor([])
         distant_locs = torch.tensor([])
 

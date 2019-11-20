@@ -24,7 +24,7 @@ last_scan_timestamp = 0
 print ("Loading scans & Localization from Bag file")
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
     timestamp = t.secs + t.nsecs * 1e-9
-    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.05):
+    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.025):
         last_scan_timestamp = timestamp
         scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
     elif (topic == args.localization_topic):
