@@ -20,7 +20,6 @@ bag = rosbag.Bag(args.bag_file)
 scans = {}
 localizations = {}
 last_scan_timestamp = 0
-last_loc_timestamp = 0
 
 print ("Loading scans & Localization from Bag file")
 for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
@@ -28,9 +27,8 @@ for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localizati
     if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.05):
         last_scan_timestamp = timestamp
         scans[timestamp] = [] if args.partitions_only else scan_to_point_cloud(msg)
-    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.05):
+    elif (topic == args.localization_topic):
         localizations[timestamp] = np.asarray([msg.x, msg.y])
-        last_loc_timestamp = timestamp
 
 bag.close()
 print ("Finished processing Bag file")
