@@ -11,6 +11,8 @@ from learning.dataset import normalize_point_cloud
 from pc_helpers import scan_to_point_cloud
 from scipy import spatial
 
+# THIS IS STILL WIP AND DOESN"T REALLY WORK YET
+
 parser = argparse.ArgumentParser(description='Find loop closure locations for some ROS bag')
 parser.add_argument('--bag_file', type=str, help='path to the bag file containing training data')
 parser.add_argument('--lidar_topic', type=str, help='name of topic containing lidar information')

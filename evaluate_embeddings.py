@@ -49,13 +49,13 @@ loc_infos = np.asarray([localizations[t] for t in localization_timestamps])
 localizationTree = spatial.KDTree(loc_infos)
 
 location_matches = localizationTree.query_pairs(.15)
+# Only keep location matches that are distant in time-space, since these are the only ones that would be good for loop closure
 filtered_location_matches = [m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 10]
 print(len(filtered_location_matches))
 print("Finished finding location matches")
 
 scan_timestamps = sorted(scans.keys())
 scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
-
 
 with torch.no_grad():
     print("Loading embedding model...")
@@ -73,6 +73,7 @@ with torch.no_grad():
         return model(point_set)
         del point_set
 
+    # for each location match, check if the embeddings are close
     print("Evaluating embeddings for matches...")
     DISTANCE_THRESHOLD = 10
     correct = 0
