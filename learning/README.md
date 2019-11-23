@@ -36,14 +36,11 @@ The `data` folder contains training data, which should be of the following struc
 ```
 data/
     dataset_name/
-        point_*timestamp*.data
+        dataset_info.json - includes general dataset information (start time, etc), train/test/eval split
+        point_*time_offset*.data - point cloud data, an nx2 numpy array
         ...
-        point_*timestamp*.data.location
+        location_*time_offset*.data - location information, a 1x2 numpy array
         ...
-        train_test_split/
-            shuffled_train_file_list.json
-            shuffled_test_file_list.json
-            shuffled_val_file_list.json
 ```
 Here, each .data file contains a bunch of newline-separated point locations of the form "x y z", and each .location file contains the corresponding "location" of the form "x y z".
 The json files simply contain a JSON representation of an array of filenames to use for training, testing, and validation of the network.

@@ -3,17 +3,22 @@ import argparse
 import numpy as np
 import random
 import torch
-from statistics import mean, median, stdev
+import statistics
 from learning.model import PointNetLC
 from learning.dataset import normalize_point_cloud
 from pc_helpers import scan_to_point_cloud
 from scipy import spatial
 
-parser = argparse.ArgumentParser(description='Find loop closure locations for some ROS bag')
-parser.add_argument('--bag_file', type=str, help='path to the bag file containing training data')
-parser.add_argument('--lidar_topic', type=str, help='name of topic containing lidar information')
-parser.add_argument('--localization_topic', type=str, help='name of topic containing localization information')
-parser.add_argument('--model', type=str, help='state dict of an already trained LC model to use')
+parser = argparse.ArgumentParser(
+    description='Find loop closure locations for some ROS bag')
+parser.add_argument('--bag_file', type=str,
+                    help='path to the bag file containing training data')
+parser.add_argument('--lidar_topic', type=str,
+                    help='name of topic containing lidar information')
+parser.add_argument('--localization_topic', type=str,
+                    help='name of topic containing localization information')
+parser.add_argument('--model', type=str,
+                    help='state dict of an already trained LC model to use')
 
 args = parser.parse_args()
 bag = rosbag.Bag(args.bag_file)
@@ -21,10 +26,11 @@ bag = rosbag.Bag(args.bag_file)
 scans = {}
 localizations = {}
 
-print ("Loading scans & Localization from Bag file")
-print ("Bag has ", bag.get_message_count(topic_filters=[args.localization_topic]), " Localization messages")
-print ("Start time:", bag.get_start_time())
-print ("End time:", bag.get_end_time())
+print("Loading scans & Localization from Bag file")
+print("Bag has ", bag.get_message_count(topic_filters=[
+      args.localization_topic]), " Localization messages")
+print("Start time:", bag.get_start_time())
+print("End time:", bag.get_end_time())
 
 last_loc_timestamp = 0.0
 last_scan_timestamp = 0.0
@@ -38,7 +44,8 @@ for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localizati
         localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
         last_loc_timestamp = timestamp
 bag.close()
-print ("Finished processing Bag file", len(scans.keys()), "scans", len(localizations.keys()), "localizations")
+print("Finished processing Bag file", len(scans.keys()),
+      "scans", len(localizations.keys()), "localizations")
 
 
 print("Finding location matches")
@@ -48,7 +55,8 @@ localizationTree = spatial.KDTree(loc_infos)
 
 location_matches = localizationTree.query_pairs(.05)
 # Only keep location matches that are distant in time-space, since these are the only ones that would be good for loop closure
-filtered_location_matches = [m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 15]
+filtered_location_matches = [
+    m for m in location_matches if localization_timestamps[m[1]] - localization_timestamps[m[0]] > 15]
 print(len(filtered_location_matches))
 print("Finished finding location matches")
 
@@ -76,8 +84,10 @@ with torch.no_grad():
     random_distances = []
     print("Evaluating some random embeddings...")
     for idx in range(2000):
-        scan1 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
-        scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
+        scan1 = scans[scan_timestamps[random.randint(
+            0, len(scan_timestamps) - 1)]]
+        scan2 = scans[scan_timestamps[random.randint(
+            0, len(scan_timestamps) - 1)]]
 
         embedding1, _, _ = embedding_for_scan(scan1)
         embedding2, _, _ = embedding_for_scan(scan2)
@@ -85,8 +95,10 @@ with torch.no_grad():
         random_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):
             correct += 1
-    print("For random embeddings (avg: {0}, med: {1}, stdev: {2})".format(mean(random_distances), median(random_distances), stdev(random_distances)))
-    print("{0} embeddings were 'close' out of {1} random locations".format(correct, len(random_distances)))
+    print("For random embeddings (avg: {0}, med: {1}, stdev: {2})".format(
+        statistics.mean(random_distances), statistics.median(random_distances), statistics.stdev(random_distances)))
+    print("{0} embeddings were 'close' out of {1} random locations".format(
+        correct, len(random_distances)))
     # for each location match, check if the embeddings are close
     print("Evaluating embeddings for matches...")
     match_distances = []
@@ -94,8 +106,9 @@ with torch.no_grad():
     for idx1, idx2 in filtered_location_matches:
         loc_time1 = localization_timestamps[idx1]
         loc_time2 = localization_timestamps[idx2]
-        [_, [scan_idx1, scan_idx2]] = scanTimeTree.query([[loc_time1], [loc_time2]])
-        
+        [_, [scan_idx1, scan_idx2]] = scanTimeTree.query(
+            [[loc_time1], [loc_time2]])
+
         scan1 = scans[scan_timestamps[scan_idx1]]
         scan2 = scans[scan_timestamps[scan_idx2]]
 
@@ -110,5 +123,7 @@ with torch.no_grad():
         # if len(match_distances) % 1000 == 0:
         #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
 
-    print("For embeddings that should have matched (avg: {0}, med: {1}, stdev: {2})".format(mean(match_distances), median(match_distances), stdev(match_distances)))
-    print("{0} embeddings were 'close' out of {1} potential loop closure locations".format(correct, len(match_distances)))
+    print("For embeddings that should have matched (avg: {0}, med: {1}, stdev: {2})".format(
+        mean(match_distances), median(match_distances), stdev(match_distances)))
+    print("{0} embeddings were 'close' out of {1} potential loop closure locations".format(
+        correct, len(match_distances)))

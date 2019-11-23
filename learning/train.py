@@ -11,7 +11,7 @@ import torch.utils.data
 import numpy as np
 from model import PointNetLC
 from pointnet.model import feature_transform_regularizer
-from dataset import LCDataset
+from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
 
 
@@ -41,7 +41,9 @@ parser.add_argument(
 parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument(
-    '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, test, train].')
+    '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
+parser.add_argument(
+    '--generate_embeddings', type=bool, default=False, help='if true, generate embeddings for test set in embeddings/*timestamp*')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='pretrained model to start with');
@@ -55,29 +57,9 @@ print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = LCDataset(
+dataset = LCTripletDataset(
     root=opt.dataset,
-    split=opt.train_set,
-    num_points=opt.num_points)
-
-test_dataset = LCDataset(
-    root=opt.dataset,
-    num_points=opt.num_points,
-    split='test')
-
-dataloader = torch.utils.data.DataLoader(
-    dataset,
-    batch_size=opt.batch_size,
-    shuffle=True,
-    num_workers=int(opt.workers),
-    drop_last=True)
-
-testdataloader = torch.utils.data.DataLoader(
-    test_dataset,
-    batch_size=opt.batch_size,
-    shuffle=True,
-    num_workers=int(opt.workers),
-    drop_last=True)
+    split=opt.train_set)
 
 try:
     os.makedirs(opt.outf)
@@ -94,27 +76,41 @@ embedder.cuda()
 lossFn = TripletLoss(1)
 num_batch = len(dataset) / opt.batch_size
 
+
+print("Loading training data into memory...")
+dataset.load_data()
+print("Finished loading training data")
+
 print("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
+
+    # We want to reload the triplets every 5 epochs to get new matches
+    if epoch % 5 == 0:
+        dataset.load_triplets()
+        dataloader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=opt.batch_size,
+            shuffle=True,
+            num_workers=int(opt.workers),
+            drop_last=True)
+
     for i, data in enumerate(dataloader, 0):
-        point_clouds, locations, fname = data
-        similar_point_clouds, sLoc = dataset.get_similar_points(locations)
-        distant_point_clouds, dLoc = dataset.get_distant_points(locations)
-        point_clouds = point_clouds.transpose(2, 1)
-        similar_point_clouds = similar_point_clouds.transpose(2, 1)
-        distant_point_clouds = distant_point_clouds.transpose(2, 1)
+        ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
+        clouds = clouds.transpose(2, 1)
+        similar_clouds = similar_clouds.transpose(2, 1)
+        distant_clouds = distant_clouds.transpose(2, 1)
         
-        point_clouds = point_clouds.cuda()
-        similar_point_clouds = similar_point_clouds.cuda()
-        distant_point_clouds = distant_point_clouds.cuda()
+        clouds = clouds.cuda()
+        similar_clouds = similar_clouds.cuda()
+        distant_clouds = distant_clouds.cuda()
 
         optimizer.zero_grad()
         embedder.train()
 
-        anchor_embeddings, trans, trans_feat = embedder(point_clouds)
-        similar_embeddings, sim_trans, sim_feat = embedder(similar_point_clouds)
-        distant_embeddings, dist_trans, dist_feat = embedder(distant_point_clouds)
+        anchor_embeddings, trans, trans_feat = embedder(clouds)
+        similar_embeddings, sim_trans, sim_feat = embedder(similar_clouds)
+        distant_embeddings, dist_trans, dist_feat = embedder(distant_clouds)
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
@@ -137,17 +133,30 @@ for epoch in range(opt.nepoch):
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
+
 print("Completed training for {0} epochs".format(epoch + 1))
-print("Generating output for test set...")
-OUTPUT_DIR = 'embeddings'
-embedder.eval()
-with torch.no_grad():
-    for i, data in enumerate(testdataloader, 0):
-        point_clouds, locations, fname = data
-        point_clouds = point_clouds.transpose(2, 1)
-        point_clouds = point_clouds.cuda()
 
-        embeddings, _, _ = embedder.forward(point_clouds)
+if opt.generate_embeddings:
+    test_dataset = LCDataset(
+        root=opt.dataset,
+        split='dev')
 
-        for i in range(len(embeddings)):
-            np.savetxt(os.path.join(OUTPUT_DIR, os.path.basename(fname[i])), embeddings[i].cpu().numpy())
+    testdataloader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=opt.batch_size,
+        shuffle=True,
+        num_workers=int(opt.workers),
+        drop_last=True)
+    print("Generating output for test set...")
+    OUTPUT_DIR = 'embeddings'
+    embedder.eval()
+    with torch.no_grad():
+        for i, data in enumerate(testdataloader, 0):
+            clouds, locations, timestamps = data
+            clouds = clouds.transpose(2, 1)
+            clouds = clouds.cuda()
+
+            embeddings, _, _ = embedder.forward(clouds)
+
+            for i in range(len(embeddings)):
+                np.savetxt(os.path.join(OUTPUT_DIR, os.path.basename(timestamps[i])), embeddings[i].cpu().numpy())
