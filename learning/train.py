@@ -77,8 +77,6 @@ testdataloader = torch.utils.data.DataLoader(
     num_workers=int(opt.workers),
     drop_last=True)
 
-print(len(dataset), len(test_dataset))
-
 try:
     os.makedirs(opt.outf)
 except OSError:
@@ -112,14 +110,21 @@ for epoch in range(opt.nepoch):
         embedder.train()
 
         anchor_embeddings, trans, trans_feat = embedder(point_clouds)
-        similar_embeddings, _, sim_feat = embedder(similar_point_clouds)
-        distant_embeddings, _, dist_feat = embedder(distant_point_clouds)
+        similar_embeddings, sim_trans, sim_feat = embedder(similar_point_clouds)
+        distant_embeddings, dist_trans, dist_feat = embedder(distant_point_clouds)
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
         loss += feature_transform_regularizer(trans_feat) * 1e-3
         loss += feature_transform_regularizer(sim_feat) * 1e-3
         loss += feature_transform_regularizer(dist_feat) * 1e-3
+
+        (U, S, V) = torch.svd(trans)
+        loss += torch.mean(torch.norm(trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
+        (U, S, V) = torch.svd(sim_trans)
+        loss += torch.mean(torch.norm(sim_trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
+        (U, S, V) = torch.svd(dist_trans)
+        loss += torch.mean(torch.norm(dist_trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
 
         loss.backward()
         optimizer.step()
