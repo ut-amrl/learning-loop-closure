@@ -47,16 +47,9 @@ for timestamp, cloud in list(scans.items()):
     location = localizations[locTimestamp]
     cloud_file_name = 'point_' + str(timestamp) + '.data'
     if not args.partitions_only:
-        f = open(base_path + cloud_file_name, 'w')
-        cloudString = ''
-        for p in cloud:
-            cloudString += '{0} {1} 0\n'.format(p[0], p[1])
-        f.write(cloudString)
-        f.close()
+        np.savetxt(base_path + cloud_file_name, cloud)
         loc_file_name = 'point_' + str(timestamp) + '.data.location'
-        f2 = open(base_path + loc_file_name, 'w')
-        f2.write('{0} {1} 0\n'.format(location[0], location[1]))
-        f2.close()
+        np.savetxt(base_path + loc_file_name, location)
     filenames.append(cloud_file_name)
 
 print ("Writing partition information...", len(filenames))

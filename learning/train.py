@@ -1,5 +1,7 @@
 import argparse
 import os
+import select
+import sys
 import random
 import torch
 import torch.nn.parallel
@@ -92,6 +94,7 @@ embedder.cuda()
 lossFn = TripletLoss(1)
 num_batch = len(dataset) / opt.batch_size
 
+print("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
     for i, data in enumerate(dataloader, 0):
@@ -131,4 +134,20 @@ for epoch in range(opt.nepoch):
         total_loss += loss.item()
     print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
+    if (len(select.select([sys.stdin], [], [], 0)[0])):
+        break
 
+print("Completed training for {0} epochs".format(epoch + 1))
+print("Generating output for test set...")
+OUTPUT_DIR = 'embeddings'
+embedder.eval()
+with torch.no_grad():
+    for i, data in enumerate(testdataloader, 0):
+        point_clouds, locations, fname = data
+        point_clouds = point_clouds.transpose(2, 1)
+        point_clouds = point_clouds.cuda()
+
+        embeddings, _, _ = embedder.forward(point_clouds)
+
+        for i in range(len(embeddings)):
+            np.savetxt(os.path.join(OUTPUT_DIR, os.path.basename(fname[i])), embeddings[i].cpu().numpy())

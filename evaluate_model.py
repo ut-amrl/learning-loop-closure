@@ -105,8 +105,8 @@ with torch.no_grad():
         match_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):
             correct += 1
-        else:
-            print("MISSED MATCH", loc_time1, localizations[loc_time1], loc_time2, localizations[loc_time2])
+        # else:
+        #     print("MISSED MATCH", loc_time1, localizations[loc_time1], loc_time2, localizations[loc_time2])
         # if len(match_distances) % 1000 == 0:
         #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
 

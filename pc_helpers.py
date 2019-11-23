@@ -1,7 +1,11 @@
 import numpy as np
-def scan_to_point_cloud(scan):
+def scan_to_point_cloud(scan, trim_edges=True):
     angle_offset = 0.0
+    if trim_edges:
+        scan.ranges = scan.ranges[4:-4]
+
     cloud = np.zeros((len(scan.ranges), 3)).astype(np.float32)
+
 
     for idx,r in enumerate(scan.ranges):
         if r >= scan.range_min and r <= scan.range_max:
