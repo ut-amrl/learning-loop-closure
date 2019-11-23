@@ -101,7 +101,7 @@ class LCTripletDataset(data.Dataset):
     def load_triplets(self):
         if not self.data_loaded:
             raise Exception('Call load_data before attempting to load triplets')
-        self.triplets.clear()
+        del self.triplets[:]
         # Compute triplets
         for cloud, location, timestamp in self.data:
             neighbors = self.location_tree.query_ball_point(
