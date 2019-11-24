@@ -11,7 +11,7 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
-CLOSE_DISTANCE_THRESHOLD = 0.05
+CLOSE_DISTANCE_THRESHOLD = 0.1
 FAR_DISTANCE_THRESHOLD = 0.5
 
 def get_point_cloud_from_file(filename):
@@ -108,8 +108,10 @@ class LCTripletDataset(data.Dataset):
             idx = random.randint(0, len(neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
+            print("neighbor count", len(neighbors))
             idx = random.randint(0, len(self.data) - 1)
-            while idx in neighbors:
+            far_neighbors = self.location_tree.query_ball_point(location, FAR_DISTANCE_THRESHOLD)
+            while idx in far_neighbors:
                 idx = random.randint(0, len(self.data) - 1)
             distant_cloud, distant_loc, distant_timestamp = self.data[idx]
             self.triplets.append((
