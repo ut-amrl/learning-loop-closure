@@ -50,7 +50,7 @@ class LCDataset(data.Dataset):
         location = np.loadtxt(location_file).astype(np.float32)
         cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
 
-        return cloud, location, timestamp
+        return cloud, location[:2], timestamp
 
     def __len__(self):
         return len(self.file_list)
@@ -93,7 +93,7 @@ class LCTripletDataset(data.Dataset):
                 cloud[:, :] = cloud[:, :].dot(rotation_matrix)
                 # random jitter
                 cloud += np.random.normal(0, 0.02, size=cloud.shape)
-            self.data.append((cloud, location, timestamp))
+            self.data.append((cloud, location[:2], timestamp))
 
         self.location_tree = KDTree(np.asarray([d[1] for d in self.data]))
         self.data_loaded = True
@@ -104,8 +104,7 @@ class LCTripletDataset(data.Dataset):
         del self.triplets[:]
         # Compute triplets
         for cloud, location, timestamp in self.data:
-            neighbors = self.location_tree.query_ball_point(
-                location, CLOSE_DISTANCE_THRESHOLD)
+            neighbors = self.location_tree.query_ball_point(location, CLOSE_DISTANCE_THRESHOLD)
             idx = random.randint(0, len(neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 

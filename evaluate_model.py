@@ -5,8 +5,7 @@ import random
 import torch
 import statistics
 from learning.model import PointNetLC
-from learning.dataset import normalize_point_cloud
-from pc_helpers import scan_to_point_cloud
+from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag, embedding_for_scan
 from scipy import spatial
 
 parser = argparse.ArgumentParser(
@@ -32,21 +31,13 @@ print("Bag has ", bag.get_message_count(topic_filters=[
 print("Start time:", bag.get_start_time())
 print("End time:", bag.get_end_time())
 
-last_loc_timestamp = 0.0
-last_scan_timestamp = 0.0
 start_time = bag.get_start_time()
-for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
-    timestamp = t.secs + t.nsecs * 1e-9 - start_time
-    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > 0.1):
-        last_scan_timestamp = timestamp
-        scans[timestamp] = scan_to_point_cloud(msg)
-    elif (topic == args.localization_topic and timestamp - last_loc_timestamp > 0.15):
-        localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
-        last_loc_timestamp = timestamp
-bag.close()
+SCAN_TIMESTEP = 0.1
+LOC_TIMESTEP = 0.15
+scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
+
 print("Finished processing Bag file", len(scans.keys()),
       "scans", len(localizations.keys()), "localizations")
-
 
 print("Finding location matches")
 localization_timestamps = sorted(localizations.keys())
@@ -71,26 +62,16 @@ with torch.no_grad():
     model.cuda()
     print("Finished loading embedding model")
 
-    def embedding_for_scan(scan):
-        normalized_cloud = normalize_point_cloud(scan)
-        point_set = torch.tensor([normalized_cloud])
-        point_set = point_set.transpose(2, 1)
-        point_set = point_set.cuda()
-        return model(point_set)
-        del point_set
-
     DISTANCE_THRESHOLD = 10
     correct = 0
     random_distances = []
     print("Evaluating some random embeddings...")
     for idx in range(2000):
-        scan1 = scans[scan_timestamps[random.randint(
-            0, len(scan_timestamps) - 1)]]
-        scan2 = scans[scan_timestamps[random.randint(
-            0, len(scan_timestamps) - 1)]]
+        scan1 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
+        scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
 
-        embedding1, _, _ = embedding_for_scan(scan1)
-        embedding2, _, _ = embedding_for_scan(scan2)
+        embedding1, _, _ = embedding_for_scan(model, scan1)
+        embedding2, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         random_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):
@@ -112,8 +93,8 @@ with torch.no_grad():
         scan1 = scans[scan_timestamps[scan_idx1]]
         scan2 = scans[scan_timestamps[scan_idx2]]
 
-        embedding1, _, _ = embedding_for_scan(scan1)
-        embedding2, _, _ = embedding_for_scan(scan2)
+        embedding1, _, _ = embedding_for_scan(model, scan1)
+        embedding2, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         match_distances.append(distance)
         if (distance < DISTANCE_THRESHOLD):

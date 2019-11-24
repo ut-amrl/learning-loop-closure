@@ -8,7 +8,7 @@ import torch
 import time
 from learning.model import PointNetLC
 from learning.dataset import normalize_point_cloud
-from pc_helpers import scan_to_point_cloud
+from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 from scipy import spatial
 
 # THIS IS STILL WIP AND DOESN"T REALLY WORK YET
@@ -22,20 +22,9 @@ parser.add_argument('--model', type=str, help='state dict of an already trained 
 args = parser.parse_args()
 bag = rosbag.Bag(args.bag_file)
 
-scans = {}
-localizations = {}
-
 print ("Loading scans & Localization from Bag file")
-last_timestamp = 0.0
-for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
-    timestamp = t.secs + t.nsecs * 1e-9
-    if (timestamp - last_timestamp) > 0.1:
-        last_timestamp = timestamp
-        if (topic == args.lidar_topic):
-            scans[timestamp] = scan_to_point_cloud(msg)
-        elif (topic == args.localization_topic):
-            localizations[timestamp] = msg
-bag.close()
+TIMESTEP = 0.1
+scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP, TIMESTEP)
 print ("Finished processing Bag file", len(scans.keys()), "scans")
 
 with torch.no_grad():

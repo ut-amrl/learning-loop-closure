@@ -5,7 +5,7 @@ import os
 import random
 import json
 from scipy import spatial
-from pc_helpers import scan_to_point_cloud
+from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
 TIME_SPACING = 0.025
 TRAIN_SPLIT = 0.15
@@ -24,7 +24,6 @@ parser.add_argument('--dataset_name', type=str,
 parser.add_argument('--info_only', type=bool,
                     help='if set, only write dataset_info.json, assuming the data has already been written')
 
-
 args = parser.parse_args()
 bag = rosbag.Bag(args.bag_file)
 
@@ -35,25 +34,14 @@ dataset_info = {
     'sourceBag': os.path.abspath(args.bag_file),
     'startTime': start_timestamp,
 }
-scans = {}
-localizations = {}
-last_scan_timestamp = 0
 
 print("Loading scans & Localization from Bag file")
-for topic, msg, t in bag.read_messages(topics=[args.lidar_topic, args.localization_topic]):
-    timestamp = t.secs + t.nsecs * 1e-9 - start_timestamp
-    if (topic == args.lidar_topic and timestamp - last_scan_timestamp > TIME_SPACING):
-        last_scan_timestamp = timestamp
-        scans[timestamp] = [] if args.info_only else scan_to_point_cloud(msg)
-    elif (topic == args.localization_topic):
-        localizations[timestamp] = np.asarray([msg.x, msg.y])
-bag.close()
+scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIME_SPACING)
 print("Finished processing Bag file")
 
 dataset_info['numScans'] = len(scans.keys())
 
-localizationTree = spatial.KDTree([list([l])
-                                   for l in sorted(localizations.keys())])
+localizationTree = spatial.KDTree([list([l]) for l in sorted(localizations.keys())])
 
 base_path = './data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
