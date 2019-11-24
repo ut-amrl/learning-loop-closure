@@ -105,6 +105,6 @@ with torch.no_grad():
         #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
 
     print("For embeddings that should have matched (avg: {0}, med: {1}, stdev: {2})".format(
-        mean(match_distances), median(match_distances), stdev(match_distances)))
+        statistics.mean(match_distances), statistics.median(match_distances), statistics.stdev(match_distances)))
     print("{0} embeddings were 'close' out of {1} potential loop closure locations".format(
         correct, len(match_distances)))

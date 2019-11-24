@@ -11,14 +11,12 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
-CLOSE_DISTANCE_THRESHOLD = 0.25
-FAR_DISTANCE_THRESHOLD = 0.75
-
+CLOSE_DISTANCE_THRESHOLD = 0.05
+FAR_DISTANCE_THRESHOLD = 0.5
 
 def get_point_cloud_from_file(filename):
     point_set = np.loadtxt(filename).astype(np.float32)
     return normalize_point_cloud(point_set)
-
 
 def normalize_point_cloud(point_set):
     point_set = point_set - \
@@ -60,9 +58,11 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 data_augmentation=False):
+                 jitter_augmentation=True,
+                 person_augmentation=False):
         self.root = root
-        self.data_augmentation = data_augmentation
+        self.jitter_augmentation = jitter_augmentation
+        self.person_augmentation = person_augmentation
         self.split = split
 
         info_file = os.path.join(self.root, 'dataset_info.json')
@@ -83,7 +83,7 @@ class LCTripletDataset(data.Dataset):
             location = np.loadtxt(location_file).astype(np.float32)
             cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
             # random perturbations, because why not
-            if self.data_augmentation:
+            if self.jitter_augmentation:
                 theta = np.random.uniform(0, np.pi*2)
                 rotation_matrix = np.array([
                     [np.cos(theta), -np.sin(theta)],

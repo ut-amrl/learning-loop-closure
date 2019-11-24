@@ -67,27 +67,26 @@ except OSError:
     pass
 
 embedder = PointNetLC()
-
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
+embedder.cuda()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
-embedder.cuda()
-lossFn = TripletLoss(1)
-num_batch = len(dataset) / opt.batch_size
 
-
-print("Loading training data into memory...")
+print("Loading training data into memory...", )
 dataset.load_data()
-print("Finished loading training data")
+print("Finished loading training data.")
+lossFn = TripletLoss(5)
 
 print("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
 
     # We want to reload the triplets every 5 epochs to get new matches
-    if epoch % 10 == 0:
+    if epoch % 15 == 0:
         dataset.load_triplets()
+        batch_count = len(dataset) // opt.batch_size
+        print("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
         dataloader = torch.utils.data.DataLoader(
             dataset,
             batch_size=opt.batch_size,
@@ -106,6 +105,7 @@ for epoch in range(opt.nepoch):
         distant_clouds = distant_clouds.cuda()
 
         optimizer.zero_grad()
+        embedder.zero_grad()
         embedder.train()
 
         anchor_embeddings, trans, trans_feat = embedder(clouds)
@@ -119,11 +119,11 @@ for epoch in range(opt.nepoch):
         loss += feature_transform_regularizer(dist_feat) * 1e-3
 
         (U, S, V) = torch.svd(trans)
-        loss += torch.mean(torch.norm(trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
+        loss += torch.mean(torch.norm(trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
         (U, S, V) = torch.svd(sim_trans)
-        loss += torch.mean(torch.norm(sim_trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
+        loss += torch.mean(torch.norm(sim_trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
         (U, S, V) = torch.svd(dist_trans)
-        loss += torch.mean(torch.norm(dist_trans - torch.bmm(U, V), dim=(1,2))) * 1e-2;
+        loss += torch.mean(torch.norm(dist_trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
 
         loss.backward()
         optimizer.step()
@@ -132,7 +132,6 @@ for epoch in range(opt.nepoch):
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
-
 
 print("Completed training for {0} epochs".format(epoch + 1))
 

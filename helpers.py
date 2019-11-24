@@ -68,8 +68,7 @@ def create_ros_pointcloud():
     msg.is_dense = True
     return msg
 
-def publish_ros_pointcloud(publisher, msg, clouds):
-    for cloud in clouds:
-        msg.data += cloud.tobytes()
-        msg.width += len(cloud)
+def publish_ros_pointcloud(publisher, msg, cloud):
+    msg.data += cloud.tobytes()
+    msg.width += len(cloud)
     publisher.publish(msg)
