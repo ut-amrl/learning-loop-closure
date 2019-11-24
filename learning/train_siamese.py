@@ -58,10 +58,11 @@ print("Loading training data into memory...", )
 dataset.load_data()
 print("Finished loading training data.")
 
-lossFunc = torch.nn.BCEWithLogitsLoss().cuda()
+lossFunc = torch.nn.NLLLoss().cuda()
 
-pos_labels = torch.tensor(np.zeros((opt.batch_size, 1))).cuda()
-neg_labels = torch.tensor(np.ones((opt.batch_size, 1))).cuda()
+pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
+neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
+labels = torch.cat([pos_labels, neg_labels], 0)
 
 print("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
@@ -93,10 +94,9 @@ for epoch in range(opt.nepoch):
         embedder.zero_grad()
         embedder.train()
 
-        pos_scores = embedder(clouds, similar_clouds)
-        neg_scores = embedder(clouds, distant_clouds)
-        loss = lossFunc(pos_scores, pos_labels)
-        loss += lossFunc(neg_scores, neg_labels)
+        scores = embedder(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
+        loss = lossFunc(scores, labels)
+
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
