@@ -1,13 +1,12 @@
 import rosbag
 import rospy
-from rospy.numpy_msg import numpy_msg
-from sensor_msgs.msg import PointCloud2, PointField
 import numpy as np
 from scipy import spatial
 import torch
 import argparse
 from learning.model import PointNetLC
-from helpers import get_scans_and_localizations_from_bag, embedding_for_scan
+from sensor_msgs.msg import PointCloud2
+from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud
 
 TIMESTEP = 1.5
 
@@ -39,7 +38,7 @@ print("Finished processing Bag file", len(scans.keys()), "scans", len(localizati
 localization_timestamps = sorted(localizations.keys())
 localizationTimeTree = spatial.KDTree([[t] for t in localization_timestamps])
 
-point_pub = rospy.Publisher('points', numpy_msg(PointCloud2), queue_size=10)
+point_pub = rospy.Publisher('points', PointCloud2, queue_size=10)
 skipped_point_pub = rospy.Publisher('skipped_points', PointCloud2, queue_size=10)
 rospy.init_node('visualizer', anonymous=True)
 
@@ -61,16 +60,6 @@ with torch.no_grad():
         location_distance = torch.norm(location[:2] - last_location[:2]).item()
         print("Embedding Dist: {0}; Real World Distance: {1}".format(round(distance, 3), round(location_distance, 3)))
 
-        msg = PointCloud2()
-        msg.fields = [
-            PointField('0', 0, PointField.FLOAT32, 1),
-            PointField('1', 4, PointField.FLOAT32, 1),
-            PointField('2', 8, PointField.FLOAT32, 1)
-        ]
-        msg.header.frame_id = '/map'
-        # msg.header.stamp = 
-        msg.height = cloud.shape[0]
-        msg.width = cloud.shape[1]
         # Transform the cloud based on its location
         augmented_cloud = np.zeros(cloud.shape).astype(np.float32)
         loc = location.numpy()
@@ -79,17 +68,12 @@ with torch.no_grad():
 
         for i in range(cloud.shape[0]):
             augmented_cloud[i][:2] = np.matmul(rotation, cloud[i][:2]) + [loc[0], loc[1]]
-
-        msg.data = augmented_cloud.tostring()
-        msg.point_step = cloud.dtype.itemsize
-        msg.row_step = cloud.dtype.itemsize * augmented_cloud.shape[0]
-        msg.is_dense = int(np.isfinite(augmented_cloud).all())
-        msg.is_bigendian = False
-
+        
+        msg = create_ros_pointcloud()
         if (distance > args.threshold):
             last_embedding = embedding
             last_location = location
             print("Chose to visualize at {0}".format(round(timestamp, 2)))
-            point_pub.publish(msg)
+            publish_ros_pointcloud(point_pub, msg, augmented_cloud)
         else:
-            skipped_point_pub.publish(msg)
+            publish_ros_pointcloud(skipped_point_pub, msg, augmented_cloud)

@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 from learning.dataset import normalize_point_cloud
+from sensor_msgs.msg import PointCloud2, PointField
+from rospy import rostime
 
 def scan_to_point_cloud(scan, trim_edges=True):
     angle_offset = 0.0
@@ -46,3 +48,28 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
             localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
 
     return scans, localizations
+
+
+def create_ros_pointcloud():
+    msg = PointCloud2()
+    msg.header.frame_id="map"
+    msg.header.stamp = rostime.Time.now()
+    msg.header.seq = 1
+    msg.fields = [
+        PointField('x', 0, 7, 1),
+        PointField('y', 4, 7, 1),
+        PointField('z', 8, 7, 1)
+    ]
+    msg.height = 1
+    msg.width = 0
+    msg.is_bigendian = False
+    msg.point_step = 12
+    msg.row_step = 0
+    msg.is_dense = True
+    return msg
+
+def publish_ros_pointcloud(publisher, msg, clouds):
+    for cloud in clouds:
+        msg.data += cloud.tobytes()
+        msg.width += len(cloud)
+    publisher.publish(msg)
