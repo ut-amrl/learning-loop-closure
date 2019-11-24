@@ -7,15 +7,14 @@ import torch.nn.functional as F
 class PointNetSiamese(nn.Module):
     def __init__(self):
         super(PointNetSiamese, self).__init__()
-        self.first = PointNetLC()
-        self.second = PointNetLC()
+        self.embedding = PointNetLC()
         self.dropout = nn.Dropout(0.15)
         self.ff = nn.Linear(512, 1)
         nn.init.xavier_uniform_(self.ff.weight)
     
     def forward(self, x, y):
-        first_emb, _, _ = self.first(x)
-        second_emb, _, _ = self.second(y)
+        first_emb, _, _ = self.embedding(x)
+        second_emb, _, _ = self.embedding(y)
 
         comparison = self.ff(self.dropout(torch.cat([first_emb, second_emb], 1)))
 
