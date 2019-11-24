@@ -10,8 +10,7 @@ class PointNetSiamese(nn.Module):
         self.first = PointNetLC()
         self.second = PointNetLC()
         self.dropout = nn.Dropout(0.15)
-        self.ff = nn.Linear(512, 2)
-        self.logSoftMax = torch.nn.LogSoftmax(dim=1)
+        self.ff = nn.Linear(512, 1)
         nn.init.xavier_uniform_(self.ff.weight)
     
     def forward(self, x, y):
@@ -19,9 +18,8 @@ class PointNetSiamese(nn.Module):
         second_emb, _, _ = self.second(y)
 
         comparison = self.ff(self.dropout(torch.cat([first_emb, second_emb], 1)))
-        label_scores = self.logSoftMax(comparison)
 
-        return label_scores
+        return comparison
 
 
 class PointNetLC(nn.Module):

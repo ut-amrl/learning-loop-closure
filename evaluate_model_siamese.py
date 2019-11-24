@@ -76,7 +76,6 @@ with torch.no_grad():
         scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
         scores = model(create_input(scan1), create_input(scan2))
 
-        print(scores)
         match = torch.argmax(scores)
         if (match == 0):
             matches += 1

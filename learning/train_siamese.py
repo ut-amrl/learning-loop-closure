@@ -58,10 +58,10 @@ print("Loading training data into memory...", )
 dataset.load_data()
 print("Finished loading training data.")
 
-lossFunc = torch.nn.NLLLoss().cuda()
+lossFunc = torch.nn.BCEWithLogitsLoss().cuda()
 
-pos_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
-neg_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
+pos_labels = torch.tensor(np.zeros((opt.batch_size, 1))).cuda()
+neg_labels = torch.tensor(np.ones((opt.batch_size, 1))).cuda()
 
 print("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):

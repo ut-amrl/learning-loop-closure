@@ -2,6 +2,7 @@ data/*
 .vscode/*
 learning/__pycache__/*
 learning/cls/*
+learning/cls_siamese/*
 learning/embeddings/*
 __pycache__/*
 visualize_loop_closure/temp_pc_file.txt
