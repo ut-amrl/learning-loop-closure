@@ -108,7 +108,6 @@ class LCTripletDataset(data.Dataset):
             idx = random.randint(0, len(neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
-            print("neighbor count", len(neighbors))
             idx = random.randint(0, len(self.data) - 1)
             far_neighbors = self.location_tree.query_ball_point(location, FAR_DISTANCE_THRESHOLD)
             while idx in far_neighbors:
