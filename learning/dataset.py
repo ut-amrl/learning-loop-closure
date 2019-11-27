@@ -7,6 +7,7 @@ import torch
 import numpy as np
 import sys
 import random
+import math
 from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
@@ -26,7 +27,6 @@ def normalize_point_cloud(point_set):
     dist = np.max(np.sqrt(np.sum(point_set ** 2, axis=1)), 0)
     point_set = point_set / dist  # scale
     return point_set
-
 
 class LCDataset(data.Dataset):
     def __init__(self,
@@ -53,7 +53,6 @@ class LCDataset(data.Dataset):
     def __len__(self):
         return len(self.file_list)
 
-
 class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -68,6 +67,7 @@ class LCTripletDataset(data.Dataset):
         info_file = os.path.join(self.root, 'dataset_info.json')
         #from IPython import embed; embed()
         self.dataset_info = json.load(open(info_file, 'r'))
+        self.overlap_radius = self.dataset_info['scanMetadata']['range_max'] * 0.4 if 'scanMetadata' in self.dataset_info else 4
         self.data_loaded = False
         self.triplets_loaded = False
         self.data = []
@@ -93,9 +93,9 @@ class LCTripletDataset(data.Dataset):
                 cloud[:, :] = cloud[:, :].dot(rotation_matrix)
                 # random jitter
                 cloud += np.random.normal(0, 0.02, size=cloud.shape)
-            self.data.append((cloud, location[:2], timestamp))
+            self.data.append((cloud, location, timestamp))
 
-        self.location_tree = KDTree(np.asarray([d[1] for d in self.data]))
+        self.location_tree = KDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True
 
     def load_triplets(self):
@@ -104,13 +104,13 @@ class LCTripletDataset(data.Dataset):
         del self.triplets[:]
         # Compute triplets
         for cloud, location, timestamp in self.data:
-            neighbors = self.location_tree.query_ball_point(location, CLOSE_DISTANCE_THRESHOLD)
-            idx = random.randint(0, len(neighbors) - 1)
+            neighbors = self.location_tree.query_ball_point(location[:2], 2 * self.overlap_radius)
+            filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
+            idx = random.randint(0, len(filtered_neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
             idx = random.randint(0, len(self.data) - 1)
-            far_neighbors = self.location_tree.query_ball_point(location, FAR_DISTANCE_THRESHOLD)
-            while idx in far_neighbors:
+            while idx in filtered_neighbors:
                 idx = random.randint(0, len(self.data) - 1)
             distant_cloud, distant_loc, distant_timestamp = self.data[idx]
             self.triplets.append((
@@ -120,6 +120,37 @@ class LCTripletDataset(data.Dataset):
             ))
 
         self.triplets_loaded = True
+
+    def filter_scan_matches(self, location, neighbors):
+        return np.asarray(list(filter(self.check_overlap(location), neighbors)))
+
+    def check_overlap(self, location):
+        radius = self.overlap_radius
+        threshold = math.pi * math.pow(radius, 2) * 0.75
+        def compute_overlap(loc, neighborIndex):
+            locB = self.data[neighborIndex][1]
+            d = math.sqrt(math.pow((locB[0] - loc[0]), 2) + math.pow((locB[1] - loc[1]), 2))
+
+            if d == 0:
+                if abs(locB[2] - loc[2]) < math.pi * 0.75:
+                    return 0
+                else:
+                    return threshold
+
+            if d < 2 * radius:
+                sqr = radius * radius
+
+                x = (d * d) / (2 * d)
+                z = x * x
+                y = math.sqrt(sqr - z)
+
+                overlap = sqr * math.asin(y / radius) + sqr * math.asin(y / radius) - y * (x + math.sqrt(z))
+                print("Overlap", overlap, "THRESHOLD", threshold)
+
+                return overlap
+            return 0
+
+        return lambda l: compute_overlap(location, l) > threshold
 
     def __getitem__(self, index):
         if not self.triplets_loaded:

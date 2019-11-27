@@ -34,7 +34,7 @@ print("End time:", bag.get_end_time())
 start_time = bag.get_start_time()
 SCAN_TIMESTEP = 0.1
 LOC_TIMESTEP = 0.15
-scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
+scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
 
 print("Finished processing Bag file", len(scans.keys()),
       "scans", len(localizations.keys()), "localizations")
@@ -72,8 +72,12 @@ with torch.no_grad():
     print("Evaluating some random embeddings...")
     matches = 0
     for idx in range(2000):
-        scan1 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
-        scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
+        scan_ts_1 = scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]
+        scan_ts_2 = scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]
+        while abs(scan_ts_2 - scan_ts_1) < 3:
+            scan_ts_2 = scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]
+        scan1 = scans[scan_ts_1]
+        scan2 = scans[scan_ts_2]
         scores = model(create_input(scan1), create_input(scan2))
 
         match = torch.argmax(scores)

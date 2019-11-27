@@ -80,6 +80,9 @@ for epoch in range(opt.nepoch):
             num_workers=int(opt.workers),
             drop_last=True)
 
+    total_predictions = [0, 0]
+    correct_predictions = 0
+
     for i, data in enumerate(dataloader, 0):
         ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
         clouds = clouds.transpose(2, 1)
@@ -95,12 +98,22 @@ for epoch in range(opt.nepoch):
         embedder.train()
 
         scores = embedder(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
+        predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
+
+        for i in range(len(predictions)):
+            if predictions[i].item() == labels[i].item():
+                correct_predictions += 1
+
+            if predictions[i].item():
+                total_predictions[0] += 1
+            else:
+                total_predictions[1] += 1
 
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
+    print('[Epoch %d] Total loss: %f, predictions: (Y: %d, N: %d, Correct: %d)' % (epoch, total_loss, total_predictions[0], total_predictions[1], correct_predictions))
     torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break

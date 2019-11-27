@@ -24,7 +24,7 @@ bag = rosbag.Bag(args.bag_file)
 
 print ("Loading scans & Localization from Bag file")
 TIMESTEP = 0.1
-scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP, TIMESTEP)
+scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP, TIMESTEP)
 print ("Finished processing Bag file", len(scans.keys()), "scans")
 
 with torch.no_grad():

@@ -18,7 +18,8 @@ parser.add_argument('--localization_topic', type=str,
                     help='name of topic containing localization information')
 parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
-
+parser.add_argument('--threshold', type=int,
+                    help='distance threshold for saying things are "close"')
 args = parser.parse_args()
 bag = rosbag.Bag(args.bag_file)
 
@@ -34,7 +35,7 @@ print("End time:", bag.get_end_time())
 start_time = bag.get_start_time()
 SCAN_TIMESTEP = 0.1
 LOC_TIMESTEP = 0.15
-scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
+scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
 
 print("Finished processing Bag file", len(scans.keys()),
       "scans", len(localizations.keys()), "localizations")
@@ -74,7 +75,7 @@ with torch.no_grad():
         embedding2, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         random_distances.append(distance)
-        if (distance < DISTANCE_THRESHOLD):
+        if (distance < args.threshold):
             correct += 1
     print("For random embeddings (avg: {0}, med: {1}, stdev: {2})".format(
         statistics.mean(random_distances), statistics.median(random_distances), statistics.stdev(random_distances)))
@@ -97,7 +98,7 @@ with torch.no_grad():
         embedding2, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         match_distances.append(distance)
-        if (distance < DISTANCE_THRESHOLD):
+        if (distance < args.threshold):
             correct += 1
         # else:
         #     print("MISSED MATCH", loc_time1, localizations[loc_time1], loc_time2, localizations[loc_time2])

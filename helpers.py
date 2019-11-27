@@ -35,19 +35,27 @@ def embedding_for_scan(model, scan):
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
     localizations = {}
     scans = {}
+    metadata = {}
     start_time = bag.get_start_time()
     last_scan_time = -10
     last_localization_time = -10
     for topic, msg, t in bag.read_messages(topics=[lidar_topic, localization_topic]):
         timestamp = t.secs + t.nsecs * 1e-9 - start_time
         if (topic == lidar_topic and timestamp - last_scan_time > scan_timestep):
+            if not 'range_max' in metadata:
+                metadata['range_max'] = msg.range_max
+                metadata['range_min'] = msg.range_min
+                metadata['angle_min'] = msg.angle_min
+                metadata['angle_max'] = msg.angle_max
+                metadata['angle_increment'] = msg.angle_increment
+
             last_scan_time = timestamp
             scans[timestamp] = scan_to_point_cloud(msg)
         elif (topic == localization_topic and timestamp - last_localization_time > loc_timestep):
             last_localization_time = timestamp
             localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
 
-    return scans, localizations
+    return scans, localizations, metadata
 
 
 def create_ros_pointcloud():

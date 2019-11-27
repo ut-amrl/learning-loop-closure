@@ -32,7 +32,7 @@ print("Loading scans & Localization from Bag file")
 print("Bag has ", bag.get_message_count(topic_filters=[args.localization_topic]), " Localization messages")
 print("Start time:", bag.get_start_time())
 print("End time:", bag.get_end_time())
-scans, localizations = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP)
+scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP)
 print("Finished processing Bag file", len(scans.keys()), "scans", len(localizations.keys()), "localizations")
 
 localization_timestamps = sorted(localizations.keys())
