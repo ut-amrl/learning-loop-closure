@@ -5,6 +5,7 @@ learning/cls/*
 learning/cls_siamese/*
 learning/embeddings/*
 __pycache__/*
+**/*.pth
 visualize_loop_closure/temp_pc_file.txt
 bin
 cmake-build-debug
