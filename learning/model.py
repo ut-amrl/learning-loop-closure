@@ -18,7 +18,10 @@ class S2Net(nn.Module):
             [c, s],
             [-s, c]
         ])
-        return torch.mm(rotation, x) + self.translate
+        rotation = rotation.repeat([x.shape[0]])
+        rotation = rotation.repeat([x.shape[0]])
+        translation = torch.expand(self.translate, x.shape)
+        return torch.bmm(rotation, x) + translation
 
 class EmbeddingNet(nn.Module):
     def __init__(self):
@@ -55,14 +58,16 @@ class FullNet(nn.Module):
     def __init__(self):
         super(FullNet, self).__init__()
         self.embedding = EmbeddingNet()
+        self.dropout = nn.Dropout(0.2)
         self.ff = nn.Linear(256, 2)
         self.softmax = nn.LogSoftmax(dim=1)
+        nn.init.xavier_uniform_(self.ff.weight)
 
     def forward(self, x, y):
         x_emb, x_trans, _ = self.embedding(x)
         y_emb, y_trans, _ = self.embedding(y)
 
-        scores = self.ff(torch.cat(x_emb, y_emb))
+        scores = self.ff(self.dropout(torch.cat(x_emb, y_emb)))
 
         out = self.LogSoftmax(scores)
 
