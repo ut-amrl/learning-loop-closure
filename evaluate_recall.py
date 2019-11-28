@@ -8,7 +8,7 @@ import statistics
 import math
 from geometry_msgs.msg import Pose
 
-from learning.model import PointNetLC
+from learning.model import EmbeddingNet
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag, embedding_for_scan
 from scipy import spatial
 
@@ -62,7 +62,7 @@ scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
 
 with torch.no_grad():
     print("Loading embedding model...")
-    model = PointNetLC()
+    model = EmbeddingNet()
     model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()

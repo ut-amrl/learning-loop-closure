@@ -104,8 +104,9 @@ class LCTripletDataset(data.Dataset):
         del self.triplets[:]
         # Compute triplets
         for cloud, location, timestamp in self.data:
-            neighbors = self.location_tree.query_ball_point(location[:2], 2 * self.overlap_radius)
-            filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
+            neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+            filtered_neighbors = neighbors
+            # filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
             idx = random.randint(0, len(filtered_neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
