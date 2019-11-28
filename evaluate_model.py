@@ -4,7 +4,7 @@ import numpy as np
 import random
 import torch
 import statistics
-from learning.model import PointNetLC
+from learning.model import EmbeddingNet
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag, embedding_for_scan
 from scipy import spatial
 
@@ -57,13 +57,12 @@ scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
 
 with torch.no_grad():
     print("Loading embedding model...")
-    model = PointNetLC()
+    model = EmbeddingNet()
     model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()
     print("Finished loading embedding model")
 
-    DISTANCE_THRESHOLD = 10
     correct = 0
     random_distances = []
     print("Evaluating some random embeddings...")
@@ -71,8 +70,8 @@ with torch.no_grad():
         scan1 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
         scan2 = scans[scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]]
 
-        embedding1, _, _ = embedding_for_scan(model, scan1)
-        embedding2, _, _ = embedding_for_scan(model, scan2)
+        embedding1, _, _, _ = embedding_for_scan(model, scan1)
+        embedding2, _, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         random_distances.append(distance)
         if (distance < args.threshold):
@@ -94,8 +93,8 @@ with torch.no_grad():
         scan1 = scans[scan_timestamps[scan_idx1]]
         scan2 = scans[scan_timestamps[scan_idx2]]
 
-        embedding1, _, _ = embedding_for_scan(model, scan1)
-        embedding2, _, _ = embedding_for_scan(model, scan2)
+        embedding1, _, _, _ = embedding_for_scan(model, scan1)
+        embedding2, _, _, _ = embedding_for_scan(model, scan2)
         distance = torch.norm(embedding1 - embedding2).item()
         match_distances.append(distance)
         if (distance < args.threshold):
