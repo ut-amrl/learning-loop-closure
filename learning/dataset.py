@@ -145,7 +145,6 @@ class LCTripletDataset(data.Dataset):
                 y = math.sqrt(sqr - z)
 
                 overlap = sqr * math.asin(y / radius) + sqr * math.asin(y / radius) - y * (x + math.sqrt(z))
-                print("Overlap", overlap, "THRESHOLD", threshold)
 
                 return overlap
             return 0

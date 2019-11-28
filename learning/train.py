@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
-from model import PointNetLC
+from model import EmbeddingNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
@@ -66,7 +66,7 @@ try:
 except OSError:
     pass
 
-embedder = PointNetLC()
+embedder = EmbeddingNet()
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
 embedder.cuda()
@@ -108,22 +108,15 @@ for epoch in range(opt.nepoch):
         embedder.zero_grad()
         embedder.train()
 
-        anchor_embeddings, trans, trans_feat = embedder(clouds)
-        similar_embeddings, sim_trans, sim_feat = embedder(similar_clouds)
-        distant_embeddings, dist_trans, dist_feat = embedder(distant_clouds)
+        anchor_embeddings, trans_feat, trans, theta = embedder(clouds)
+        similar_embeddings, sim_feat, sim_trans, sim_theta = embedder(similar_clouds)
+        distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
         loss += feature_transform_regularizer(trans_feat) * 1e-3
         loss += feature_transform_regularizer(sim_feat) * 1e-3
         loss += feature_transform_regularizer(dist_feat) * 1e-3
-
-        (U, S, V) = torch.svd(trans)
-        loss += torch.mean(torch.norm(trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
-        (U, S, V) = torch.svd(sim_trans)
-        loss += torch.mean(torch.norm(sim_trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
-        (U, S, V) = torch.svd(dist_trans)
-        loss += torch.mean(torch.norm(dist_trans - torch.bmm(U, V), dim=(1,2))) * 1e-3;
 
         loss.backward()
         optimizer.step()
