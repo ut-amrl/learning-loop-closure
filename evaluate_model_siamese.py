@@ -4,7 +4,7 @@ import numpy as np
 import random
 import torch
 import statistics
-from learning.model import PointNetSiamese
+from learning.model import FullNet
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag, normalize_point_cloud
 from scipy import spatial
 
@@ -56,7 +56,7 @@ scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
 
 with torch.no_grad():
     print("Loading embedding model...")
-    model = PointNetSiamese()
+    model = FullNet()
     model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()
@@ -64,10 +64,10 @@ with torch.no_grad():
     
     def create_input(scan):
         normalized_cloud = normalize_point_cloud(scan)
-        cloud = torch.tensor([normalized_cloud])
-        cloud = cloud.transpose(2, 1)
-        cloud = cloud.cuda()
-        return cloud
+    cloud = torch.tensor([normalized_cloud])
+    cloud = cloud.transpose(2, 1)
+    cloud = cloud.cuda()
+    return cloud
 
     print("Evaluating some random embeddings...")
     matches = 0
@@ -78,7 +78,7 @@ with torch.no_grad():
             scan_ts_2 = scan_timestamps[random.randint(0, len(scan_timestamps) - 1)]
         scan1 = scans[scan_ts_1]
         scan2 = scans[scan_ts_2]
-        scores = model(create_input(scan1), create_input(scan2))
+        scores, trans, rot = model(create_input(scan1), create_input(scan2))
 
         match = torch.argmax(scores)
         if (match == 0):

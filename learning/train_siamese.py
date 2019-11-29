@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
-from model import PointNetSiamese
+from model import FullNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
@@ -47,7 +47,7 @@ try:
 except OSError:
     pass
 
-embedder = PointNetSiamese()
+embedder = FullNet()
 if opt.model != '':
     embedder.load_state_dict(torch.load(opt.model))
 embedder.cuda()
@@ -97,9 +97,12 @@ for epoch in range(opt.nepoch):
         embedder.zero_grad()
         embedder.train()
 
-        scores = embedder(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
+        scores, (x_trans_feat, y_trans_feat), (translation, theta)  = embedder(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
         predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
+
+        loss += feature_transform_regularizer(x_trans_feat) * 1e-3
+        loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         for i in range(len(predictions)):
             if predictions[i].item() == labels[i].item():

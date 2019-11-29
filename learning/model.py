@@ -90,11 +90,11 @@ class FullNet(nn.Module):
         x_emb, x_trans_feat, x_translation, x_theta = self.embedding(x)
         y_emb, y_trans_feat, y_translation, y_theta = self.embedding(y)
 
-        scores = self.ff(self.dropout(torch.cat(x_emb, y_emb)))
+        scores = self.ff(self.dropout(torch.cat([x_emb, y_emb], dim=1)))
 
-        out = self.LogSoftmax(scores)
+        out = self.softmax(scores)
 
         translation = y_translation - x_translation
         theta = y_theta - x_theta
 
-        return out, trans_feat, translation, theta
+        return out, (x_trans_feat, y_trans_feat), (translation, theta)

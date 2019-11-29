@@ -84,7 +84,7 @@ class LCTripletDataset(data.Dataset):
             cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
             # random perturbations, because why not
             if self.jitter_augmentation:
-                theta = np.random.uniform(0, np.pi*2)
+                theta = np.random.uniform(-np.pi / 4, np.pi / 4)
                 rotation_matrix = np.array([
                     [np.cos(theta), -np.sin(theta)],
                     [np.sin(theta), np.cos(theta)]
@@ -94,7 +94,6 @@ class LCTripletDataset(data.Dataset):
                 # random jitter
                 cloud += np.random.normal(0, 0.02, size=cloud.shape)
             self.data.append((cloud, location, timestamp))
-
         self.location_tree = KDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True
 
