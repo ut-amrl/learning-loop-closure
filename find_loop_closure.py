@@ -6,7 +6,7 @@ import random
 import json
 import torch
 import time
-from learning.model import PointNetLC
+from learning.model import EmbeddingNet
 from learning.dataset import normalize_point_cloud
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 from scipy import spatial
@@ -29,7 +29,7 @@ print ("Finished processing Bag file", len(scans.keys()), "scans")
 
 with torch.no_grad():
     print("Loading embedding model...")
-    model = PointNetLC()
+    model = EmbeddingNet()
     model.load_state_dict(torch.load(args.model))
     model.eval()
     model.cuda()
@@ -52,14 +52,19 @@ print("Finding embedding matches...")
 embeddingTree = spatial.KDTree(embedding_clouds)
 
 MATCH_THRESHOLD = 10
-
 loop_closures = []
+
+last_closure_timestamp = 0
+
 for idx in range(len(embedding_timestamps)):
-    matches = embeddingTree.query_ball_point(embedding_clouds[idx], 0.1)
-    filtered_matches = [m for m in matches if abs(embedding_timestamps[idx] - embedding_timestamps[m]) > 3]
-    if len(filtered_matches) < MATCH_THRESHOLD and len(filtered_matches) > 1:
-        # there aren't that many matches for this timestamp. Let's say its good for loop closure
-        loop_closures.append((embedding_timestamps[idx], embedding_timestamps[filtered_matches[1]]))
+    timestamp = embedding_timestamps[idx]
+    threshold = (timestamp - last_closure_timestamp) * 1.5
+
+    match_dist, match_idx = embeddingTree.query(embedding_clouds[idx], k=2, distance_upper_bound=threshold)
+    if(match_idx[1] < len(embedding_clouds)):
+        print("MATCH", match_dist, match_idx)
+        loop_closures.append(embedding_clouds[match_idx[1]])
+        last_closure_timestamp = embedding_timestamps[match_idx[1]]
 
 print("Finished finding embedding matches")
 print(len(loop_closures))
