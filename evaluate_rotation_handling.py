@@ -73,4 +73,5 @@ with torch.no_grad():
         cloud = cloud.view(1, 2, -1)
         rotated = rotated.view(1, 2, -1)
 
-        scores, _, (translation, theta_est) = model(cloud, rotated)
+        scores, _, (translation_est, theta_est) = model(cloud, rotated)
+        print("THETA", theta, theta_est)
