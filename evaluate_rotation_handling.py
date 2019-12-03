@@ -65,6 +65,8 @@ with torch.no_grad():
     print("Finished loading embedding model")
 
     match_distances = []
+    translation_errors = []
+    theta_errors = []
     correct = 0
     for t in scans.keys():
         scan = scans[t]
@@ -75,3 +77,11 @@ with torch.no_grad():
         rotated = rotated.view(1, 2, -1)
 
         scores, _, (translation_est, theta_est) = model(cloud, rotated)
+
+        translation_errors.append(np.linalg.norm(translation_est.cpu().detach().numpy()))
+        theta_errors.append(theta_est.item() - theta)
+        if(theta_est.item() != 0):
+            print("REAL THETA", theta_est)
+    
+    print("Translation", statistics.mean(translation_errors))
+    print("Theta", statistics.mean(theta_errors))

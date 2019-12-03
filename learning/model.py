@@ -78,9 +78,9 @@ class EmbeddingNet(nn.Module):
         return x, trans_feat, translation, theta
 
 class FullNet(nn.Module):
-    def __init__(self):
+    def __init__(self, embedding):
         super(FullNet, self).__init__()
-        self.embedding = EmbeddingNet()
+        self.embedding = embedding
         self.dropout = nn.Dropout(0.2)
         self.ff = nn.Linear(256, 2)
         self.softmax = nn.LogSoftmax(dim=1)

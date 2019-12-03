@@ -48,10 +48,13 @@ try:
 except OSError:
     pass
 
-embedder = FullNet()
-if opt.model != '':
+embedder = EmbeddingNet()
+if opt.embedder_model != '':
     embedder.load_state_dict(torch.load(opt.model))
 embedder.cuda()
+
+classifier = FullNet(embedder)
+classifier.cuda()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 
@@ -99,7 +102,7 @@ for epoch in range(opt.nepoch):
         clouds =  clouds.transpose(2, 1)
         transformed = transformed.transpose(2, 1)
 
-        scores, (x_trans_feat, y_trans_feat), (translation_est, theta_est) = embedder(clouds, transformed)
+        scores, (x_trans_feat, y_trans_feat), (translation_est, theta_est) = classifier(clouds, transformed)
 
         # Compute loss here        
         predictions = torch.argmax(scores, dim=1).cpu()
