@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
-from model import FullNet
+from model import FullNet, EmbeddingNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
@@ -28,7 +28,7 @@ parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--outf', type=str, default='cls_transform', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
-parser.add_argument('--model', type=str, default='', help='pretrained model to start with');
+parser.add_argument('--embedding_model', type=str, default='', help='pretrained model to start with');
 
 opt = parser.parse_args()
 
@@ -49,9 +49,10 @@ except OSError:
     pass
 
 embedder = EmbeddingNet()
-if opt.embedder_model != '':
-    embedder.load_state_dict(torch.load(opt.model))
+if opt.embedding_model != '':
+    embedder.load_state_dict(torch.load(opt.embedding_model))
 embedder.cuda()
+embedder.requires_grad = False
 
 classifier = FullNet(embedder)
 classifier.cuda()
@@ -125,7 +126,7 @@ for epoch in range(opt.nepoch):
         optimizer.step()
         total_loss += loss.item()
     print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
-    torch.save(embedder.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
+    torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
