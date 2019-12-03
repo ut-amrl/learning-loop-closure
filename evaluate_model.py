@@ -99,10 +99,6 @@ with torch.no_grad():
         match_distances.append(distance)
         if (distance < args.threshold):
             correct += 1
-        # else:
-        #     print("MISSED MATCH", loc_time1, localizations[loc_time1], loc_time2, localizations[loc_time2])
-        # if len(match_distances) % 1000 == 0:
-        #     print("processed {0} scans, {1} correct.".format(len(match_distances), correct))
 
     print("For embeddings that should have matched (avg: {0}, med: {1}, stdev: {2})".format(
         statistics.mean(match_distances), statistics.median(match_distances), statistics.stdev(match_distances)))

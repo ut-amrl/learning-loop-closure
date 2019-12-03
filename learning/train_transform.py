@@ -103,12 +103,11 @@ for epoch in range(opt.nepoch):
 
         # Compute loss here        
         predictions = torch.argmax(scores, dim=1).cpu()
-        # loss = lossFunc(scores, labels)
-        loss = torch.mean(torch.abs(translation - translation_est))
+        loss = lossFunc(scores, labels)
+        loss += torch.mean(torch.abs(translation - translation_est))
         loss += torch.mean(torch.abs(theta - theta_est))
-        # loss += feature_transform_regularizer(x_trans_feat) * 1e-3
-        # loss += feature_transform_regularizer(y_trans_feat) * 1e-3
-
+        loss += feature_transform_regularizer(x_trans_feat) * 1e-3
+        loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         for i in range(len(predictions)):
             if predictions[i].item() == labels[i].item():

@@ -25,7 +25,7 @@ parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
-parser.add_argument('--outf', type=str, default='cls_siamese', help='output folder')
+parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='pretrained model to start with');
 

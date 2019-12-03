@@ -39,8 +39,9 @@ scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_t
 print("Finished processing Bag file", len(scans.keys()),
       "scans", len(localizations.keys()), "localizations")
 
-def rotate_scan(cloud):
-    theta = random.random() * (2 * math.pi)
+def rotate_scan(cloud, theta=None):
+    if not theta:
+        theta = random.random() * (2 * math.pi)
     c = math.cos(theta)
     s = math.sin(theta)
     rot = torch.tensor([[c, s], [-s, c]]).cuda()
@@ -74,4 +75,3 @@ with torch.no_grad():
         rotated = rotated.view(1, 2, -1)
 
         scores, _, (translation_est, theta_est) = model(cloud, rotated)
-        print("THETA", theta, theta_est)
