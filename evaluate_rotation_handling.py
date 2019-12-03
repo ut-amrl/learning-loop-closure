@@ -83,5 +83,5 @@ with torch.no_grad():
         if(theta_est.item() != 0):
             print("REAL THETA", theta_est)
     
-    print("Translation", statistics.mean(translation_errors))
-    print("Theta", statistics.mean(theta_errors))
+    print("Translation", np.mean(translation_errors))
+    print("Theta", np.mean(theta_errors))
