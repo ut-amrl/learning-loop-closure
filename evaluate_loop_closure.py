@@ -27,6 +27,7 @@ print ("Finished processing Bag file", len(scans.keys()), "scans")
 
 localization_timestamps = sorted(localizations.keys())
 localizationTimeTree = spatial.KDTree(np.asarray([[t] for t in localization_timestamps]))
+localizationTree = spatial.KDTree(np.asarray([localizations[t][:2] for t in localization_timestamps]))
 scan_timestamps = sorted(scans.keys())
 scanTimeTree = spatial.KDTree(np.asarray([[t] for t in scan_timestamps]))
 
@@ -54,12 +55,14 @@ with torch.no_grad():
 print("Finding embedding matches...")
 MATCH_THRESHOLD = 10
 loop_closures = []
-last_closure_timestamp = 0
 
 CLOSURE_MIN_TIME_GAP = 4
+MAX_DIST_THRESHOLD = 4
+MAX_EMBEDDING_THRESHOLD = 1
 
 for idx in range(len(embedding_timestamps)):
     timestamp = embedding_timestamps[idx]
+    last_closure_timestamp = 0 if len(loop_closures) == 0 else loop_closures[-1]['target_timestamp']
     _, last_loc_idx = localizationTimeTree.query([last_closure_timestamp])
     _, curr_loc_idx = localizationTimeTree.query([timestamp])
     current_location_est = localizations[localization_timestamps[curr_loc_idx]]
@@ -67,26 +70,40 @@ for idx in range(len(embedding_timestamps)):
     last_location_est = localizations[localization_timestamps[last_loc_idx]]
     last_location_est[:2] = last_location_est[:2] + np.random.normal(0, 1, (1, 2))
 
-    threshold = np.linalg.norm(current_location_est - last_location_est) * ((timestamp - last_closure_timestamp) * 0.01)
+    if (timestamp - last_closure_timestamp) < CLOSURE_MIN_TIME_GAP:
+        continue
+
+    log_time_dist = np.log(timestamp - last_closure_timestamp)
+
+    dist_threshold = MAX_DIST_THRESHOLD - 1/log_time_dist
+    nearby_location_indices = localizationTree.query_ball_point(current_location_est[:2], dist_threshold)
+    if len(nearby_location_indices) == 0:
+        continue
+
+    _, nearby_scan_indices = scanTimeTree.query([[localization_timestamps[loc_idx]] for loc_idx in nearby_location_indices])
     max_match_timestamp = timestamp - CLOSURE_MIN_TIME_GAP
     _, max_match_idx = scanTimeTree.query([max_match_timestamp])
-    # print("THRESHOLD, MAX MATCH TIME", threshold, max_match_timestamp)
+    filtered_scan_indices = [n for n in nearby_scan_indices if n < max_match_idx]
+    if len(filtered_scan_indices) == 0:
+        continue
 
-    if max_match_idx > 0:
-        embeddingTree = spatial.KDTree(embedding_clouds[:max_match_idx])
-        match_dist, match_idx = embeddingTree.query(embedding_clouds[idx], distance_upper_bound=threshold)
-        if match_idx < max_match_idx:
-            print("MATCH", match_dist, match_idx)
-            print("ORIGINAL LOCATION, TIMESTAMP", current_location_est, timestamp)
-            match_timestamp = embedding_timestamps[match_idx]
-            _, localization_time_idx = localizationTimeTree.query([match_timestamp])
-            localization_timestamp = localization_timestamps[localization_time_idx]
-            print("LOOP CLOSED LOCATION, TIMESTAMP", localizations[localization_timestamp], match_timestamp)
-            emb_info = embedding_info[embedding_timestamps[match_idx]]
-            print("PREDICTION TRANSLATION, THETA", emb_info[2].detach().cpu().numpy(), emb_info[3].detach().cpu().numpy())
-            loop_closures.append(embedding_clouds[match_idx])
-            last_closure_timestamp = match_timestamp
-            last_closure_location_est = localizations[localization_timestamp]
+    emb_threshold = MAX_EMBEDDING_THRESHOLD - 1/log_time_dist
+    embeddingTree = spatial.KDTree(np.take(embedding_clouds, filtered_scan_indices, axis=0))
+    match_dist, match_idx = embeddingTree.query(embedding_clouds[idx], distance_upper_bound=emb_threshold)
+
+    if match_idx >= len(filtered_scan_indices):
+        continue
+
+    print("MATCH", match_dist, match_idx)
+    print("ORIGINAL LOCATION, TIMESTAMP", current_location_est, timestamp)
+    match_timestamp = embedding_timestamps[match_idx]
+    _, localization_time_idx = localizationTimeTree.query([match_timestamp])
+    localization_timestamp = localization_timestamps[localization_time_idx]
+    print("LOOP CLOSED LOCATION, TIMESTAMP", localizations[localization_timestamp], match_timestamp)
+    emb_info = embedding_info[embedding_timestamps[match_idx]]
+    print("PREDICTION TRANSLATION, THETA", emb_info[2].detach().cpu().numpy(), emb_info[3].detach().cpu().numpy())
+    loop_closures.append({ 'source_embedding': embedding_clouds[match_idx].tolist(), 'source_timestamp': match_timestamp, 'target_embedding': embedding_clouds[idx].tolist(), 'target_timestamp': timestamp })
+
 print("Finished finding embedding matches")
 print(len(loop_closures))
 
