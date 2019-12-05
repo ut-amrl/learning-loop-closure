@@ -1,5 +1,6 @@
 from helpers import compute_overlap
 import numpy as np
+import matplotlib.pyplot as plt
 
 loc_a = np.array([0, 0, 0])
 loc_b = np.array([0, 0, np.pi / 2])
@@ -18,4 +19,7 @@ print("AE", compute_overlap(loc_a, loc_e))
 test_a = [66.32367  , 51.624554 , -1.6080709]
 test_b = [66.05289  , 50.675644 , -2.0107317]
 
-print("test", compute_overlap(test_b, test_a))
+print("test", compute_overlap(test_b, test_a, 0))
+print("test", compute_overlap(test_a, test_b, 1))
+
+plt.show()

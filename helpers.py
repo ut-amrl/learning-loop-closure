@@ -5,8 +5,24 @@ from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
 from scipy import spatial
 
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
+    # make sure ax is not empty
+    if ax is None:
+        ax = plt.gca()
+    # generate the points
+    theta = np.linspace(np.radians(theta1), np.radians(theta2), resolution)
+    points = np.vstack((radius*np.cos(theta) + center[0], 
+                        radius*np.sin(theta) + center[1]))
+    # build the polygon and add it to the axes
+    poly = mpatches.Polygon(points.T, closed=True, **kwargs)
+    ax.add_patch(poly)
+    return poly
+
 FOV = np.deg2rad(270)
-RADIUS = 4
+RADIUS = 3
 SAMPLE_RESOLUTION = 10
 
 def fix_angle(theta):
@@ -21,12 +37,10 @@ def test_point(loc, point):
     relative_point = point - center
     theta = fix_angle(np.arctan2(relative_point[1], relative_point[0]))
     orientation = fix_angle(loc[2])
-    start = fix_angle(orientation - FOV / 2)
-    end = fix_angle(orientation + FOV / 2)
 
-    if start < end and (start > theta or theta > end):
-        return False
-    elif end < start and (start > theta and theta > end):
+    if np.abs(orientation - theta) % (2*np.pi) > FOV / 2:
+        print(relative_point)
+        print("BAD ANGLE", orientation, theta)
         return False
     
     distance = np.linalg.norm(relative_point)
@@ -36,21 +50,26 @@ def test_point(loc, point):
     return False
 
 def get_test_points(location):
-    test_distances = np.linspace(0, RADIUS, num=SAMPLE_RESOLUTION)
-    orientation = location[2]
+    test_distances = np.linspace(0.25, RADIUS, num=SAMPLE_RESOLUTION)
+    orientation = fix_angle(location[2])
     start = orientation - FOV / 2
     end = orientation + FOV / 2
     test_angles = np.linspace(start, end, num=SAMPLE_RESOLUTION)
-
+    
     return np.concatenate([
-        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances] for angle in test_angles
+        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle), angle] for d in test_distances]  for angle in test_angles
     ])
 
-def compute_overlap(loc_a, loc_b):
+def compute_overlap(loc_a, loc_b, figure=0):
     test_points = get_test_points(loc_a)
+    f = plt.figure(figure)
+    fig, ax = plt.subplots()
+    ax.scatter([t[0] for t in test_points], [t[1] for t in test_points])
+    arc_patch(loc_b[:2], RADIUS, np.rad2deg(loc_b[2] - FOV/2), np.rad2deg(loc_b[2] + FOV/2), ax=ax, fill=True, color='blue')
+
     matches = 0
     for point in test_points:
-        if (test_point(loc_b, point)):
+        if (test_point(loc_b, point[:2])):
             matches += 1
     
     return matches / len(test_points)
