@@ -12,6 +12,8 @@ SAMPLE_RESOLUTION = 10
 def fix_angle(theta):
     if (theta < 0):
         theta += np.pi * 2
+    if (theta > np.pi * 2):
+        theta -= np.pi * 2
     return theta
 
 def test_point(loc, point):
@@ -21,19 +23,24 @@ def test_point(loc, point):
     orientation = loc[2]
     start = fix_angle(orientation - FOV / 2)
     end = fix_angle(orientation + FOV / 2)
-    
-    if start > theta and end < theta:
+
+    if start < end and (start > theta or theta > end):
+        return False
+    elif end < start and (start > theta and theta > end):
         return False
     
     distance = np.linalg.norm(relative_point)
-    if distance < RADIUS:
+    if distance <= RADIUS:
         return True
 
     return False
 
 def get_test_points(location):
     test_distances = np.linspace(0, RADIUS, num=SAMPLE_RESOLUTION)
-    test_angles = np.linspace(0, np.pi * 2, num=SAMPLE_RESOLUTION)
+    orientation = location[2]
+    start = orientation - FOV / 2
+    end = orientation + FOV / 2
+    test_angles = np.linspace(start, end, num=SAMPLE_RESOLUTION)
 
     return np.concatenate([
         [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances] for angle in test_angles
@@ -41,7 +48,6 @@ def get_test_points(location):
 
 def compute_overlap(loc_a, loc_b):
     test_points = get_test_points(loc_a)
-
     matches = 0
     for point in test_points:
         if (test_point(loc_b, point)):
