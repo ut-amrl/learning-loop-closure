@@ -56,8 +56,8 @@ with torch.no_grad():
         _, loc_idx = localizationTimeTree.query([timestamp])
         location = torch.tensor(localizations[localization_timestamps[loc_idx]])
         embedding, _, _ = embedding_for_scan(model, cloud)
-        distance = torch.norm(embedding - last_embedding).item()
-        location_distance = torch.norm(location[:2] - last_location[:2]).item()
+        distance = torch.norm(embedding - last_embedding, p=2).item()
+        location_distance = torch.norm(location[:2] - last_location[:2], p=2).item()
         print("Embedding Dist: {0}; Real World Distance: {1}".format(round(distance, 3), round(location_distance, 3)))
 
         # Transform the cloud based on its location

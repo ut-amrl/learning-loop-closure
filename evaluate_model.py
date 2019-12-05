@@ -63,7 +63,7 @@ with torch.no_grad():
 
         embedding1, _, _, _ = embedding_for_scan(model, scan1)
         embedding2, _, _, _ = embedding_for_scan(model, scan2)
-        distance = torch.norm(embedding1 - embedding2).item()
+        distance = torch.norm(embedding1 - embedding2, p=2).item()
         random_distances.append(distance)
         if (distance < args.threshold):
             correct += 1
@@ -86,7 +86,7 @@ with torch.no_grad():
 
         embedding1, _, _, _ = embedding_for_scan(model, scan1)
         embedding2, _, _, _ = embedding_for_scan(model, scan2)
-        distance = torch.norm(embedding1 - embedding2).item()
+        distance = torch.norm(embedding1 - embedding2, p=2).item()
         match_distances.append(distance)
         if (distance < args.threshold):
             correct += 1

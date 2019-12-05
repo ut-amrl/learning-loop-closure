@@ -65,7 +65,7 @@ def handle_location_input(publisher):
             
             embedding_distances = []
             for emb in embeddings:
-                distance = torch.norm(base_embedding[0] - emb[0]).item()
+                distance = torch.norm(base_embedding[0] - emb[0], p=2).item()
                 embedding_distances.append(distance)
             
             (vals, indices) = torch.topk(torch.tensor(embedding_distances), 5, largest=False)
