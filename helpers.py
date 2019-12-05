@@ -20,7 +20,7 @@ def test_point(loc, point):
     center = loc[:2]
     relative_point = point - center
     theta = fix_angle(np.arctan2(relative_point[1], relative_point[0]))
-    orientation = loc[2]
+    orientation = fix_angle(loc[2])
     start = fix_angle(orientation - FOV / 2)
     end = fix_angle(orientation + FOV / 2)
 

@@ -14,7 +14,6 @@ from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
 
-
 class TripletLoss(torch.nn.Module):
     """
     Triplet loss

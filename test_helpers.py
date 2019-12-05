@@ -13,3 +13,9 @@ print("AB", compute_overlap(loc_a, loc_b))
 print("AC", compute_overlap(loc_a, loc_c))
 print("AD", compute_overlap(loc_a, loc_d))
 print("AE", compute_overlap(loc_a, loc_e))
+
+
+test_a = [66.32367  , 51.624554 , -1.6080709]
+test_b = [66.05289  , 50.675644 , -2.0107317]
+
+print("test", compute_overlap(test_b, test_a))
