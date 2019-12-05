@@ -9,7 +9,7 @@ import math
 from geometry_msgs.msg import Pose
 
 from learning.model import EmbeddingNet
-from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag, embedding_for_scan
+from helpers import scan_to_point_cloud, LCBagDataReader, embedding_for_scan
 from scipy import spatial
 
 parser = argparse.ArgumentParser(
@@ -30,27 +30,10 @@ bag = rosbag.Bag(args.bag_file)
 scans = {}
 localizations = {}
 
-print("Loading scans & Localization from Bag file...")
-print("Bag has ", bag.get_message_count(topic_filters=[
-      args.localization_topic]), " Localization messages")
-print("Start time:", bag.get_start_time())
-print("End time:", bag.get_end_time())
-
 start_time = bag.get_start_time()
 SCAN_TIMESTEP = 0.1
 LOC_TIMESTEP = 0.15
-scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
-
-print("Finished processing Bag file", len(scans.keys()),
-      "scans", len(localizations.keys()), "localizations")
-
-localization_timestamps = sorted(localizations.keys())
-loc_infos = np.asarray([localizations[t][:2] for t in localization_timestamps])
-localizationTree = spatial.KDTree(loc_infos)
-localizationTimeTree = spatial.KDTree(np.asarray([list([t]) for t in localization_timestamps]))
-
-scan_timestamps = sorted(scans.keys())
-scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
+data_reader = LCBagDataReader(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
 
 with torch.no_grad():
     print("Loading embedding model...")
@@ -64,20 +47,20 @@ def handle_location_input(publisher):
     def handle_input(data):
         print("Recieved Input from localization gui", data)
         print("Possible angle", math.atan2(data.orientation.z, data.orientation.w))
-        angle = 0 # atan2(data.orientation.z, data.orientation.w)
+        angle = math.atan2(data.orientation.z, data.orientation.w)
         location = [data.position.x, data.position.y, angle]
         print("Target pose: ", location)
 
-        _, closest_loc_idx = localizationTree.query(location[:2])
-        print("Found closest recorded pose:", loc_infos[closest_loc_idx])
-        closest_scan_timestamp, closest_scan_idx = scanTimeTree.query([localization_timestamps[closest_loc_idx]])
+        closest_location, closest_loc_timestamp, _ = data_reader.get_closest_localization_by_location(location[:2])
+        print("Found closest recorded pose:", closest_location, "at", closest_loc_timestamp)
+        closest_scan, closest_scan_timestamp, _ = data_reader.get_closest_scan_by_time(closest_loc_timestamp)
         print("Evaluating embeddings to find closest match...")
         with torch.no_grad():
-            base_embedding = embedding_for_scan(model, scans[scan_timestamps[closest_scan_idx]])
-            random_timestamps = random.sample(scan_timestamps, args.sample_size)
+            base_embedding = embedding_for_scan(model, closest_scan)
+            random_timestamps = random.sample(data_reader.get_scan_timestamps(), args.sample_size)
             if closest_scan_timestamp in random_timestamps:
                 random_timestamps.remove(closest_scan_timestamp)
-            embeddings = [embedding_for_scan(model, scans[t]) for t in random_timestamps]
+            embeddings = [embedding_for_scan(model, data_reader.get_scans()[t]) for t in random_timestamps]
             print("Evaluating recall for random scans near these poses...")
             
             embedding_distances = []
@@ -85,18 +68,17 @@ def handle_location_input(publisher):
                 distance = torch.norm(base_embedding[0] - emb[0]).item()
                 embedding_distances.append(distance)
             
-            
             (vals, indices) = torch.topk(torch.tensor(embedding_distances), 5, largest=False)
-            print("Closest scan timestamps:")
-            print(vals)
+            timestamps = [data_reader.get_scan_timestamps()[i] for i in indices]
+            print("Timestamps of closest sampled scans in embedding space:")
+            print(sorted(timestamps))
+            print("Timestamps of actual closest locations:")
+            _, location_indices = data_reader.localizationTree.query(closest_location[:2], k=5)
+            print(sorted([data_reader.localization_timestamps[i] for i in location_indices]))
 
-            timestamps = [[scan_timestamps[i]] for i in indices]
-            _, loc_indices = localizationTimeTree.query(timestamps)
-            locations = [localizations[localization_timestamps[i]] for i in loc_indices]
-            print("Locations:")
-            print(locations)
+            locations, _, _ = data_reader.get_closest_localizations_by_time([[t] for t in timestamps])
 
-            distances = [np.linalg.norm(np.asarray(loc_infos[closest_loc_idx]) - np.asarray(l[:2])) for l in locations]
+            distances = [np.linalg.norm(np.asarray(closest_location[:2]) - np.asarray(l[:2])) for l in locations]
             print("Location Distance: Mean {0}, Median {1}, StDev: {2}".format(statistics.mean(distances), statistics.median(distances), statistics.stdev(distances)))
 
             msg = Pose()

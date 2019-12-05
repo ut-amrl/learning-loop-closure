@@ -73,7 +73,6 @@ with torch.no_grad():
         if (distance > args.threshold):
             last_embedding = embedding
             last_location = location
-            print("Chose to visualize at {0}".format(round(timestamp, 2)))
             publish_ros_pointcloud(point_pub, msg, augmented_cloud)
         else:
             publish_ros_pointcloud(skipped_point_pub, msg, augmented_cloud)

@@ -3,6 +3,7 @@ import torch
 from learning.dataset import normalize_point_cloud
 from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
+from scipy import spatial
 
 def scan_to_point_cloud(scan, trim_edges=True):
     angle_offset = 0.0
@@ -39,6 +40,10 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
     start_time = bag.get_start_time()
     last_scan_time = -10
     last_localization_time = -10
+    print ("Loading scans & Localization from Bag file")
+    print("Start time:", bag.get_start_time())
+    print("End time:", bag.get_end_time())
+
     for topic, msg, t in bag.read_messages(topics=[lidar_topic, localization_topic]):
         timestamp = t.secs + t.nsecs * 1e-9 - start_time
         if (topic == lidar_topic and timestamp - last_scan_time > scan_timestep):
@@ -54,9 +59,93 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
         elif (topic == localization_topic and timestamp - last_localization_time > loc_timestep):
             last_localization_time = timestamp
             localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
-
+    print ("Finished processing Bag file: {0} scans, {1} localizations".format(len(scans.keys()), len(localizations.keys())))
     return scans, localizations, metadata
 
+class LCBagDataReader:
+    def __init__(self, bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
+        scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep, loc_timestep)
+        self.scans = scans
+        self.localizations = localizations
+        self.metdata = metadata
+        self.localization_timestamps = sorted(self.localizations.keys())
+        self.scan_timestamps = sorted(self.scans.keys())
+        self.localizationTimeTree = spatial.KDTree(np.asarray([[t] for t in self.localization_timestamps]))
+        self.localizationTree = spatial.KDTree(np.asarray([localizations[t][:2] for t in self.localization_timestamps]))
+        self.scanTimeTree = spatial.KDTree(np.asarray([[t] for t in self.scan_timestamps]))
+
+    def get_scans(self):
+        return self.scans
+
+    def get_localizations(self):
+        return self.localizations
+
+    def get_scan_timestamps(self):
+        return self.scan_timestamps
+
+    def get_localization_timestamps(self):
+        return self.get_localization_timestamps
+
+    def get_localization_tree(self):
+        return self.localizationTree
+    
+    def get_scan_time_tree(self):
+        return self.scanTimeTree
+
+    def get_localization_time_tree(self):
+        return self.localizationTimeTree
+
+    def get_closest_localization_by_time(self, time):
+        _, loc_idx = self.localizationTimeTree.query([time])
+        loc_timestamp = self.localization_timestamps[loc_idx]
+        localization = self.localizations[loc_timestamp]
+
+        return localization, loc_timestamp, loc_idx
+
+    def get_closest_localization_by_location(self, location):
+        _, loc_idx = self.localizationTree.query(location)
+        loc_timestamp = self.localization_timestamps[loc_idx]
+        localization = self.localizations[loc_timestamp]
+
+        return localization, loc_timestamp, loc_idx
+
+    def get_closest_scan_by_time(self, time):
+        _, scan_idx = self.scanTimeTree.query([time])
+        scan_timestamp = self.scan_timestamps[scan_idx]
+        scan = self.scans[scan_timestamp]
+
+        return scan, scan_timestamp, scan_idx
+
+    def get_closest_scan_by_location(self, location):
+        _, loc_timestamp, _ = self.get_closest_localization_by_location(location)
+        return self.get_closest_scan_by_time(loc_timestamp)
+
+    def get_nearby_locations(self, location, threshold):
+        nearby_location_indices = self.localizationTree.query_ball_point(location, threshold)
+        nearby_location_timestamps = [self.localization_timestamps[i] for i in nearby_location_indices]
+        nearby_localizations = [self.localizations[t] for t in nearby_location_timestamps]
+
+        return nearby_localizations, nearby_location_timestamps, nearby_location_indices
+
+    def get_closest_localizations_by_time(self, times):
+        if not isinstance(times, list):
+            raise Error('times must be a list')
+
+        _, loc_indices = self.localizationTimeTree.query(times)
+        loc_timestamps = [self.localization_timestamps[loc_idx] for loc_idx in loc_indices]
+        localizations = [self.localizations[loc_timestamp] for loc_timestamp in loc_timestamps]
+
+        return localizations, loc_timestamps, loc_indices
+    
+    def get_closest_scans_by_time(self, times):
+        if not isinstance(times, list):
+            raise Error('times must be a list')
+
+        _, scan_indices = self.scanTimeTree.query(times)
+        scan_timestamps = [self.scan_timestamps[scan_idx] for scan_idx in scan_indices]
+        scans = [self.scans[loc_timestamp] for loc_timestamp in scan_timestamps]
+
+        return scans, scan_timestamps, scan_indices
 
 def create_ros_pointcloud():
     msg = PointCloud2()
