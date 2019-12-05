@@ -5,6 +5,50 @@ from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
 from scipy import spatial
 
+FOV = np.deg2rad(270)
+RADIUS = 4
+SAMPLE_RESOLUTION = 10
+
+def fix_angle(theta):
+    if (theta < 0):
+        theta += np.pi * 2
+    return theta
+
+def test_point(loc, point):
+    center = loc[:2]
+    relative_point = point - center
+    theta = fix_angle(np.arctan2(relative_point[1], relative_point[0]))
+    orientation = loc[2]
+    start = fix_angle(orientation - FOV / 2)
+    end = fix_angle(orientation + FOV / 2)
+    
+    if start > theta and end < theta:
+        return False
+    
+    distance = np.linalg.norm(relative_point)
+    if distance < RADIUS:
+        return True
+
+    return False
+
+def get_test_points(location):
+    test_distances = np.linspace(0, RADIUS, num=SAMPLE_RESOLUTION)
+    test_angles = np.linspace(0, np.pi * 2, num=SAMPLE_RESOLUTION)
+
+    return np.concatenate([
+        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances] for angle in test_angles
+    ])
+
+def compute_overlap(loc_a, loc_b):
+    test_points = get_test_points(loc_a)
+
+    matches = 0
+    for point in test_points:
+        if (test_point(loc_b, point)):
+            matches += 1
+    
+    return matches / len(test_points)
+
 def scan_to_point_cloud(scan, trim_edges=True):
     angle_offset = 0.0
     if trim_edges:

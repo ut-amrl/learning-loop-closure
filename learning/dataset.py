@@ -12,8 +12,12 @@ from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
 
-CLOSE_DISTANCE_THRESHOLD = 0.1
+sys.path.append(os.path.join(os.getcwd(), '..'))
+import helpers
+
+CLOSE_DISTANCE_THRESHOLD = 1
 FAR_DISTANCE_THRESHOLD = 0.5
+OVERLAP_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
     point_set = np.loadtxt(filename).astype(np.float32)
@@ -104,8 +108,7 @@ class LCTripletDataset(data.Dataset):
         # Compute triplets
         for cloud, location, timestamp in self.data:
             neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
-            filtered_neighbors = neighbors
-            # filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
+            filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
             idx = random.randint(0, len(filtered_neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
@@ -125,31 +128,7 @@ class LCTripletDataset(data.Dataset):
         return np.asarray(list(filter(self.check_overlap(location), neighbors)))
 
     def check_overlap(self, location):
-        radius = self.overlap_radius
-        threshold = math.pi * math.pow(radius, 2) * 0.75
-        def compute_overlap(loc, neighborIndex):
-            locB = self.data[neighborIndex][1]
-            d = math.sqrt(math.pow((locB[0] - loc[0]), 2) + math.pow((locB[1] - loc[1]), 2))
-
-            if d == 0:
-                if abs(locB[2] - loc[2]) < math.pi * 0.75:
-                    return 0
-                else:
-                    return threshold
-
-            if d < 2 * radius:
-                sqr = radius * radius
-
-                x = (d * d) / (2 * d)
-                z = x * x
-                y = math.sqrt(sqr - z)
-
-                overlap = sqr * math.asin(y / radius) + sqr * math.asin(y / radius) - y * (x + math.sqrt(z))
-
-                return overlap
-            return 0
-
-        return lambda l: compute_overlap(location, l) > threshold
+        return lambda l: helpers.compute_overlap(location, self.data[l][1]) > OVERLAP_THRESHOLD
 
     def __getitem__(self, index):
         if not self.triplets_loaded:
