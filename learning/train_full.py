@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
+import pickle
 from model import FullNet, EmbeddingNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
@@ -28,7 +29,9 @@ parser.add_argument(
 parser.add_argument('--feature_regularization', type=bool, default=False, help='Whether or not to additionally use feature regularization loss')
 parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
-parser.add_argument('--embedding_model', type=str, default='', help='pretrained model to start with');
+parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
+parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
+parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTripletDataset to start with')
 
 opt = parser.parse_args()
 
@@ -39,10 +42,6 @@ print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = LCTripletDataset(
-    root=opt.dataset,
-    split=opt.train_set)
-
 try:
     os.makedirs(opt.outf)
 except OSError:
@@ -51,15 +50,26 @@ except OSError:
 embedder = EmbeddingNet()
 if opt.embedding_model != '':
     embedder.load_state_dict(torch.load(opt.embedding_model))
-embedder.cuda()
 
 classifier = FullNet(embedder)
+if opt.model != '':
+    classifier.load_state_dict(torch.load(opt.model))
 classifier.cuda()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 
 print("Loading training data into memory...", )
-dataset.load_data()
+if opt.cached_dataset != '':
+    with open(opt.cached_dataset, 'rb') as f:
+        dataset = pickle.load(f)
+else:
+    dataset = LCTripletDataset(
+        root=opt.dataset,
+        split=opt.train_set)
+    dataset.load_data()
+    dataset.load_triplets()
+    with open('train_full_dataset.pkl', 'wb') as f:
+        pickle.dump(dataset, f)
 print("Finished loading training data.")
 
 lossFunc = torch.nn.NLLLoss().cuda()

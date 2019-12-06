@@ -17,12 +17,23 @@ parser.add_argument(
     '--evaluation_set', type=str, default='dev', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
+parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTripletDataset to start with')
 
 opt = parser.parse_args()
 
-dataset = LCTripletDataset(
-    root=opt.dataset,
-    split=opt.evaluation_set)
+print("Loading evaluation data into memory...", )
+if opt.cached_dataset != '':
+    with open(opt.cached_dataset, 'rb') as f:
+        dataset = pickle.load(f)
+else:
+    dataset = LCTripletDataset(
+        root=opt.dataset,
+        split=opt.evaluation_set)
+    dataset.load_data()
+    dataset.load_triplets()
+    with open('evaluation_full_dataset.pkl', 'wb') as f:
+        pickle.dump(dataset, f)
+print("Finished loading evaluation data.")
 
 with torch.no_grad():
     classifier = FullNet()

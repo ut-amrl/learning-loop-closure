@@ -1,11 +1,10 @@
 data/*
 .vscode/*
-learning/__pycache__/*
-learning/cls/*
-learning/cls_siamese/*
 learning/embeddings/*
+learning/__pycache__/*
 __pycache__/*
 **/*.pth
+**/*.pkl
 visualize_loop_closure/temp_pc_file.txt
 bin
 cmake-build-debug
