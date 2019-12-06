@@ -34,7 +34,7 @@ scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_t
 print("Finding location matches")
 localization_timestamps = sorted(localizations.keys())
 loc_infos = np.asarray([localizations[t][:2] for t in localization_timestamps])
-localizationTree = spatial.KDTree(loc_infos)
+localizationTree = spatial.cKDTree(loc_infos)
 
 location_matches = localizationTree.query_pairs(.05)
 # Only keep location matches that are distant in time-space, since these are the only ones that would be good for loop closure
@@ -44,7 +44,7 @@ print(len(filtered_location_matches))
 print("Finished finding location matches")
 
 scan_timestamps = sorted(scans.keys())
-scanTimeTree = spatial.KDTree(np.asarray([list([t]) for t in scan_timestamps]))
+scanTimeTree = spatial.cKDTree(np.asarray([list([t]) for t in scan_timestamps]))
 
 with torch.no_grad():
     print("Loading embedding model...")

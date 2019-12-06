@@ -128,9 +128,9 @@ class LCBagDataReader:
         self.metdata = metadata
         self.localization_timestamps = sorted(self.localizations.keys())
         self.scan_timestamps = sorted(self.scans.keys())
-        self.localizationTimeTree = spatial.KDTree(np.asarray([[t] for t in self.localization_timestamps]))
-        self.localizationTree = spatial.KDTree(np.asarray([localizations[t][:2] for t in self.localization_timestamps]))
-        self.scanTimeTree = spatial.KDTree(np.asarray([[t] for t in self.scan_timestamps]))
+        self.localizationTimeTree = spatial.cKDTree(np.asarray([[t] for t in self.localization_timestamps]))
+        self.localizationTree = spatial.cKDTree(np.asarray([localizations[t][:2] for t in self.localization_timestamps]))
+        self.scanTimeTree = spatial.cKDTree(np.asarray([[t] for t in self.scan_timestamps]))
 
     def get_scans(self):
         return self.scans

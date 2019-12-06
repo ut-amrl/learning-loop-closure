@@ -36,7 +36,7 @@ print("Loading Bag File")
 scans, localizations, _ = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIMESTEP, TIMESTEP)
 
 localization_timestamps = sorted(localizations.keys())
-localizationTimeTree = spatial.KDTree([[t] for t in localization_timestamps])
+localizationTimeTree = spatial.cKDTree([[t] for t in localization_timestamps])
 
 def augmented_cloud_with_location(cloud, location):
     augmented_cloud = np.zeros(cloud.shape).astype(np.float32)

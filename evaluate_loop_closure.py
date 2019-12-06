@@ -80,7 +80,7 @@ for idx in range(len(embedding_timestamps)):
         continue
 
     emb_threshold = MAX_EMBEDDING_THRESHOLD - 1/log_time_dist
-    embeddingTree = spatial.KDTree(np.take(embedding_clouds, filtered_scan_indices, axis=0))
+    embeddingTree = spatial.cKDTree(np.take(embedding_clouds, filtered_scan_indices, axis=0))
     match_dist, match_idx = embeddingTree.query(embedding_clouds[idx], distance_upper_bound=emb_threshold)
 
     if match_idx >= len(filtered_scan_indices):

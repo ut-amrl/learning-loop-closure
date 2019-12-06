@@ -42,7 +42,7 @@ print("Finished processing Bag file")
 dataset_info['scanMetadata'] = metadata
 dataset_info['numScans'] = len(scans.keys())
 
-localizationTree = spatial.KDTree([list([l]) for l in sorted(localizations.keys())])
+localizationTree = spatial.cKDTree([list([l]) for l in sorted(localizations.keys())])
 
 base_path = './data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
