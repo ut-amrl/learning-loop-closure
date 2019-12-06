@@ -71,10 +71,11 @@ class LCTripletDataset(data.Dataset):
         info_file = os.path.join(self.root, 'dataset_info.json')
         #from IPython import embed; embed()
         self.dataset_info = json.load(open(info_file, 'r'))
-        self.overlap_radius = self.dataset_info['scanMetadata']['range_max'] * 0.4 if 'scanMetadata' in self.dataset_info else 4
+        # self.overlap_radius = self.dataset_info['scanMetadata']['range_max'] * 0.4 if 'scanMetadata' in self.dataset_info else 4
         self.data_loaded = False
         self.triplets_loaded = False
         self.data = []
+        self.overlaps = {}
         self.triplets = []
 
     def load_data(self):
@@ -108,7 +109,7 @@ class LCTripletDataset(data.Dataset):
         # Compute triplets
         for cloud, location, timestamp in self.data:
             neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
-            filtered_neighbors = self.filter_scan_matches(location, neighbors[1:])
+            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
             idx = random.randint(0, len(filtered_neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
@@ -124,11 +125,22 @@ class LCTripletDataset(data.Dataset):
 
         self.triplets_loaded = True
 
-    def filter_scan_matches(self, location, neighbors):
-        return np.asarray(list(filter(self.check_overlap(location), neighbors)))
+    def filter_scan_matches(self, timestamp, location, neighbors):
+        return np.asarray(list(filter(self.check_overlap(location, timestamp), neighbors)))
 
-    def check_overlap(self, location):
-        return lambda l: helpers.compute_overlap(location, self.data[l][1]) > OVERLAP_THRESHOLD
+    def check_overlap(self, location, timestamp):
+        def overlap_checker(alt_idx):
+            alt_loc = self.data[alt_idx][1]
+            alt_timestamp = self.data[alt_idx][2]
+            key = (timestamp, alt_timestamp) if timestamp < alt_timestamp else (alt_timestamp, timestamp)
+            if key in self.overlaps:
+                return self.overlaps[key] > OVERLAP_THRESHOLD
+            else:
+                overlap = helpers.compute_overlap(location, alt_loc)
+                self.overlaps[key] = overlap
+                return self.overlaps[key] > OVERLAP_THRESHOLD
+
+        return overlap_checker
 
     def __getitem__(self, index):
         if not self.triplets_loaded:

@@ -7,7 +7,7 @@ from scipy import spatial
 
 FOV = np.pi * 3 / 2
 RADIUS = 3
-SAMPLE_RESOLUTION = 10
+SAMPLE_RESOLUTION = 6
 
 def fix_angle(theta):
     if (theta < 0):
@@ -45,13 +45,13 @@ def get_test_points(location):
         [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances]  for angle in test_angles
     ])
 
-def compute_overlap(loc_a, loc_b, figure=0):
+def compute_overlap(loc_a, loc_b):
     test_points = get_test_points(loc_a)
 
-    matches = 0
+    matches = 0.0
     for point in test_points:
         if (test_point(loc_b, point)):
-            matches += 1
+            matches += 1.0
 
     return matches / len(test_points)
 
