@@ -22,33 +22,25 @@ parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTri
 
 opt = parser.parse_args()
 
-print("Loading evaluation data into memory...", )
-if opt.cached_dataset != '':
-    with open(opt.cached_dataset, 'rb') as f:
-        dataset = pickle.load(f)
-else:
-    dataset = LCTripletDataset(
-        root=opt.dataset,
-        split=opt.evaluation_set)
-    dataset.load_data()
-    dataset.load_triplets()
-    with open('evaluation_full_dataset.pkl', 'wb') as f:
-        pickle.dump(dataset, f)
-print("Finished loading evaluation data.")
-
 with torch.no_grad():
     classifier = FullNet()
     if opt.model != '':
         classifier.load_state_dict(torch.load(opt.model))
     classifier.cuda()
-
     print("Loading evaluation data into memory...", )
-    dataset.load_data()
-    print("Finished loading evaluation data.")
-    print("Loading triplets...")
-    dataset.load_triplets()
+    if opt.cached_dataset != '':
+        with open(opt.cached_dataset, 'rb') as f:
+            dataset = pickle.load(f)
+    else:
+        dataset = LCTripletDataset(
+            root=opt.dataset,
+            split=opt.evaluation_set)
+        dataset.load_data()
+        dataset.load_triplets()
+        with open('evaluation_full_dataset.pkl', 'wb') as f:
+            pickle.dump(dataset, f)
     batch_count = len(dataset) // opt.batch_size
-    print("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
+    print("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
