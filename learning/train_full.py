@@ -85,7 +85,7 @@ for epoch in range(opt.nepoch):
             drop_last=True)
 
     total_predictions = [0, 0]
-    correct_predictions = 0
+    correct_predictions = 0.0
 
     for i, data in enumerate(dataloader, 0):
         ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
@@ -112,7 +112,7 @@ for epoch in range(opt.nepoch):
 
         for i in range(len(predictions)):
             if predictions[i].item() == labels[i].item():
-                correct_predictions += 1
+                correct_predictions += 1.0
 
             if predictions[i].item():
                 total_predictions[0] += 1
@@ -122,7 +122,7 @@ for epoch in range(opt.nepoch):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    print('[Epoch %d] Total loss: %f, predictions: (Y: %d, N: %d, Correct: %d)' % (epoch, total_loss, total_predictions[0], total_predictions[1], correct_predictions))
+    print('[Epoch %d] Total loss: %f, predictions: (Y: %d, N: %d, Correct %: %d)' % (epoch, total_loss, total_predictions[0], total_predictions[1], correct_predictions/ sum(total_predictions)))
     torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
