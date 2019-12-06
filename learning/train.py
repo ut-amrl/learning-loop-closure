@@ -43,6 +43,7 @@ parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument(
     '--generate_embeddings', type=bool, default=False, help='if true, generate embeddings for test set in embeddings/*timestamp*')
+parser.add_argument('--feature_regularization', type=bool, default=False, help='Whether or not to additionally use feature regularization loss')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='pretrained model to start with');
@@ -113,9 +114,10 @@ for epoch in range(opt.nepoch):
 
         # Compute loss here
         loss = lossFn.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
-        loss += feature_transform_regularizer(trans_feat) * 1e-3
-        loss += feature_transform_regularizer(sim_feat) * 1e-3
-        loss += feature_transform_regularizer(dist_feat) * 1e-3
+        if opt.feature_regularization:
+            loss += feature_transform_regularizer(trans_feat) * 1e-3
+            loss += feature_transform_regularizer(sim_feat) * 1e-3
+            loss += feature_transform_regularizer(dist_feat) * 1e-3
 
         loss.backward()
         optimizer.step()

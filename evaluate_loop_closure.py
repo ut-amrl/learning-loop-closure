@@ -7,8 +7,7 @@ import json
 import torch
 import time
 from learning.model import EmbeddingNet
-from learning.dataset import normalize_point_cloud
-from helpers import scan_to_point_cloud, LCBagDataReader
+from helpers import scan_to_point_cloud, LCBagDataReader, normalize_point_cloud
 from scipy import spatial
 
 parser = argparse.ArgumentParser(description='Find loop closure locations for some ROS bag')

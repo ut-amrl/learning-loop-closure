@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from learning.dataset import normalize_point_cloud
 from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
 from scipy import spatial
@@ -73,6 +72,15 @@ def scan_to_point_cloud(scan, trim_edges=True):
         angle_offset += scan.angle_increment
 
     return cloud
+
+def normalize_point_cloud(point_set):
+    point_set = point_set - \
+        np.expand_dims(np.mean(point_set, axis=0), 0)  # center
+    point_set = np.delete(point_set, 2, axis=1)
+    # normalize
+    dist = np.max(np.sqrt(np.sum(point_set ** 2, axis=1)), 0)
+    point_set = point_set / dist  # scale
+    return point_set
 
 def embedding_for_scan(model, scan):
     normalized_cloud = normalize_point_cloud(scan)
