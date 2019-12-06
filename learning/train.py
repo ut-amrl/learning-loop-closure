@@ -50,8 +50,6 @@ parser.add_argument('--model', type=str, default='', help='pretrained model to s
 
 opt = parser.parse_args()
 
-blue = lambda x: '\033[94m' + x + '\033[0m'
-
 opt.manualSeed = random.randint(1, 10000)  # fix seed
 print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)

@@ -84,8 +84,7 @@ for epoch in range(opt.nepoch):
             num_workers=int(opt.workers),
             drop_last=True)
 
-    total_predictions = [0, 0]
-    correct_predictions = 0.0
+    metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
     for i, data in enumerate(dataloader, 0):
         ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
@@ -105,24 +104,29 @@ for epoch in range(opt.nepoch):
         predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
 
-
         if opt.feature_regularization:
             loss += feature_transform_regularizer(x_trans_feat) * 1e-3
             loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         for i in range(len(predictions)):
-            if predictions[i].item() == labels[i].item():
-                correct_predictions += 1.0
-
-            if predictions[i].item():
-                total_predictions[0] += 1
-            else:
-                total_predictions[1] += 1
+            label = labels[i].item()
+            prediction = predictions[i].item()
+            if label and prediction:
+                metrics[0] += 1 # True Positive
+            elif not label and not prediction:
+                metrics[1] += 1 # True Negative
+            elif not label and prediction:
+                metrics[2] += 1 # False Positive
+            elif label and not prediction:
+                metrics[3] += 1 # False Negative
 
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    print('[Epoch %d] Total loss: %f, predictions: (Y: %d, N: %d, Correct: %f)' % (epoch, total_loss, total_predictions[0], total_predictions[1], correct_predictions/ sum(total_predictions)))
+    acc = (metrics[0] + metrics[1]) / sum(metrics)
+    prec = (metrics[0]) / (metrics[0] + metrics[2])
+    rec = (metrics[0]) / (metrics[0] + metrics[3])
+    print('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
     torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
