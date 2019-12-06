@@ -25,6 +25,7 @@ parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
+parser.add_argument('--feature_regularization', type=bool, default=False, help='Whether or not to additionally use feature regularization loss')
 parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained model to start with');
@@ -104,8 +105,10 @@ for epoch in range(opt.nepoch):
         predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
 
-        loss += feature_transform_regularizer(x_trans_feat) * 1e-3
-        loss += feature_transform_regularizer(y_trans_feat) * 1e-3
+
+        if opt.feature_regularization:
+            loss += feature_transform_regularizer(x_trans_feat) * 1e-3
+            loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         for i in range(len(predictions)):
             if predictions[i].item() == labels[i].item():
