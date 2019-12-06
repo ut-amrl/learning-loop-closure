@@ -5,6 +5,7 @@ import sys
 import torch
 import torch.utils.data
 import numpy as np
+import pickle
 from learning.model import FullNet, EmbeddingNet
 from learning.dataset import LCDataset, LCTripletDataset
 
