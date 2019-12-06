@@ -1,5 +1,5 @@
 import torch.utils.data as data
-from scipy.spatial import KDTree
+from scipy.spatial import cKDTree
 import os
 import os.path
 import glob
@@ -90,7 +90,7 @@ class LCTripletDataset(data.Dataset):
                 # random jitter
                 cloud += np.random.normal(0, 0.02, size=cloud.shape)
             self.data.append((cloud, location, timestamp))
-        self.location_tree = KDTree(np.asarray([d[1][:2] for d in self.data]))
+        self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True
 
     def load_triplets(self):
