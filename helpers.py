@@ -5,23 +5,6 @@ from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
 from scipy import spatial
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-
-def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
-    # make sure ax is not empty
-    if ax is None:
-        ax = plt.gca()
-    # generate the points
-    theta = np.linspace(np.radians(theta1), np.radians(theta2), resolution)
-    points = np.vstack((radius*np.cos(theta) + center[0], 
-                        radius*np.sin(theta) + center[1]))
-    points = np.append(points, [[center[0]], [center[1]]], axis=1)
-    # build the polygon and add it to the axes
-    poly = mpatches.Polygon(points.T, closed=True, **kwargs)
-    ax.add_patch(poly)
-    return poly
-
 FOV = np.pi * 3 / 2
 RADIUS = 3
 SAMPLE_RESOLUTION = 10
@@ -42,17 +25,13 @@ def test_point(loc, point):
     end = fix_angle(orientation + FOV / 2)
 
     if start < end and (theta < start or theta > end):
-        print("BAD ANGLE", point, relative_point, orientation, theta)
         return False
     elif end < start and (theta > start and theta < end):
-        print("BAD ANGLE", point, relative_point, orientation, theta)
         return False
     
     distance = np.linalg.norm(relative_point)
     if distance <= RADIUS:
         return True
-    print(center, point, relative_point)
-    print("BAD DISTANCE", distance)
     return False
 
 def get_test_points(location):
@@ -63,29 +42,16 @@ def get_test_points(location):
     test_angles = np.linspace(start, end, num=SAMPLE_RESOLUTION)
     
     return np.concatenate([
-        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle), angle] for d in test_distances]  for angle in test_angles
+        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances]  for angle in test_angles
     ])
 
 def compute_overlap(loc_a, loc_b, figure=0):
-    print("SOURCE LOCATION", loc_b)
     test_points = get_test_points(loc_a)
-    f = plt.figure(figure)
-    fig, ax = plt.subplots()
-    orientation = fix_angle(loc_b[2])
-    start = fix_angle(orientation - FOV/2)
-    end = fix_angle(orientation + FOV/2)
-    print("ORIENTATIONSTART/END", orientation, start, end)
-    arc_patch(loc_b[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=ax, fill=False, color='blue', zorder=1)
 
     matches = 0
-    plot_points = []
     for point in test_points:
-        matched = False
-        if (test_point(loc_b, point[:2])):
-            matched=True
+        if (test_point(loc_b, point)):
             matches += 1
-        plot_points.append((point[0], point[1], matched))
-    ax.scatter([t[0] for t in plot_points], [t[1] for t in plot_points], c=['green' if t[2] else 'red' for t in plot_points], zorder=2)
 
     return matches / len(test_points)
 
