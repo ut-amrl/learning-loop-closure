@@ -27,6 +27,7 @@ with torch.no_grad():
     if opt.model != '':
         classifier.load_state_dict(torch.load(opt.model))
     classifier.cuda()
+    classifier.eval()
     print("Loading evaluation data into memory...", )
     if opt.cached_dataset != '':
         with open(opt.cached_dataset, 'rb') as f:

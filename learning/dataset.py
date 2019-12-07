@@ -52,7 +52,7 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 jitter_augmentation=True,
+                 jitter_augmentation=False,
                  person_augmentation=False):
         self.root = root
         self.jitter_augmentation = jitter_augmentation
