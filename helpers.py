@@ -46,13 +46,19 @@ def get_test_points(location):
 
 def compute_overlap(loc_a, loc_b):
     test_points = get_test_points(loc_a)
-
     matches = 0.0
     for point in test_points:
         if (test_point(loc_b, point)):
             matches += 1.0
+    match_ab = matches / len(test_points)
+    test_points = get_test_points(loc_b)
+    matches = 0.0
+    for point in test_points:
+        if (test_point(loc_a, point)):
+            matches += 1.0
+    match_ba = matches / len(test_points)
 
-    return matches / len(test_points)
+    return np.average([match_ab, match_ba])
 
 def scan_to_point_cloud(scan, trim_edges=True):
     angle_offset = 0.0

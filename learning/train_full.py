@@ -83,16 +83,15 @@ for epoch in range(opt.nepoch):
     total_loss = 0
 
     # We want to reload the triplets every 5 epochs to get new matches
-    if epoch % 15 == 0:
-        dataset.load_triplets()
-        batch_count = len(dataset) // opt.batch_size
-        print("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
-        dataloader = torch.utils.data.DataLoader(
-            dataset,
-            batch_size=opt.batch_size,
-            shuffle=True,
-            num_workers=int(opt.workers),
-            drop_last=True)
+    dataset.load_triplets()
+    batch_count = len(dataset) // opt.batch_size
+    print("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
+    dataloader = torch.utils.data.DataLoader(
+        dataset,
+        batch_size=opt.batch_size,
+        shuffle=True,
+        num_workers=int(opt.workers),
+        drop_last=True)
 
     metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
