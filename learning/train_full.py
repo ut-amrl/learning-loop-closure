@@ -14,6 +14,7 @@ from model import FullNet, EmbeddingNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -58,7 +59,13 @@ classifier.cuda()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 
-print("Loading training data into memory...", )
+log_file = open('./logs/train_' + str(round(time.time())) + '.log', 'w+')
+def print_output(string):
+    print(string)
+    log_file.write(str(string) + '\n')
+    log_file.flush()
+
+print_output("Loading training data into memory...", )
 if opt.cached_dataset != '':
     with open(opt.cached_dataset, 'rb') as f:
         dataset = pickle.load(f)
@@ -70,7 +77,7 @@ else:
     dataset.load_triplets()
     with open('train_full_dataset.pkl', 'wb') as f:
         pickle.dump(dataset, f)
-print("Finished loading training data.")
+print_output("Finished loading training data.")
 
 lossFunc = torch.nn.NLLLoss().cuda()
 
@@ -78,14 +85,14 @@ pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
 labels = torch.cat([pos_labels, neg_labels], 0)
 
-print("Press 'return' at any time to finish training after the current epoch.")
+print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
 
     # We want to reload the triplets every 5 epochs to get new matches
     dataset.load_triplets()
     batch_count = len(dataset) // opt.batch_size
-    print("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
+    print_output("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -135,9 +142,11 @@ for epoch in range(opt.nepoch):
     acc = (metrics[0] + metrics[1]) / sum(metrics)
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
-    print('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
+    print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
     torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
-print("Completed training for {0} epochs".format(epoch + 1))
+print_output("Completed training for {0} epochs".format(epoch + 1))
+
+log_file.close()
