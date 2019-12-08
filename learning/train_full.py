@@ -10,6 +10,7 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 import pickle
+import time
 from model import FullNet, EmbeddingNet
 from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
@@ -20,14 +21,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '--batch_size', type=int, default=2, help='input batch size')
 parser.add_argument(
-    '--num_points', type=int, default=1200, help='number of points in each point cloud')
-parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
-parser.add_argument('--feature_regularization', type=bool, default=False, help='Whether or not to additionally use feature regularization loss')
+parser.add_argument('--feature_regularization', type=bool, default=True, help='Whether or not to additionally use feature regularization loss')
 parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
@@ -43,8 +42,10 @@ print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
+out_dir = os.path.join(opt.outf, round(time.time(), 0))
+
 try:
-    os.makedirs(opt.outf)
+    os.makedirs(out_dir)
 except OSError:
     pass
 
@@ -143,7 +144,7 @@ for epoch in range(opt.nepoch):
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
     print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
-    torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
+    torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (out_dir, epoch))
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 

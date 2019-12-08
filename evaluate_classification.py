@@ -21,6 +21,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTripletDataset to start with')
 
 opt = parser.parse_args()
+print(opt)
 
 with torch.no_grad():
     classifier = FullNet()
@@ -38,7 +39,7 @@ with torch.no_grad():
             split=opt.evaluation_set)
         dataset.load_data()
         dataset.load_triplets()
-        with open('evaluation_full_dataset.pkl', 'wb') as f:
+        with open('evaluation_' + opt.evaluation_set + '_dataset.pkl', 'wb') as f:
             pickle.dump(dataset, f)
     batch_count = len(dataset) // opt.batch_size
     print("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
