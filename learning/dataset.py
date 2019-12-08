@@ -145,10 +145,13 @@ class LCTripletDataset(data.Dataset):
     def _get_distance_cache(self):
         return self.dataset_info['name'] + '_' + self.split + '_distances.pkl'
 
-    def load_distances(self):
-        print("Loading overlap information from cache...")
-        with open(self._get_distance_cache(), 'rb') as f:
-            self.overlaps = pickle.load(f)
+    def load_distances(self, distance_cache):
+        if not distance_cache:
+            distance_cache = self._get_distance_cache()
+        if os.path.exists(distance_cache):
+            print("Loading overlap information from cache...")
+            with open(distance_cache, 'rb') as f:
+                self.overlaps = pickle.load(f)
 
     def cache_distances(self):
         print("Saving overlap information to cache...")

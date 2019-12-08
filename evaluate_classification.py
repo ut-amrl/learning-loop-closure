@@ -18,7 +18,7 @@ parser.add_argument(
     '--evaluation_set', type=str, default='dev', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
-parser.add_argument('--cached_distances', type=str, default='', help='cached overlap information to start with')
+parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
 opt = parser.parse_args()
 print(opt)
@@ -34,8 +34,7 @@ with torch.no_grad():
         root=opt.dataset,
         split=opt.evaluation_set)
     dataset.load_data()
-    if opt.use_cached_distances:
-        dataset.load_distances()
+    dataset.load_distances(opt.distance_cache)
     dataset.load_triplets()
     if not opt.use_cached_distances:
         dataset.cache_distances()

@@ -31,9 +31,10 @@ parser.add_argument('--outf', type=str, default='cls_full', help='output folder'
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
-parser.add_argument('--use_cached_distances', type=bool, default=False, help='cached overlap info to start with')
+parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
 opt = parser.parse_args()
+print(opt)
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
 
@@ -71,11 +72,9 @@ dataset = LCTripletDataset(
     root=opt.dataset,
     split=opt.train_set)
 dataset.load_data()
-if opt.use_cached_distances:
-    dataset.load_distances()
+dataset.load_distances(opt.distance_cache)
 dataset.load_triplets()
-if not opt.use_cached_distances:
-    dataset.cache_distances()
+dataset.cache_distances()
 print_output("Finished loading training data.")
 
 lossFunc = torch.nn.NLLLoss().cuda()
