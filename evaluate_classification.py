@@ -18,7 +18,7 @@ parser.add_argument(
     '--evaluation_set', type=str, default='dev', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
-parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTripletDataset to start with')
+parser.add_argument('--cached_distances', type=str, default='', help='cached overlap information to start with')
 
 opt = parser.parse_args()
 print(opt)
@@ -30,17 +30,15 @@ with torch.no_grad():
     classifier.cuda()
     classifier.eval()
     print("Loading evaluation data into memory...", )
-    if opt.cached_dataset != '':
-        with open(opt.cached_dataset, 'rb') as f:
-            dataset = pickle.load(f)
-    else:
-        dataset = LCTripletDataset(
-            root=opt.dataset,
-            split=opt.evaluation_set)
-        dataset.load_data()
-        dataset.load_triplets()
-        with open('evaluation_' + opt.evaluation_set + '_dataset.pkl', 'wb') as f:
-            pickle.dump(dataset, f)
+    dataset = LCTripletDataset(
+        root=opt.dataset,
+        split=opt.evaluation_set)
+    dataset.load_data()
+    if opt.use_cached_distances:
+        dataset.load_distances()
+    dataset.load_triplets()
+    if not opt.use_cached_distances:
+        dataset.cache_distances()
     batch_count = len(dataset) // opt.batch_size
     print("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(

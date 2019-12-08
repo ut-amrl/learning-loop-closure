@@ -11,6 +11,7 @@ import math
 from tqdm import tqdm
 import json
 from plyfile import PlyData, PlyElement
+import pickle
 
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from helpers import compute_overlap, normalize_point_cloud
@@ -31,7 +32,7 @@ class LCDataset(data.Dataset):
         self.split = split
 
         info_file = os.path.join(self.root, 'dataset_info.json')
-        #from IPython import embed; embed()
+
         self.dataset_info = json.load(open(info_file, 'r'))
         if self.split == 'val':
             self.file_list = glob.glob(os.path.join(self.root, 'point_*.data'))
@@ -140,6 +141,19 @@ class LCTripletDataset(data.Dataset):
                 return self.overlaps[key] > OVERLAP_THRESHOLD
 
         return overlap_checker
+
+    def _get_distance_cache(self):
+        return self.dataset_info['name'] + '_' + self.split + '_distances.pkl'
+
+    def load_distances(self):
+        print("Loading overlap information from cache...")
+        with open(self._get_distance_cache(), 'rb') as f:
+            self.overlaps = pickle.load(f)
+
+    def cache_distances(self):
+        print("Saving overlap information to cache...")
+        with open(self._get_distance_cache(), 'wb') as f:
+            pickle.dump(self.overlaps, f)
 
     def __getitem__(self, index):
         if not self.triplets_loaded:

@@ -31,7 +31,7 @@ parser.add_argument('--outf', type=str, default='cls_full', help='output folder'
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
-parser.add_argument('--cached_dataset', type=str, default='', help='cached LCTripletDataset to start with')
+parser.add_argument('--use_cached_distances', type=bool, default=False, help='cached overlap info to start with')
 
 opt = parser.parse_args()
 
@@ -42,7 +42,7 @@ print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-out_dir = os.path.join(opt.outf, round(time.time(), 0))
+out_dir = os.path.join(opt.outf, str(round(time.time(), 0)))
 
 try:
     os.makedirs(out_dir)
@@ -67,17 +67,15 @@ def print_output(string):
     log_file.flush()
 
 print_output("Loading training data into memory...", )
-if opt.cached_dataset != '':
-    with open(opt.cached_dataset, 'rb') as f:
-        dataset = pickle.load(f)
-else:
-    dataset = LCTripletDataset(
-        root=opt.dataset,
-        split=opt.train_set)
-    dataset.load_data()
-    dataset.load_triplets()
-    with open('train_full_dataset.pkl', 'wb') as f:
-        pickle.dump(dataset, f)
+dataset = LCTripletDataset(
+    root=opt.dataset,
+    split=opt.train_set)
+dataset.load_data()
+if opt.use_cached_distances:
+    dataset.load_distances()
+dataset.load_triplets()
+if not opt.use_cached_distances:
+    dataset.cache_distances()
 print_output("Finished loading training data.")
 
 lossFunc = torch.nn.NLLLoss().cuda()
