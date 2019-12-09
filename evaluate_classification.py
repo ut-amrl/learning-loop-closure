@@ -36,8 +36,7 @@ with torch.no_grad():
     dataset.load_data()
     dataset.load_distances(opt.distance_cache)
     dataset.load_triplets()
-    if not opt.use_cached_distances:
-        dataset.cache_distances()
+    dataset.cache_distances()
     batch_count = len(dataset) // opt.batch_size
     print("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
