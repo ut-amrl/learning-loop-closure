@@ -25,7 +25,9 @@ print(opt)
 
 with torch.no_grad():
     classifier = FullNet()
-    classifier = torch.nn.DataParallel(classifier)
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        classifier = torch.nn.DataParallel(classifier)
     if opt.model != '':
         classifier.load_state_dict(torch.load(opt.model))
     classifier.cuda()

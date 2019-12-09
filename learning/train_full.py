@@ -55,13 +55,14 @@ if opt.embedding_model != '':
     embedder.load_state_dict(torch.load(opt.embedding_model))
 
 classifier = FullNet(embedder)
-if opt.model != '':
-    classifier.load_state_dict(torch.load(opt.model))
-classifier.cuda()
 
 if torch.cuda.device_count() > 1:
     print("Let's use", torch.cuda.device_count(), "GPUs!")
     classifier = torch.nn.DataParallel(classifier)
+
+if opt.model != '':
+    classifier.load_state_dict(torch.load(opt.model))
+classifier.cuda()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 

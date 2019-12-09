@@ -110,6 +110,8 @@ class LCTripletDataset(data.Dataset):
         for cloud, location, timestamp in self.data:
             neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
             filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+            if len(filtered_neighbors) == 0:
+                continue
             idx = random.randint(0, len(filtered_neighbors) - 1)
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 

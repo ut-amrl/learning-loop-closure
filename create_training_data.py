@@ -9,7 +9,8 @@ from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
 TIME_SPACING = 0.025
 TRAIN_SPLIT = 0.15
-DEV_SPLIT = 0.4
+DEV_SPLIT = 0.8
+VAL_SPLIT = 1-DEV_SPLIT
 
 parser = argparse.ArgumentParser(
     description='Create some training data from ROS bags')
@@ -69,9 +70,11 @@ count = len(filenames)
 train_indices = random.sample(
     list(range(count)), int(round(count * TRAIN_SPLIT)))
 dev_indices = random.sample(list(range(count)), int(round(count * DEV_SPLIT)))
+val_indices = set(range(count)) - set(dev_indices)
 
 dataset_info['train_data'] = [filenames[i] for i in train_indices]
 dataset_info['dev_data'] = [filenames[i] for i in dev_indices]
+dataset_info['val_data'] = [filenames[i] for i in val_indices]
 
 info_path = os.path.join(base_path, 'dataset_info.json')
 with open(info_path, 'w') as f:
