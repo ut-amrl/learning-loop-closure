@@ -34,10 +34,7 @@ class LCDataset(data.Dataset):
         info_file = os.path.join(self.root, 'dataset_info.json')
 
         self.dataset_info = json.load(open(info_file, 'r'))
-        if self.split == 'val':
-            self.file_list = glob.glob(os.path.join(self.root, 'point_*.data'))
-        else:
-            self.file_list = self.dataset_info[self.split + '_data']
+        self.file_list = self.dataset_info[self.split + '_data']
 
     def __getitem__(self, index):
         fname = self.file_list[index]
@@ -75,11 +72,7 @@ class LCTripletDataset(data.Dataset):
 
     def load_data(self):
         # Use dataset_info to load data files
-        if self.split == 'val':
-            filelist = glob.glob(os.path.join(self.root, 'point_*.data'))
-            filelist = [os.path.relpath(f, self.root) for f in filelist]
-        else:
-            filelist = self.dataset_info[self.split + '_data']
+        filelist = self.dataset_info[self.split + '_data']
             
         for fname in filelist:
             timestamp = fname[fname.find('_')+1:fname.find('.data')]
