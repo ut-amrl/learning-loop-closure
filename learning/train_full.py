@@ -59,6 +59,10 @@ if opt.model != '':
     classifier.load_state_dict(torch.load(opt.model))
 classifier.cuda()
 
+if torch.cuda.device_count() > 1:
+    print("Let's use", torch.cuda.device_count(), "GPUs!")
+    classifier = torch.nn.DataParallel(classifier)
+
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 
 log_file = open('./logs/train_' + str(round(time.time())) + '.log', 'w+')

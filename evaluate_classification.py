@@ -25,6 +25,7 @@ print(opt)
 
 with torch.no_grad():
     classifier = FullNet()
+    classifier = torch.nn.DataParallel(classifier)
     if opt.model != '':
         classifier.load_state_dict(torch.load(opt.model))
     classifier.cuda()
