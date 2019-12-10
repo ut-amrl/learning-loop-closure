@@ -9,13 +9,12 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 import numpy as np
-import pickle
+import train_helpers
+from train_helpers import print_output
 import time
-from model import FullNet, EmbeddingNet
 from pointnet.model import feature_transform_regularizer
-from dataset import LCDataset, LCTripletDataset
-from tqdm import tqdm
-import time
+
+start_time = str(round(time.time(), 0))
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -27,19 +26,22 @@ parser.add_argument(
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--feature_regularization', type=bool, default=True, help='Whether or not to additionally use feature regularization loss')
-parser.add_argument('--outf', type=str, default='cls_full_' + str(int(round(time.time()))), help='output folder')
+parser.add_argument('--outf', type=str, default='cls_full_' + start_time, help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
-opt = parser.parse_args()
-print(opt)
 
-blue = lambda x: '\033[94m' + x + '\033[0m'
+opt = parser.parse_args()
+train_helpers.initialize_logging(start_time)
+print_output(opt)
+
+
+num_workers = int(opt.workers)
 
 opt.manualSeed = random.randint(1, 10000)  # fix seed
-print("Random Seed: ", opt.manualSeed)
+print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
@@ -48,37 +50,11 @@ try:
 except OSError:
     pass
 
-embedder = EmbeddingNet()
-if opt.embedding_model != '':
-    embedder.load_state_dict(torch.load(opt.embedding_model))
 
-classifier = FullNet(embedder)
+classifier = train_helpers.create_classifier(opt.embedding_model, opt.model)
+dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
 
-if torch.cuda.device_count() > 1:
-    print("Let's use", torch.cuda.device_count(), "GPUs!")
-    classifier = torch.nn.DataParallel(classifier)
-
-if opt.model != '':
-    classifier.load_state_dict(torch.load(opt.model))
-classifier.cuda()
-
-optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
-
-log_file = open('./logs/train_' + str(round(time.time())) + '.log', 'w+')
-def print_output(string):
-    print(string)
-    log_file.write(str(string) + '\n')
-    log_file.flush()
-
-print_output("Loading training data into memory...", )
-dataset = LCTripletDataset(
-    root=opt.dataset,
-    split=opt.train_set)
-dataset.load_data()
-dataset.load_distances(opt.distance_cache)
-dataset.load_triplets()
-dataset.cache_distances()
-print_output("Finished loading training data.")
+optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
 
 lossFunc = torch.nn.NLLLoss().cuda()
 
@@ -98,7 +74,7 @@ for epoch in range(opt.nepoch):
         dataset,
         batch_size=opt.batch_size,
         shuffle=True,
-        num_workers=int(opt.workers),
+        num_workers=num_workers,
         drop_last=True)
 
     metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
@@ -114,8 +90,8 @@ for epoch in range(opt.nepoch):
         distant_clouds = distant_clouds.cuda()
 
         optimizer.zero_grad()
-        embedder.zero_grad()
-        embedder.train()
+        classifier.zero_grad()
+        classifier.train()
 
         scores, (x_trans_feat, y_trans_feat), (translation, theta)  = classifier(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
         predictions = torch.argmax(scores, dim=1).cpu()
@@ -125,17 +101,7 @@ for epoch in range(opt.nepoch):
             loss += feature_transform_regularizer(x_trans_feat) * 1e-3
             loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
-        for i in range(len(predictions)):
-            label = labels[i].item()
-            prediction = predictions[i].item()
-            if label and prediction:
-                metrics[0] += 1 # True Positive
-            elif not label and not prediction:
-                metrics[1] += 1 # True Negative
-            elif not label and prediction:
-                metrics[2] += 1 # False Positive
-            elif label and not prediction:
-                metrics[3] += 1 # False Negative
+        train_helpers.update_metrics(metrics, predictions, loss)
 
         loss.backward()
         optimizer.step()

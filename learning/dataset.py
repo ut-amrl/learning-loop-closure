@@ -1,5 +1,6 @@
 import torch.utils.data as data
 from scipy.spatial import cKDTree
+import multiprocessing as mp
 import os
 import os.path
 import glob
@@ -53,12 +54,14 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
+                 num_workers=8,
                  jitter_augmentation=False,
                  person_augmentation=False):
         self.root = root
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
         self.split = split
+        self.num_workers = num_workers
 
         info_file = os.path.join(self.root, 'dataset_info.json')
         #from IPython import embed; embed()
@@ -80,45 +83,73 @@ class LCTripletDataset(data.Dataset):
                 self.root, 'location_{0}.data'.format(timestamp))
             location = np.loadtxt(location_file).astype(np.float32)
             cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
-            # random perturbations, because why not
-            if self.jitter_augmentation:
-                theta = np.random.uniform(-np.pi / 4, np.pi / 4)
-                rotation_matrix = np.array([
-                    [np.cos(theta), -np.sin(theta)],
-                    [np.sin(theta), np.cos(theta)]
-                ])
-                # random rotation
-                cloud[:, :] = cloud[:, :].dot(rotation_matrix)
-                # random jitter
-                cloud += np.random.normal(0, 0.02, size=cloud.shape)
             self.data.append((cloud, location, timestamp))
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True
+
+    def _generate_triplet(self, cloud, location, timestamp):
+        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+        filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+        num_filtered = len(filtered_neighbors)
+        augmented_neighbors = self.generate_augmented_neighbors(cloud)
+        idx = random.randint(0, len(filtered_neighbors) + len(augmented_neighbors) - 1
+        similar_cloud, similar_loc, similar_timestamp = self.data[idx] if idx < num_filtered - 1 else augmented_neighbors[idx - num_filtered]
+
+        idx = random.randint(0, len(self.data) - 1)
+        while idx in filtered_neighbors:
+            idx = random.randint(0, len(self.data) - 1)
+        distant_cloud, distant_loc, distant_timestamp = self.data[idx]
+        
+        return (
+            (cloud, location, timestamp),
+            (similar_cloud, similar_loc, similar_timestamp),
+            (distant_cloud, distant_loc, distant_timestamp)
+        )
 
     def load_triplets(self):
         if not self.data_loaded:
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
-        # Compute triplets
-        for cloud, location, timestamp in self.data:
-            neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
-            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-            if len(filtered_neighbors) == 0:
-                continue
-            idx = random.randint(0, len(filtered_neighbors) - 1)
-            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
-            idx = random.randint(0, len(self.data) - 1)
-            while idx in filtered_neighbors:
-                idx = random.randint(0, len(self.data) - 1)
-            distant_cloud, distant_loc, distant_timestamp = self.data[idx]
-            self.triplets.append((
-                (cloud, location, timestamp),
-                (similar_cloud, similar_loc, similar_timestamp),
-                (distant_cloud, distant_loc, distant_timestamp)
-            ))
+        # pool = mp.Pool(self.num_workers)
+        import time
+        # start = time.time()
+        # # Compute triplets
+        # results = [pool.apply_async(self._generate_triplet, args=(cloud, location, timestamp)) for cloud, location, timestamp in self.data]
+        # self.triplets = [r.get()[1] for r in results]
+
+        # pool.close()
+        # pool.join()
+
+        # print("FULL TIME", time.time() - start)
+
+        start = time.time()
+        self.triplets = [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in self.data]
+        print("NP Time", time.time() - start)
 
         self.triplets_loaded = True
+
+    def generate_augmented_neighbors(self, cloud):
+        neighbors = []
+        # random perturbations, because why not
+        if self.jitter_augmentation:
+            theta = np.random.uniform(-np.pi / 12, np.pi / 12)
+            rotation_matrix = np.array([
+                [np.cos(theta), -np.sin(theta)],
+                [np.sin(theta), np.cos(theta)]
+            ])
+            augmented = np.zeros(cloud.shape)
+            # random rotation
+            augmented[:, :] = cloud[:, :].dot(rotation_matrix)
+            # random jitter
+            augmented += np.random.normal(0, 0.02, size=cloud.shape)
+            neighbors.push(augmented)
+        
+        if self.person_augmentation:
+            continue
+            # neighbors.push(augmented)
+        
+        return neighbors
 
     def filter_scan_matches(self, timestamp, location, neighbors):
         return np.asarray(list(filter(self.check_overlap(location, timestamp), neighbors)))

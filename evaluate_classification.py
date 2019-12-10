@@ -23,6 +23,8 @@ parser.add_argument('--distance_cache', type=str, default=None, help='cached ove
 opt = parser.parse_args()
 print(opt)
 
+num_workers = int(opt.workers)
+
 with torch.no_grad():
     classifier = FullNet()
     if torch.cuda.device_count() > 1:
@@ -35,7 +37,8 @@ with torch.no_grad():
     print("Loading evaluation data into memory...", )
     dataset = LCTripletDataset(
         root=opt.dataset,
-        split=opt.evaluation_set)
+        split=opt.evaluation_set,
+        num_workers=num_workers)
     dataset.load_data()
     dataset.load_distances(opt.distance_cache)
     dataset.load_triplets()
@@ -46,7 +49,7 @@ with torch.no_grad():
         dataset,
         batch_size=opt.batch_size,
         shuffle=True,
-        num_workers=int(opt.workers),
+        num_workers=num_workers,
         drop_last=True)
 
     pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1)
