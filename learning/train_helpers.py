@@ -1,20 +1,22 @@
 from model import FullNet, EmbeddingNet
 from dataset import LCTripletDataset
 import time
+import torch
 
 log_file = None
 def initialize_logging(start_time):
+    global log_file
     log_file = open('./logs/train_' + start_time + '.log', 'w+')
 
-def print_output(string):
-    print(string)
+def print_output(*args):
+    print(args)
     if log_file:
-        log_file.write(str(string) + '\n')
+        log_file.write(' '.join([str(a) for a in args]) + '\n')
         log_file.flush()
     else:
         print("warning: log file not initialized. Please call initialize_logging")
 
-def load_dataset(root, split, distance_cache):
+def load_dataset(root, split, distance_cache, num_workers):
     print_output("Loading training data into memory...", )
     dataset = LCTripletDataset(
         root=root,
@@ -29,16 +31,16 @@ def load_dataset(root, split, distance_cache):
 
 def create_classifier(embedding_model='', model=''):
     embedder = EmbeddingNet()
-    if opt.embedding_model != '':
-        embedder.load_state_dict(torch.load(opt.embedding_model))
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
     classifier = FullNet(embedder)
 
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         classifier = torch.nn.DataParallel(classifier)
 
-    if opt.model != '':
-        classifier.load_state_dict(torch.load(opt.model))
+    if model != '':
+        classifier.load_state_dict(torch.load(model))
     classifier.cuda()
     return classifier
 

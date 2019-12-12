@@ -94,8 +94,13 @@ class LCTripletDataset(data.Dataset):
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
         num_filtered = len(filtered_neighbors)
         augmented_neighbors = self.generate_augmented_neighbors(cloud)
-        idx = random.randint(0, len(filtered_neighbors) + len(augmented_neighbors) - 1
-        similar_cloud, similar_loc, similar_timestamp = self.data[idx] if idx < num_filtered - 1 else augmented_neighbors[idx - num_filtered]
+        idx = random.randint(0, len(filtered_neighbors) + len(augmented_neighbors) - 1)
+        if idx < num_filtered:
+            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
+        else:
+            similar_cloud = augmented_neighbors[idx - num_filtered]
+            similar_loc = location
+            similar_timestamp = timestamp
 
         idx = random.randint(0, len(self.data) - 1)
         while idx in filtered_neighbors:
@@ -113,21 +118,7 @@ class LCTripletDataset(data.Dataset):
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
 
-        # pool = mp.Pool(self.num_workers)
-        import time
-        # start = time.time()
-        # # Compute triplets
-        # results = [pool.apply_async(self._generate_triplet, args=(cloud, location, timestamp)) for cloud, location, timestamp in self.data]
-        # self.triplets = [r.get()[1] for r in results]
-
-        # pool.close()
-        # pool.join()
-
-        # print("FULL TIME", time.time() - start)
-
-        start = time.time()
         self.triplets = [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in self.data]
-        print("NP Time", time.time() - start)
 
         self.triplets_loaded = True
 
@@ -140,19 +131,19 @@ class LCTripletDataset(data.Dataset):
                 [np.cos(theta), -np.sin(theta)],
                 [np.sin(theta), np.cos(theta)]
             ])
-            augmented = np.zeros(cloud.shape)
+            augmented = np.zeros(cloud.shape).astype(np.float32)
             # random rotation
             augmented[:, :] = cloud[:, :].dot(rotation_matrix)
             # random jitter
             augmented += np.random.normal(0, 0.02, size=cloud.shape)
-            neighbors.push(augmented)
+            neighbors.append(augmented)
         
         if self.person_augmentation:
-            continue
-            # neighbors.push(augmented)
+            pass
+            # neighbors.append(augmented)
         
         if self.order_augmentation:
-            neighbors.push(np.random.permutation(cloud))
+            neighbors.append(np.random.permutation(cloud))
 
         return neighbors
 

@@ -50,9 +50,8 @@ try:
 except OSError:
     pass
 
-
 classifier = train_helpers.create_classifier(opt.embedding_model, opt.model)
-dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
+dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.workers)
 
 optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
 
@@ -101,7 +100,7 @@ for epoch in range(opt.nepoch):
             loss += feature_transform_regularizer(x_trans_feat) * 1e-3
             loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
-        train_helpers.update_metrics(metrics, predictions, loss)
+        train_helpers.update_metrics(metrics, predictions, labels)
 
         loss.backward()
         optimizer.step()
