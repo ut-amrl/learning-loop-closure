@@ -57,7 +57,6 @@ with torch.no_grad():
 
         scores, (x_trans_feat, y_trans_feat), (translation, theta)  = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
-        
         train_helpers.update_metrics(metrics, predictions, labels)
 
     acc = (metrics[0] + metrics[1]) / sum(metrics)
