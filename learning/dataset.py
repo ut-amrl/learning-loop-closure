@@ -55,11 +55,13 @@ class LCTripletDataset(data.Dataset):
                  root,
                  split='train',
                  num_workers=8,
-                 jitter_augmentation=False,
-                 person_augmentation=False):
+                 jitter_augmentation=True,
+                 person_augmentation=False,
+                 order_augmentation=True):
         self.root = root
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
+        self.order_augmentation = order_augmentation
         self.split = split
         self.num_workers = num_workers
 
@@ -149,6 +151,9 @@ class LCTripletDataset(data.Dataset):
             continue
             # neighbors.push(augmented)
         
+        if self.order_augmentation:
+            neighbors.push(np.random.permutation(cloud))
+
         return neighbors
 
     def filter_scan_matches(self, timestamp, location, neighbors):
