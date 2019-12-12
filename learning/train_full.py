@@ -18,7 +18,7 @@ start_time = str(int(time.time()))
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--batch_size', type=int, default=2, help='input batch size')
+    '--batch_size', type=int, default=30, help='input batch size')
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
@@ -53,7 +53,6 @@ dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_ca
 classifier.train()
 
 optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
-
 lossFunc = torch.nn.NLLLoss().cuda()
 
 pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
@@ -91,6 +90,7 @@ for epoch in range(opt.nepoch):
         classifier.zero_grad()
         scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
+        
         loss = lossFunc(scores, labels)
         if opt.feature_regularization:
             loss += feature_transform_regularizer(x_trans_feat) * 1e-3
