@@ -6,8 +6,9 @@ import torch
 import torch.utils.data
 import numpy as np
 import pickle
-from learning.model import FullNet, EmbeddingNet
-from learning.dataset import LCDataset, LCTripletDataset
+import time
+from learning import train_helpers
+from learning.train_helpers import print_output
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -21,30 +22,18 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
 opt = parser.parse_args()
-print(opt)
+train_helpers.initialize_logging(str(round(time.time(), 0)), 'evaluate_')
+print_output(opt)
 
 num_workers = int(opt.workers)
 
 with torch.no_grad():
-    classifier = FullNet()
-    if torch.cuda.device_count() > 1:
-        print("Let's use", torch.cuda.device_count(), "GPUs!")
-        classifier = torch.nn.DataParallel(classifier)
-    if opt.model != '':
-        classifier.load_state_dict(torch.load(opt.model))
-    classifier.cuda()
+    classifier = train_helpers.create_classifier('', opt.model)
     classifier.eval()
-    print("Loading evaluation data into memory...", )
-    dataset = LCTripletDataset(
-        root=opt.dataset,
-        split=opt.evaluation_set,
-        num_workers=num_workers)
-    dataset.load_data()
-    dataset.load_distances(opt.distance_cache)
-    dataset.load_triplets()
-    dataset.cache_distances()
+    print_output("Loading evaluation data into memory...", )
+    dataset = train_helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, num_workers)
     batch_count = len(dataset) // opt.batch_size
-    print("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
+    print_output("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -54,7 +43,7 @@ with torch.no_grad():
 
     pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1)
     neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1)
-    labels = torch.cat([pos_labels, neg_labels], 0).cuda()
+    labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
     metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
@@ -68,22 +57,12 @@ with torch.no_grad():
         similar_clouds = similar_clouds.cuda()
         distant_clouds = distant_clouds.cuda()
 
-        scores, (x_trans_feat, y_trans_feat), (translation, theta)  = classifier(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
+        scores, (x_trans_feat, y_trans_feat), (translation, theta)  = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
-
-        for i in range(len(predictions)):
-            label = labels[i].item()
-            prediction = predictions[i].item()
-            if label and prediction:
-                metrics[0] += 1 # True Positive
-            elif not label and not prediction:
-                metrics[1] += 1 # True Negative
-            elif not label and prediction:
-                metrics[2] += 1 # False Positive
-            elif label and not prediction:
-                metrics[3] += 1 # False Negative
+        
+        train_helpers.update_metrics(metrics, predictions, labels)
 
     acc = (metrics[0] + metrics[1]) / sum(metrics)
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
-    print('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
+    print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))

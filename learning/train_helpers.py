@@ -4,9 +4,9 @@ import time
 import torch
 
 log_file = None
-def initialize_logging(start_time):
+def initialize_logging(start_time, file_prefix='train_'):
     global log_file
-    log_file = open('./logs/train_' + start_time + '.log', 'w+')
+    log_file = open('./logs/' + file_prefix + start_time + '.log', 'w+')
 
 def print_output(*args):
     print(args)
@@ -15,6 +15,11 @@ def print_output(*args):
         log_file.flush()
     else:
         print("warning: log file not initialized. Please call initialize_logging")
+
+def close_logging():
+    global log_file
+    log_file.close()
+    log_file = None
 
 def load_dataset(root, split, distance_cache, num_workers):
     print_output("Loading training data into memory...", )

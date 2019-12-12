@@ -10,8 +10,8 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 import train_helpers
-from train_helpers import print_output
 import time
+from train_helpers import print_output
 from pointnet.model import feature_transform_regularizer
 
 start_time = str(round(time.time(), 0))
@@ -37,7 +37,6 @@ opt = parser.parse_args()
 train_helpers.initialize_logging(start_time)
 print_output(opt)
 
-
 num_workers = int(opt.workers)
 
 opt.manualSeed = random.randint(1, 10000)  # fix seed
@@ -52,6 +51,7 @@ except OSError:
 
 classifier = train_helpers.create_classifier(opt.embedding_model, opt.model)
 dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.workers)
+classifier.train()
 
 optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
 
@@ -59,7 +59,7 @@ lossFunc = torch.nn.NLLLoss().cuda()
 
 pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
-labels = torch.cat([pos_labels, neg_labels], 0)
+labels = torch.cat([pos_labels, neg_labels], dim=0)
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
@@ -90,9 +90,7 @@ for epoch in range(opt.nepoch):
 
         optimizer.zero_grad()
         classifier.zero_grad()
-        classifier.train()
-
-        scores, (x_trans_feat, y_trans_feat), (translation, theta)  = classifier(torch.cat([clouds, clouds], 0), torch.cat([similar_clouds, distant_clouds]))
+        scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
 
@@ -115,4 +113,4 @@ for epoch in range(opt.nepoch):
 
 print_output("Completed training for {0} epochs".format(epoch + 1))
 
-log_file.close()
+train_helpers.close_logging()
