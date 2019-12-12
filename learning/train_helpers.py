@@ -22,7 +22,7 @@ def close_logging():
     log_file = None
 
 def load_dataset(root, split, distance_cache, num_workers):
-    print_output("Loading training data into memory...", )
+    print_output("Loading data into memory...", )
     dataset = LCTripletDataset(
         root=root,
         split=split,
@@ -31,7 +31,7 @@ def load_dataset(root, split, distance_cache, num_workers):
     dataset.load_distances(distance_cache)
     dataset.load_triplets()
     dataset.cache_distances()
-    print_output("Finished loading training data.")
+    print_output("Finished loading data.")
     return dataset
 
 def create_classifier(embedding_model='', model=''):
@@ -40,14 +40,21 @@ def create_classifier(embedding_model='', model=''):
         embedder.load_state_dict(torch.load(embedding_model))
     classifier = FullNet(embedder)
 
+    if model != '':
+        classifier.load_state_dict(torch.load(model))
+
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         classifier = torch.nn.DataParallel(classifier)
 
-    if model != '':
-        classifier.load_state_dict(torch.load(model))
     classifier.cuda()
     return classifier
+
+def save_classifier(classifier):
+    to_save = classifier
+    if torch.cuda.device_count() > 1:
+        to_save = classifier.module
+    torch.save(to_save.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
 
 def update_metrics(metrics, predictions, labels):
     for i in range(len(predictions)):

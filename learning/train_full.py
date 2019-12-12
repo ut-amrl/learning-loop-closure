@@ -14,7 +14,7 @@ import time
 from train_helpers import print_output
 from pointnet.model import feature_transform_regularizer
 
-start_time = str(round(time.time(), 0))
+start_time = str(int(time.time()))
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -31,7 +31,6 @@ parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
-
 
 opt = parser.parse_args()
 train_helpers.initialize_logging(start_time)
@@ -107,7 +106,7 @@ for epoch in range(opt.nepoch):
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
     print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
-    torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (opt.outf, epoch))
+    train_helpers.save_classifier(classifer)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 

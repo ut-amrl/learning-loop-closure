@@ -22,7 +22,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
 opt = parser.parse_args()
-train_helpers.initialize_logging(str(round(time.time(), 0)), 'evaluate_')
+train_helpers.initialize_logging(str(int(time.time())), 'evaluate_')
 print_output(opt)
 
 num_workers = int(opt.workers)
@@ -30,10 +30,8 @@ num_workers = int(opt.workers)
 with torch.no_grad():
     classifier = train_helpers.create_classifier('', opt.model)
     classifier.eval()
-    print_output("Loading evaluation data into memory...", )
     dataset = train_helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, num_workers)
     batch_count = len(dataset) // opt.batch_size
-    print_output("Loaded evaluation triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
