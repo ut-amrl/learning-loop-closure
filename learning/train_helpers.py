@@ -34,6 +34,19 @@ def load_dataset(root, split, distance_cache, num_workers):
     print_output("Finished loading data.")
     return dataset
 
+
+def create_embedder(embedding_model=''):
+    embedder = EmbeddingNet()
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        embedder = torch.nn.DataParallel(embedder)
+
+    embedder.cuda()
+    return embedder
+
 def create_classifier(embedding_model='', model=''):
     embedder = EmbeddingNet()
     if embedding_model != '':
@@ -50,10 +63,10 @@ def create_classifier(embedding_model='', model=''):
     classifier.cuda()
     return classifier
 
-def save_classifier(classifier, outf, epoch):
-    to_save = classifier
+def save_model(model, outf, epoch):
+    to_save = model
     if torch.cuda.device_count() > 1:
-        to_save = classifier.module
+        to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
 def update_metrics(metrics, predictions, labels):
