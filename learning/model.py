@@ -74,14 +74,14 @@ class EmbeddingNet(nn.Module):
 
         x = self.bn2(self.conv2(x))
         x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 128)
+        x = x.squeeze()
         return x, trans_feat, translation, theta
 
 class FullNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
         super(FullNet, self).__init__()
         self.embedding = embedding
-        self.dropout = nn.Dropout(0.2)
+        self.dropout = nn.Dropout(0.4)
         self.ff = nn.Linear(256, 2)
         self.softmax = nn.LogSoftmax(dim=1)
         nn.init.xavier_uniform_(self.ff.weight)
