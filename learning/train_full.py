@@ -44,7 +44,9 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-out_dir = opt.outf + '_' + opt.dataset
+dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.workers)
+
+out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 
 try:
     os.makedirs(out_dir)
@@ -52,7 +54,6 @@ except OSError:
     pass
 
 classifier = train_helpers.create_classifier(opt.embedding_model, opt.model)
-dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.workers)
 classifier.train()
 
 optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
