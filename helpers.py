@@ -3,6 +3,7 @@ import torch
 from sensor_msgs.msg import PointCloud2, PointField
 from rospy import rostime
 from scipy import spatial
+from tqdm import tqdm
 
 FOV = np.pi * 3 / 2
 RADIUS = 3
@@ -108,7 +109,7 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
     print("Start time:", bag.get_start_time())
     print("End time:", bag.get_end_time())
 
-    for topic, msg, t in bag.read_messages(topics=[lidar_topic, localization_topic]):
+    for topic, msg, t in tqdm(bag.read_messages(topics=[lidar_topic, localization_topic])):
         timestamp = t.secs + t.nsecs * 1e-9 - start_time
         if (topic == lidar_topic and timestamp - last_scan_time > scan_timestep):
             if not 'range_max' in metadata:

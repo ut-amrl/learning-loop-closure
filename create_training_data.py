@@ -4,10 +4,11 @@ import numpy as np
 import os
 import random
 import json
+from tqdm import tqdm
 from scipy import spatial
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
-TIME_SPACING = 0.025
+TIME_SPACING = 0.01
 TRAIN_SPLIT = 0.15
 DEV_SPLIT = 0.8
 VAL_SPLIT = 1-DEV_SPLIT
@@ -53,7 +54,7 @@ if not args.info_only:
     print("Writing data to disk for {0} scans...".format(
         dataset_info['numScans']))
 filenames = []
-for timestamp, cloud in list(scans.items()):
+for timestamp, cloud in tqdm(list(scans.items())):
     d, idx = localizationTree.query([timestamp])
     locTimestamp = sorted(localizations.keys())[idx]
     location = localizations[locTimestamp]
