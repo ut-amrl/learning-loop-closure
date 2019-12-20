@@ -54,7 +54,7 @@ def save_classifier(classifier, outf, epoch):
     to_save = classifier
     if torch.cuda.device_count() > 1:
         to_save = classifier.module
-    torch.save(to_save.state_dict(), '%s/cls_model_%d.pth' % (outf, epoch))
+    torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
 def update_metrics(metrics, predictions, labels):
     for i in range(len(predictions)):

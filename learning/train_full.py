@@ -26,7 +26,7 @@ parser.add_argument(
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--feature_regularization', type=bool, default=True, help='Whether or not to additionally use feature regularization loss')
-parser.add_argument('--outf', type=str, default='cls_full_' + start_time, help='output folder')
+parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
@@ -34,6 +34,7 @@ parser.add_argument('--distance_cache', type=str, default=None, help='cached ove
 
 opt = parser.parse_args()
 train_helpers.initialize_logging(start_time)
+
 print_output(opt)
 
 num_workers = int(opt.workers)
@@ -43,8 +44,10 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
+out_dir = opt.outf + '_' + opt.dataset
+
 try:
-    os.makedirs(opt.outf)
+    os.makedirs(out_dir)
 except OSError:
     pass
 
@@ -105,7 +108,7 @@ for epoch in range(opt.nepoch):
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
     print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
-    train_helpers.save_classifier(classifier, opt.outf, epoch)
+    train_helpers.save_classifier(classifier, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
