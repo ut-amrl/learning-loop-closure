@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 import time
 import random
+from tqdm import tqdm
 from learning import train_helpers
 from learning.train_helpers import print_output
 
@@ -50,7 +51,7 @@ labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
 metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
-for i, data in enumerate(dataloader, 0):
+for i, data in tqdm(enumerate(dataloader, 0)):
     ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
     clouds = clouds.transpose(2, 1)
     similar_clouds = similar_clouds.transpose(2, 1)

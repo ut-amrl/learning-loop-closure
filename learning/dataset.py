@@ -79,7 +79,7 @@ class LCTripletDataset(data.Dataset):
         # Use dataset_info to load data files
         filelist = self.dataset_info[self.split + '_data']
             
-        for fname in filelist:
+        for fname in tqdm(filelist):
             timestamp = fname[fname.find('_')+1:fname.find('.data')]
             location_file = os.path.join(
                 self.root, 'location_{0}.data'.format(timestamp))
@@ -118,7 +118,7 @@ class LCTripletDataset(data.Dataset):
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
 
-        self.triplets = [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in self.data]
+        self.triplets = [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)]
 
         self.triplets_loaded = True
 

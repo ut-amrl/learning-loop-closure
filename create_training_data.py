@@ -38,7 +38,7 @@ dataset_info = {
 }
 
 print("Loading scans & Localization from Bag file")
-scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIME_SPACING)
+scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIME_SPACING, TIME_SPACING)
 print("Finished processing Bag file")
 
 dataset_info['scanMetadata'] = metadata
