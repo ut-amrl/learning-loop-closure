@@ -34,8 +34,8 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-classifier = train_helpers.create_classifier('', opt.model)
-classifier.eval()
+embedder = train_helpers.create_embedder(opt.model)
+embedder.eval()
 dataset = train_helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, num_workers)
 batch_count = len(dataset) // opt.batch_size
 dataloader = torch.utils.data.DataLoader(
@@ -61,10 +61,20 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
-    predictions = torch.argmax(scores, dim=1).cpu()
     
-    train_helpers.update_metrics(metrics, predictions, labels)
+    anchor_embeddings, trans_feat, trans, theta = embedder(clouds)
+    similar_embeddings, sim_feat, sim_trans, sim_theta = embedder(similar_clouds)
+    distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
+
+    import pdb; pdb.set_trace()
+
+    distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1) * 1e-1
+    distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1) * 1e-1
+
+    predictions_pos = torch.where(distance_pos < 2)
+    predictions_neg = torch.where(distance_neg < 2)
+
+    train_helpers.update_metrics(metrics, torch.cat([predictions_pos, predictions_neg]), labels)
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])
