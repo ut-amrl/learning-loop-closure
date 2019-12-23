@@ -55,10 +55,12 @@ class LCTripletDataset(data.Dataset):
                  root,
                  split='train',
                  num_workers=8,
+                 augmentation_prob=0.4,
                  jitter_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=True):
         self.root = root
+        self.augmentation_prob = 0.4
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
         self.order_augmentation = order_augmentation
@@ -90,17 +92,18 @@ class LCTripletDataset(data.Dataset):
         self.data_loaded = True
 
     def _generate_triplet(self, cloud, location, timestamp):
+        should_use_augmented = random.random() < self.augmentation_prob
         neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-        num_filtered = len(filtered_neighbors)
-        augmented_neighbors = self.generate_augmented_neighbors(cloud)
-        idx = random.randint(0, len(filtered_neighbors) + len(augmented_neighbors) - 1)
-        if idx < num_filtered:
-            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
-        else:
-            similar_cloud = augmented_neighbors[idx - num_filtered]
+        if should_use_augmented or len(filtered_neighbors) == 0:
+            augmented_neighbors = self.generate_augmented_neighbors(cloud)
+            idx = random.randint(0,  len(augmented_neighbors) - 1)
+            similar_cloud = augmented_neighbors[idx]
             similar_loc = location
             similar_timestamp = timestamp
+        else:
+            idx = random.randint(0, len(filtered_neighbors) - 1)
+            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
         idx = random.randint(0, len(self.data) - 1)
         while idx in filtered_neighbors:

@@ -94,7 +94,7 @@ for epoch in range(opt.nepoch):
         classifier.zero_grad()
         scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
-        import pdb; pdb.set_trace()
+
         loss = lossFunc(scores, labels)
         if opt.feature_regularization:
             loss += feature_transform_regularizer(x_trans_feat) * 1e-3
