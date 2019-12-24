@@ -22,7 +22,7 @@ FAR_DISTANCE_THRESHOLD = 0.5
 OVERLAP_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
-    point_set = np.loadtxt(filename).astype(np.float32)
+    point_set = np.load(filename).astype(np.float32)
     return normalize_point_cloud(point_set)
 
 class LCDataset(data.Dataset):
@@ -39,10 +39,10 @@ class LCDataset(data.Dataset):
 
     def __getitem__(self, index):
         fname = self.file_list[index]
-        timestamp = fname[fname.find('_')+1:fname.find('.data')]
+        timestamp = fname[fname.find('_')+1:]
         location_file = os.path.join(
-            self.root, 'location_{0}.data'.format(timestamp))
-        location = np.loadtxt(location_file).astype(np.float32)
+            self.root, 'location_{0}.npy'.format(timestamp))
+        location = np.load(location_file).astype(np.float32)
         cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
 
         return cloud, location[:2], timestamp
@@ -82,10 +82,10 @@ class LCTripletDataset(data.Dataset):
         filelist = self.dataset_info[self.split + '_data']
             
         for fname in tqdm(filelist):
-            timestamp = fname[fname.find('_')+1:fname.find('.data')]
+            timestamp = fname[fname.find('_')+1]
             location_file = os.path.join(
-                self.root, 'location_{0}.data'.format(timestamp))
-            location = np.loadtxt(location_file).astype(np.float32)
+                self.root, 'location_{0}'.format(timestamp))
+            location = np.load(location_file).astype(np.float32)
             cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
             self.data.append((cloud, location, timestamp))
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))

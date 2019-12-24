@@ -37,14 +37,13 @@ dataset_info = {
     'startTime': start_timestamp,
 }
 
-print("Loading scans & Localization from Bag file")
 scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIME_SPACING, TIME_SPACING)
-print("Finished processing Bag file")
 
 dataset_info['scanMetadata'] = metadata
 dataset_info['numScans'] = len(scans.keys())
 
-localizationTree = spatial.cKDTree([list([l]) for l in sorted(localizations.keys())])
+loc_timestamps = sorted(localizations.keys())
+localizationTree = spatial.cKDTree([list([l]) for l in loc_timestamps])
 
 base_path = './data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
@@ -55,14 +54,22 @@ if not args.info_only:
         dataset_info['numScans']))
 filenames = []
 for timestamp, cloud in tqdm(list(scans.items())):
-    d, idx = localizationTree.query([timestamp])
-    locTimestamp = sorted(localizations.keys())[idx]
-    location = localizations[locTimestamp]
-    cloud_file_name = 'point_' + str(timestamp) + '.data'
+    d, indices = localizationTree.query([timestamp], k=2)
+
+    before_timestamp = loc_timestamps[indices[0]]
+    after_timestamp = loc_timestamps[indices[1]]
+    time_interval = (after_timestamp - before_timestamp)
+    before_weight = 1 - (timestamp - before_timestamp) / time_interval
+    after_weight = 1 - (after_timestamp - timestamp) / time_interval
+    before_loc = localizations[before_timestamp]
+    after_loc = localizations[after_timestamp]
+    
+    location = before_loc * before_weight + after_loc * after_weight
+    cloud_file_name = 'point_' + str(timestamp)
     if not args.info_only:
-        np.savetxt(base_path + cloud_file_name, cloud)
-        loc_file_name = 'location_' + str(timestamp) + '.data'
-        np.savetxt(base_path + loc_file_name, location)
+        np.save(base_path + cloud_file_name, cloud)
+        loc_file_name = 'location_' + str(timestamp)
+        np.save(base_path + loc_file_name, location)
     filenames.append(cloud_file_name)
 
 print("Writing dataset information...", len(filenames))

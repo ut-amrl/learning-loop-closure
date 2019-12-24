@@ -62,12 +62,12 @@ with torch.no_grad():
 
         # Transform the cloud based on its location
         augmented_cloud = np.zeros(cloud.shape).astype(np.float32)
-        loc = location.numpy()
-        cos, sin = np.cos(loc[2]), np.sin(loc[2])
-        rotation = np.array([(cos, -sin), (sin, cos)])
+        # loc = location.numpy()
+        # cos, sin = np.cos(loc[2]), np.sin(loc[2])
+        # rotation = np.array([(cos, -sin), (sin, cos)])
 
-        for i in range(cloud.shape[0]):
-            augmented_cloud[i][:2] = np.matmul(rotation, cloud[i][:2]) + [loc[0], loc[1]]
+        # for i in range(cloud.shape[0]):
+        #     augmented_cloud[i][:2] = np.matmul(rotation, cloud[i][:2]) + [loc[0], loc[1]]
         
         msg = create_ros_pointcloud()
         if (distance > args.threshold):
