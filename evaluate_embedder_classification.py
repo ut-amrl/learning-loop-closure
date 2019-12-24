@@ -66,13 +66,11 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_embeddings, sim_feat, sim_trans, sim_theta = embedder(similar_clouds)
     distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
 
-    import pdb; pdb.set_trace()
-
     distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1) * 1e-1
     distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1) * 1e-1
 
-    predictions_pos = torch.where(distance_pos < 2)
-    predictions_neg = torch.where(distance_neg < 2)
+    predictions_pos = (distance_pos < 2).int()
+    predictions_neg = (distance_neg < 2).int()
 
     train_helpers.update_metrics(metrics, torch.cat([predictions_pos, predictions_neg]), labels)
 
