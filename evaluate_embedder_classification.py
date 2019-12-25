@@ -22,9 +22,11 @@ parser.add_argument(
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
+parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 
 opt = parser.parse_args()
-train_helpers.initialize_logging(str(int(time.time())), 'evaluate_')
+start_time = str(int(time.time()))
+train_helpers.initialize_logging(start_time, 'evaluate_')
 print_output(opt)
 
 num_workers = int(opt.workers)
@@ -51,8 +53,10 @@ labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
 metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
+triplets = np.zeros((batch_count, opt.batch_size, 3, 2))
+
 for i, data in tqdm(enumerate(dataloader, 0)):
-    ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
+    ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
     clouds = clouds.transpose(2, 1)
     similar_clouds = similar_clouds.transpose(2, 1)
     distant_clouds = distant_clouds.transpose(2, 1)
@@ -61,20 +65,30 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    
     anchor_embeddings, trans_feat, trans, theta = embedder(clouds)
     similar_embeddings, sim_feat, sim_trans, sim_theta = embedder(similar_clouds)
     distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
 
-    distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1) * 1e-1
-    distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1) * 1e-1
+    distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
+    distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
 
     predictions_pos = (distance_pos < 2).int()
     predictions_neg = (distance_neg < 2).int()
 
-    train_helpers.update_metrics(metrics, torch.cat([predictions_pos, predictions_neg]), labels)
+    predictions = torch.cat([predictions_pos, predictions_neg])
+
+    train_helpers.update_metrics(metrics, predictions, labels)
+
+    if opt.publish_triplets:
+        triplets[i, :, 0, 0] = timestamp
+        triplets[i, :, 1, 0] = similar_timestamp
+        triplets[i, :, 2, 0] = distant_timestamp
+        triplets[i, :, 1, 1] = (predictions_pos == 1).cpu()
+        triplets[i, :, 2, 1] = (predictions_neg == 0).cpu()
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])
 rec = (metrics[0]) / (metrics[0] + metrics[3])
 print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
+if opt.publish_triplets:
+    np.save('triplets_{0}'.format(start_time), triplets)

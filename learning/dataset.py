@@ -40,11 +40,15 @@ class LCDataset(data.Dataset):
     def __getitem__(self, index):
         fname = self.file_list[index]
         timestamp = fname[fname.find('_')+1:]
+        
+        return self.get_by_timestamp(timestamp)
+
+    def get_by_timestamp(self, timestamp):
         location_file = os.path.join(
             self.root, 'location_{0}.npy'.format(timestamp))
         location = np.load(location_file).astype(np.float32)
-        cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
-
+        cloud = get_point_cloud_from_file(os.path.join(
+            self.root, 'point_{0}.npy'.format(timestamp)))
         return cloud, location[:2], timestamp
 
     def __len__(self):
@@ -82,9 +86,9 @@ class LCTripletDataset(data.Dataset):
         filelist = self.dataset_info[self.split + '_data']
             
         for fname in tqdm(filelist):
-            timestamp = fname[fname.find('_')+1]
+            timestamp = fname[fname.find('_')+1:]
             location_file = os.path.join(
-                self.root, 'location_{0}'.format(timestamp))
+                self.root, 'location_{0}.npy'.format(timestamp))
             location = np.load(location_file).astype(np.float32)
             cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
             self.data.append((cloud, location, timestamp))

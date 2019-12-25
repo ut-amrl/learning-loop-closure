@@ -29,8 +29,8 @@ class TripletLoss(torch.nn.Module):
         self.margin = margin
 
     def forward(self, anchor, positive, negative):
-        distance_positive = torch.norm(anchor - positive, p=2, dim=1) * 1e-1
-        distance_negative = torch.norm(anchor - negative, p=2, dim=1) * 1e-1
+        distance_positive = torch.norm(anchor - positive, p=2, dim=1)
+        distance_negative = torch.norm(anchor - negative, p=2, dim=1)
         losses = F.relu(distance_positive - distance_negative + self.margin)
         return losses.sum()
 
@@ -77,7 +77,7 @@ embedder = train_helpers.create_embedder(opt.embedding_model)
 embedder.train()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
-lossFunc = TripletLoss(2)
+lossFunc = TripletLoss(10)
 
 pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
