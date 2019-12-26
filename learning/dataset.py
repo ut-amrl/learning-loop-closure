@@ -90,7 +90,7 @@ class LCTripletDataset(data.Dataset):
             location_file = os.path.join(
                 self.root, 'location_{0}.npy'.format(timestamp))
             location = np.load(location_file).astype(np.float32)
-            cloud = get_point_cloud_from_file(os.path.join(self.root, fname))
+            cloud = get_point_cloud_from_file(os.path.join(self.root, fname + '.npy'))
             self.data.append((cloud, location, timestamp))
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True

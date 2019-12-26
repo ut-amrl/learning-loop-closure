@@ -58,9 +58,9 @@ class EmbeddingNet(nn.Module):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
         self.conv1 = torch.nn.Conv1d(2, 32, 1)
-        self.conv2 = torch.nn.Conv1d(32, 128, 1)
+        self.conv2 = torch.nn.Conv1d(32, 64, 1)
         self.bn1 = nn.BatchNorm1d(32)
-        self.bn2 = nn.BatchNorm1d(128)
+        self.bn2 = nn.BatchNorm1d(64)
         self.fstn = STNkd(k=32)
 
     def forward(self, x):
@@ -82,7 +82,7 @@ class FullNet(nn.Module):
         super(FullNet, self).__init__()
         self.embedding = embedding
         self.dropout = nn.Dropout(0.4)
-        self.ff = nn.Linear(256, 2)
+        self.ff = nn.Linear(128, 2)
         self.softmax = nn.LogSoftmax(dim=1)
         nn.init.xavier_uniform_(self.ff.weight)
 
