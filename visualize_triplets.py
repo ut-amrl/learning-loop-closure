@@ -4,7 +4,7 @@ import numpy as np
 from scipy import spatial
 import torch
 import argparse
-from learning.model import EmbeddingNet
+from learning.train_helpers import create_classifier
 from learning.dataset import LCDataset
 from sensor_msgs.msg import PointCloud2
 from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud
@@ -23,18 +23,37 @@ args = parser.parse_args()
 triplets = np.load(args.triplets)
 dataset = LCDataset(args.dataset)
 
-# get first triplet
-batch_triplets = triplets[0]
+model = create_classifier('', args.model)
+model.eval()
 
-# get first in batch
-triplet = batch_triplets[0]
+for i in range(triplets.shape[0]):
+    # get first triplet
+    batch_triplets = triplets[i]
+    for j in range(triplets.shape[1]):
+        # get first in batch
+        triplet = batch_triplets[j]
 
-anchor, _, _ = dataset.get_by_timestamp(triplet[0, 0])
-similar, _, _ = dataset.get_by_timestamp(triplet[1, 0])
-distant, _, _ = dataset.get_by_timestamp(triplet[2, 0])
-import pdb; pdb.set_trace()
+        anchor_np, _, _ = dataset.get_by_timestamp(triplet[0, 0])
+        similar_np, _, _ = dataset.get_by_timestamp(triplet[1, 0])
+        distant_np, _, _ = dataset.get_by_timestamp(triplet[2, 0])
 
-point_pub = rospy.Publisher('triplets', PointCloud2, queue_size=10)
-rospy.init_node('visualizer', anonymous=True)
-msg = create_ros_pointcloud()
-publish_ros_pointcloud(point_pub, msg, anchor)
+        anchor = torch.tensor(anchor_np.transpose(1, 0)).unsqueeze(0).cuda()
+        similar = torch.tensor(similar_np.transpose(1, 0)).unsqueeze(0).cuda()
+        distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
+
+        scores, _, _ = model(torch.cat([anchor, anchor], dim=0), torch.cat([similar, distant], dim=0))
+        predictions = torch.argmax(scores, dim=1).cpu()
+        print("Predictions: Similar {0}, Distant {1}".format(predictions[0], predictions[1]))
+
+        # TODO do away with matplotlib
+        import matplotlib.pyplot as plt
+
+        plt.scatter(anchor_np[:, 0], anchor_np[:, 1], c='blue', marker='.')
+        plt.scatter(similar_np[:, 0], similar_np[:, 1], c='green', marker='.')
+        plt.scatter(distant_np[:, 0], distant_np[:, 1], c='red', marker='.')
+        plt.show()
+
+        # point_pub = rospy.Publisher('triplets', PointCloud2, queue_size=10)
+        # rospy.init_node('visualizer', anonymous=True)
+        # msg = create_ros_pointcloud()
+        # publish_ros_pointcloud(point_pub, msg, anchor)
