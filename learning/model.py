@@ -9,19 +9,19 @@ import torch.nn.functional as F
 class TransformPredictionNetwork(nn.Module):
     def __init__(self):
         super(TransformPredictionNetwork, self).__init__()
-        self.conv1 = torch.nn.Conv1d(2, 32, 1)
-        self.conv2 = torch.nn.Conv1d(32, 64, 1)
-        self.bn1 = nn.BatchNorm1d(32)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.bn3 = nn.BatchNorm1d(48)
-        self.fc1 = nn.Linear(64, 48)
-        self.fc2 = nn.Linear(48, 3)
+        self.conv1 = torch.nn.Conv1d(2, 16, 1)
+        self.conv2 = torch.nn.Conv1d(16, 32, 1)
+        self.bn1 = nn.BatchNorm1d(16)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.bn3 = nn.BatchNorm1d(24)
+        self.fc1 = nn.Linear(32, 24)
+        self.fc2 = nn.Linear(24, 3)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = torch.max(x, 2, keepdim=True)[0]
-        x = x.view(-1, 64)
+        x = x.view(-1, 32)
         x = F.relu(self.bn3(self.fc1(x)))
         x = self.fc2(x)
         trans = x[:,0:2]
@@ -57,11 +57,11 @@ class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
-        self.conv1 = torch.nn.Conv1d(2, 32, 1)
-        self.conv2 = torch.nn.Conv1d(32, 64, 1)
-        self.bn1 = nn.BatchNorm1d(32)
-        self.bn2 = nn.BatchNorm1d(64)
-        self.fstn = STNkd(k=32)
+        self.conv1 = torch.nn.Conv1d(2, 16, 1)
+        self.conv2 = torch.nn.Conv1d(16, 32, 1)
+        self.bn1 = nn.BatchNorm1d(16)
+        self.bn2 = nn.BatchNorm1d(32)
+        self.fstn = STNkd(k=16)
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
@@ -82,7 +82,7 @@ class FullNet(nn.Module):
         super(FullNet, self).__init__()
         self.embedding = embedding
         self.dropout = nn.Dropout(0.4)
-        self.ff = nn.Linear(128, 2)
+        self.ff = nn.Linear(64, 2)
         self.softmax = nn.LogSoftmax(dim=1)
         nn.init.xavier_uniform_(self.ff.weight)
 
