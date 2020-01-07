@@ -25,7 +25,8 @@ parser.add_argument('--distance_cache', type=str, default=None, help='cached ove
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 
 opt = parser.parse_args()
-train_helpers.initialize_logging(str(int(time.time())), 'evaluate_')
+start_time = str(int(time.time()))
+train_helpers.initialize_logging(start_time, 'evaluate_')
 print_output(opt)
 
 num_workers = int(opt.workers)
@@ -55,7 +56,7 @@ metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, F
 triplets = np.zeros((batch_count, opt.batch_size, 3, 2))
 
 for i, data in tqdm(enumerate(dataloader, 0)):
-    ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
+    ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
     clouds = clouds.transpose(2, 1)
     similar_clouds = similar_clouds.transpose(2, 1)
     distant_clouds = distant_clouds.transpose(2, 1)
@@ -73,8 +74,8 @@ for i, data in tqdm(enumerate(dataloader, 0)):
         triplets[i, :, 0, 0] = timestamp
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
-        triplets[i, :, 1, 1] = (predictions_pos == 1).cpu()
-        triplets[i, :, 2, 1] = (predictions_neg == 0).cpu()
+        triplets[i, :, 1, 1] = predictions[:similar_clouds.shape[0]]
+        triplets[i, :, 2, 1] = predictions[similar_clouds.shape[0]:]
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])
