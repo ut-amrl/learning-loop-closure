@@ -116,7 +116,6 @@ for epoch in range(opt.nepoch):
         distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
 
         # Compute loss here
-        import pdb; pdb.set_trace()
         loss = lossFunc.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
         if opt.feature_regularization:
             loss += feature_transform_regularizer(trans_feat) * 1e-2
