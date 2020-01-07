@@ -75,7 +75,7 @@ except OSError:
 
 embedder = train_helpers.create_embedder(opt.embedding_model, opt.feature_transform)
 embedder.train()
-import pdb; pdb.set_trace()
+
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 lossFunc = TripletLoss(10)
 

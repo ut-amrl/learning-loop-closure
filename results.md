@@ -1,4 +1,4 @@
-## Embedding size: 32
+## Embedding size: 32 (w/ feature transforms)
 ### results (trained embedder, distance-classification):
 
 #### evaluation on training set:
@@ -45,3 +45,17 @@ Saving overlap information to cache...
 ('Finished loading data.',)
 125it [00:35,  3.53it/s]
 ('(Acc: 0.509969, Precision: 0.627498, Recall: 0.049063)',)
+
+
+# Model:
+## Embedding size 32
+### Without Feature Transform
+```
+sum(p.numel() for p in embedder.parameters())
+2291
+```
+### With feature transform
+```
+ sum(p.numel() for p in embedder.parameters())
+869683
+```
