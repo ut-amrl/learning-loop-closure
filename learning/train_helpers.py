@@ -35,8 +35,8 @@ def load_dataset(root, split, distance_cache, num_workers):
     return dataset
 
 
-def create_embedder(embedding_model=''):
-    embedder = EmbeddingNet()
+def create_embedder(embedding_model='', feature_transform=False):
+    embedder = EmbeddingNet(feature_transform)
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     
@@ -47,8 +47,8 @@ def create_embedder(embedding_model=''):
     embedder.cuda()
     return embedder
 
-def create_classifier(embedding_model='', model=''):
-    embedder = EmbeddingNet()
+def create_classifier(embedding_model='', model='', feature_transform=False):
+    embedder = EmbeddingNet(feature_transform)
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     classifier = FullNet(embedder)

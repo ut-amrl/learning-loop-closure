@@ -54,23 +54,27 @@ class TransformNet(nn.Module):
         return transformed, translation, theta
 
 class EmbeddingNet(nn.Module):
-    def __init__(self):
+    def __init__(self, feature_transform=True):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
         self.conv1 = torch.nn.Conv1d(2, 16, 1)
         self.conv2 = torch.nn.Conv1d(16, 32, 1)
         self.bn1 = nn.BatchNorm1d(16)
         self.bn2 = nn.BatchNorm1d(32)
-        self.fstn = STNkd(k=16)
+        self.feature_transform = feature_transform
+        if feature_transform:
+            self.fstn = STNkd(k=16)
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
         x = F.relu(self.bn1(self.conv1(x)))
 
-        trans_feat = self.fstn(x)
-        x = x.transpose(2, 1)
-        x = torch.bmm(x, trans_feat)
-        x = x.transpose(2, 1)
+        trans_feat = None
+        if self.feature_transform:
+            trans_feat = self.fstn(x)
+            x = x.transpose(2, 1)
+            x = torch.bmm(x, trans_feat)
+            x = x.transpose(2, 1)
 
         x = self.bn2(self.conv2(x))
         x = torch.max(x, 2, keepdim=True)[0]

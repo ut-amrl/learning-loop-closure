@@ -45,7 +45,7 @@ parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument(
     '--generate_embeddings', type=bool, default=False, help='if true, generate embeddings for test set in embeddings/*timestamp*')
-parser.add_argument('--feature_regularization', type=bool, default=True, help='Whether or not to additionally use feature regularization loss')
+parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
@@ -73,9 +73,9 @@ try:
 except OSError:
     pass
 
-embedder = train_helpers.create_embedder(opt.embedding_model)
+embedder = train_helpers.create_embedder(opt.embedding_model, opt.feature_transform)
 embedder.train()
-
+import pdb; pdb.set_trace()
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
 lossFunc = TripletLoss(10)
 
@@ -117,7 +117,7 @@ for epoch in range(opt.nepoch):
 
         # Compute loss here
         loss = lossFunc.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
-        if opt.feature_regularization:
+        if opt.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 1e-2
             loss += feature_transform_regularizer(sim_feat) * 1e-2
             loss += feature_transform_regularizer(dist_feat) * 1e-2
