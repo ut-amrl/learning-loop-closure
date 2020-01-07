@@ -68,6 +68,9 @@ dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_ca
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 
+if opt.feature_transform:
+    out_dir += '_feat'
+
 try:
     os.makedirs(out_dir)
 except OSError:

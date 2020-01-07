@@ -70,7 +70,20 @@ def save_model(model, outf, epoch):
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
 def get_predictions_for_model(model, clouds, similar, distant):
-    if isinstance(model, EmbeddingNet):
+    model_type = None
+    model_to_check = model
+    if isinstance(model, torch.nn.DataParallel):
+        model_to_check = model.module
+    
+    if isinstance(model_to_check, EmbeddingNet):
+        model_type = "embedder"
+    elif isinstance(model_to_check, FullNet):
+        model_type = "full"
+    else:
+        raise Exception('Unexpected model', model_to_check)
+
+
+    if model_type == 'embedder':
         anchor_embeddings, _, _, _ = model(clouds)
         similar_embeddings, _, _, _ = model(similar)
         distant_embeddings, _, _, _ = model(distant)
@@ -83,13 +96,11 @@ def get_predictions_for_model(model, clouds, similar, distant):
 
         predictions = torch.cat([predictions_pos, predictions_neg])
         return predictions
-    elif isinstance(model, FullNet):
+    elif model_type == 'full':
         scores, _, _ = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar, distant], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
         
         return predictions
-    else:
-        raise Exception('Unexpected model', model)
 
 def update_metrics(metrics, predictions, labels):
     for i in range(len(predictions)):
