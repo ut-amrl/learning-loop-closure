@@ -74,7 +74,7 @@ class EmbeddingNet(nn.Module):
 
         x = self.bn2(self.conv2(x))
         x = torch.max(x, 2, keepdim=True)[0]
-        x = x.squeeze()
+        x = x.squeeze(-1)
         return x, trans_feat, translation, theta
 
 class FullNet(nn.Module):

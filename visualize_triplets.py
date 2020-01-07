@@ -4,7 +4,7 @@ import numpy as np
 from scipy import spatial
 import torch
 import argparse
-from learning.train_helpers import create_classifier
+from learning.train_helpers import create_classifier, create_embedder, get_predictions_for_model
 from learning.dataset import LCDataset
 from sensor_msgs.msg import PointCloud2
 from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud
@@ -17,13 +17,21 @@ parser.add_argument('--dataset', type=str, help='the dataset from which to pull 
 parser.add_argument('--triplets', type=str, help='triplets file to visualize')
 parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
+parser.add_argument('--embedding_model', type=str,
+                    help='state dict of an already trained LC model to use')
+
+
 
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
 dataset = LCDataset(args.dataset)
 
-model = create_classifier('', args.model)
+if args.model:
+    model = create_classifier('', args.model)
+elif args.embedding_model:
+    model = create_embedder(args.embedding_model)
+
 model.eval()
 
 for i in range(triplets.shape[0]):
@@ -41,8 +49,7 @@ for i in range(triplets.shape[0]):
         similar = torch.tensor(similar_np.transpose(1, 0)).unsqueeze(0).cuda()
         distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
 
-        scores, _, _ = model(torch.cat([anchor, anchor], dim=0), torch.cat([similar, distant], dim=0))
-        predictions = torch.argmax(scores, dim=1).cpu()
+        predictions = get_predictions_for_model(model, anchor, similar, distant)
         print("Predictions: Similar {0}, Distant {1}".format(predictions[0], predictions[1]))
 
         # TODO do away with matplotlib

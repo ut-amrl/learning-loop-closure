@@ -55,7 +55,7 @@ metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, F
 triplets = np.zeros((batch_count, opt.batch_size, 3, 2))
 
 for i, data in tqdm(enumerate(dataloader, 0)):
-    ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
+    ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
     clouds = clouds.transpose(2, 1)
     similar_clouds = similar_clouds.transpose(2, 1)
     distant_clouds = distant_clouds.transpose(2, 1)
@@ -64,9 +64,8 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
-    predictions = torch.argmax(scores, dim=1).cpu()
-    
+    predictions = train_helpers.get_predictions_for_model(model, clouds, similar_clouds, distant_clouds)
+
     train_helpers.update_metrics(metrics, predictions, labels)
 
     if opt.publish_triplets:
