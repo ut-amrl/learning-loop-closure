@@ -65,9 +65,8 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
-    predictions = torch.argmax(scores, dim=1).cpu()
-    
+    predictions = train_helpers.get_predictions_for_model(model, clouds, similar_clouds, distant_clouds)
+
     train_helpers.update_metrics(metrics, predictions, labels)
 
     if opt.publish_triplets:

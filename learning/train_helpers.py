@@ -69,6 +69,28 @@ def save_model(model, outf, epoch):
         to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
+def get_predictions_for_model(model, clouds, similar, distant):
+    if isinstance(model, EmbeddingNet):
+        anchor_embeddings, _, _, _ = model(clouds)
+        similar_embeddings, _, _, _ = model(similar)
+        distant_embeddings, _, _, _ = model(distant)
+        
+        distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
+        distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
+
+        predictions_pos = (distance_pos < 2).int()
+        predictions_neg = (distance_neg < 2).int()
+
+        predictions = torch.cat([predictions_pos, predictions_neg])
+        return predictions
+    elif isinstance(model, FullNet):
+        scores, _, _ = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar, distant], dim=0))
+        predictions = torch.argmax(scores, dim=1).cpu()
+        
+        return predictions
+    else:
+        raise Exception('Unexpected model', model)
+
 def update_metrics(metrics, predictions, labels):
     for i in range(len(predictions)):
         label = labels[i].item()
