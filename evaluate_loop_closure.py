@@ -6,8 +6,8 @@ import random
 import json
 import torch
 import time
-from learning.model import EmbeddingNet
 from helpers import scan_to_point_cloud, LCBagDataReader, normalize_point_cloud
+from learning.train_helpers import create_embedder
 from scipy import spatial
 
 parser = argparse.ArgumentParser(description='Find loop closure locations for some ROS bag')
@@ -22,26 +22,21 @@ bag = rosbag.Bag(args.bag_file)
 TIMESTEP = 0.1
 data_reader = LCBagDataReader(bag, args.lidar_topic, args.localization_topic, TIMESTEP, TIMESTEP)
 
-with torch.no_grad():
-    print("Loading embedding model...")
-    model = EmbeddingNet()
-    model.load_state_dict(torch.load(args.model))
-    model.eval()
-    model.cuda()
-    print("Finished loading embedding model")
+model = create_embedder(args.model)
+model.eval()
 
-    print("Creating embeddings for scans...")
-    embedding_info = {}
-    for timestamp, cloud in data_reader.get_scans().items():
-        normalized_cloud = normalize_point_cloud(cloud)
-        point_set = torch.tensor([normalized_cloud])
-        point_set = point_set.transpose(2, 1)
-        point_set = point_set.cuda()
-        embedding_info[timestamp] = model(point_set)
-        del point_set
-    print("Finished creating embeddings")
-    embedding_timestamps = sorted(embedding_info.keys())
-    embedding_clouds = np.asarray([embedding_info[t][0].detach().cpu().numpy() for t in embedding_timestamps]).squeeze(1)
+print("Creating embeddings for scans...")
+embedding_info = {}
+for timestamp, cloud in data_reader.get_scans().items():
+    normalized_cloud = normalize_point_cloud(cloud)
+    point_set = torch.tensor([normalized_cloud])
+    point_set = point_set.transpose(2, 1)
+    point_set = point_set.cuda()
+    embedding_info[timestamp] = model(point_set)
+    del point_set
+print("Finished creating embeddings")
+embedding_timestamps = sorted(embedding_info.keys())
+embedding_clouds = np.asarray([embedding_info[t][0].detach().cpu().numpy() for t in embedding_timestamps]).squeeze(1)
 
 print("Finding embedding matches...")
 MATCH_THRESHOLD = 10

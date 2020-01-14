@@ -34,7 +34,6 @@ def load_dataset(root, split, distance_cache, num_workers):
     print_output("Finished loading data.")
     return dataset
 
-
 def create_embedder(embedding_model='', feature_transform=False):
     embedder = EmbeddingNet(feature_transform)
     if embedding_model != '':

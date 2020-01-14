@@ -20,8 +20,6 @@ parser.add_argument('--model', type=str,
 parser.add_argument('--embedding_model', type=str,
                     help='state dict of an already trained LC model to use')
 
-
-
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
@@ -53,14 +51,14 @@ for i in range(triplets.shape[0]):
         print("Predictions: Similar {0}, Distant {1}".format(predictions[0], predictions[1]))
 
         # TODO do away with matplotlib
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
 
-        plt.scatter(anchor_np[:, 0], anchor_np[:, 1], c='blue', marker='.')
-        plt.scatter(similar_np[:, 0], similar_np[:, 1], c='green', marker='.')
-        plt.scatter(distant_np[:, 0], distant_np[:, 1], c='red', marker='.')
-        plt.show()
+        # plt.scatter(anchor_np[:, 0], anchor_np[:, 1], c='blue', marker='.')
+        # plt.scatter(similar_np[:, 0], similar_np[:, 1], c='green', marker='.')
+        # plt.scatter(distant_np[:, 0], distant_np[:, 1], c='red', marker='.')
+        # plt.show()
 
-        # point_pub = rospy.Publisher('triplets', PointCloud2, queue_size=10)
-        # rospy.init_node('visualizer', anonymous=True)
-        # msg = create_ros_pointcloud()
-        # publish_ros_pointcloud(point_pub, msg, anchor)
+        point_pub = rospy.Publisher('triplets', PointCloud2, queue_size=10)
+        rospy.init_node('visualizer', anonymous=True)
+        msg = create_ros_pointcloud()
+        publish_ros_pointcloud(point_pub, msg, anchor)

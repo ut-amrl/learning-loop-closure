@@ -2,6 +2,7 @@ data/*
 *.npy
 .vscode/*
 logs/*
+recall_eval_dataset/*
 learning/logs/*
 learning/embeddings/*
 learning/__pycache__/*

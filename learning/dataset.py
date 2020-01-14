@@ -18,7 +18,6 @@ sys.path.append(os.path.join(os.getcwd(), '..'))
 from helpers import compute_overlap, normalize_point_cloud
 
 CLOSE_DISTANCE_THRESHOLD = 1
-FAR_DISTANCE_THRESHOLD = 0.5
 OVERLAP_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
