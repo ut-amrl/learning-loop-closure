@@ -8,7 +8,7 @@ from tqdm import tqdm
 from scipy import spatial
 from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
-TIME_SPACING = 0.01
+TIME_SPACING = 0.001
 TRAIN_SPLIT = 0.15
 DEV_SPLIT = 0.8
 VAL_SPLIT = 1-DEV_SPLIT
@@ -64,6 +64,8 @@ for timestamp, cloud in tqdm(list(scans.items())):
     before_loc = localizations[before_timestamp]
     after_loc = localizations[after_timestamp]
     
+    timestamp = round(timestamp, 5)
+
     location = before_loc * before_weight + after_loc * after_weight
     cloud_file_name = 'point_' + str(timestamp)
     if not args.info_only:

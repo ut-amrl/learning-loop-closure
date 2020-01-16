@@ -96,13 +96,6 @@ ds2_timestamps = np.asarray([name[name.find('location_') + len('location_'):name
 ds1_time_tree = cKDTree(np.asarray([d[:2] for d in ds1_locations]))
 ds2_time_tree = cKDTree(np.asarray([d[:2] for d in ds2_locations]))
 
-ds1_scan_timestamps, ds1_scan_files = load_scan_files(args.first_dataset)
-ds2_scan_timestamps, ds2_scan_files = load_scan_files(args.second_dataset)
-
-
-ds1_scan_tree = cKDTree([[ts,] for ts in ds1_scan_timestamps])
-ds2_scan_tree = cKDTree([[ts,] for ts in ds2_scan_timestamps])
-
 THRESHOLD = 0.8
 
 def check_overlap(target_loc, locations):
@@ -129,10 +122,5 @@ for idx, target_loc in enumerate(target_locations):
     
     observation_loc_timestamps[idx, 0] = [[ts,] for ts in ds1_timestamps[filtered_ds1]]
     observation_loc_timestamps[idx, 1] = [[ts,] for ts in ds2_timestamps[filtered_ds2]]
-    
-    closest_ds1_timestamps = ds1_scan_tree.query(observation_loc_timestamps[idx, 0])[1]
-    closest_ds2_timestamps = ds2_scan_tree.query(observation_loc_timestamps[idx, 1])[1]
-    observation_scan_files[idx, 0] = [[ts,] for ts in ds1_scan_timestamps[closest_ds1_timestamps]]
-    observation_scan_files[idx, 1] = [[ts,] for ts in ds2_scan_timestamps[closest_ds2_timestamps]]
 
-np.save(os.path.join(out_dir, 'observation_timestamps.npy'), observation_scan_files)
+np.save(os.path.join(out_dir, 'observation_timestamps.npy'), observation_loc_timestamps)
