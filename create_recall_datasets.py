@@ -81,12 +81,6 @@ def load_locations(ds_dir):
 
     return locations, location_files
 
-def load_scan_files(ds_dir):
-    scan_files = glob.glob(os.path.join(ds_dir, 'point_*.npy'))
-    scan_timestamps = np.asarray([s[s.find('point_') + len('point_'):s.find('.npy')] for s in scan_files])
-
-    return scan_timestamps, scan_files
-
 ds1_locations, ds1_files = load_locations(args.first_dataset)
 ds2_locations, ds2_files = load_locations(args.second_dataset)
 

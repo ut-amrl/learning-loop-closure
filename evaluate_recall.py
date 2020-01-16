@@ -35,7 +35,7 @@ obs_timestamps = np.load(os.path.join(args.recall_dataset, 'observation_timestam
 for loc_idx in range(obs_timestamps.shape[0]):
     first_dataset_timestamps = obs_timestamps[loc_idx, 0]
     second_dataset_timestamps = obs_timestamps[loc_idx, 1]
-    import pdb; pdb.set_trace()
+
     for ds1_timestamp in first_dataset_timestamps:
         for ds2_timestamp in second_dataset_timestamps:
             first_cloud = load_cloud(0, ds1_timestamp[0])
@@ -44,6 +44,6 @@ for loc_idx in range(obs_timestamps.shape[0]):
             emb1, _, _, _ = embedding_for_scan(model, first_cloud)
             emb2, _, _, _ = embedding_for_scan(model, second_cloud)
             
-            distance = torch.norm(emb1 - emb2, p=2, dim=0)
+            distance = torch.norm(emb1 - emb2, p=2, dim=1)
 
             print('distance', distance)
