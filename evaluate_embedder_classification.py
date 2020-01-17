@@ -24,7 +24,6 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
-
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 train_helpers.initialize_logging(start_time, 'evaluate_')
@@ -74,12 +73,13 @@ for i, data in tqdm(enumerate(dataloader, 0)):
         triplets[i, :, 0, 0] = timestamp
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
-        triplets[i, :, 1, 1] = (predictions_pos == 1).cpu()
-        triplets[i, :, 2, 1] = (predictions_neg == 0).cpu()
+        triplets[i, :, 1, 1] = (predictions[:similar_clouds.shape[0]]).cpu()
+        triplets[i, :, 2, 1] = (predictions[similar_clouds.shape[0]:]).cpu()
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])
 rec = (metrics[0]) / (metrics[0] + metrics[3])
 print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
 if opt.publish_triplets:
+    print("Writing triplets_{0}".format(start_time))
     np.save('triplets_{0}'.format(start_time), triplets)

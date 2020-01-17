@@ -42,13 +42,15 @@ class LCDataset(data.Dataset):
         
         return self.get_by_timestamp(timestamp)
 
-    def get_by_timestamp(self, timestamp):
+    def get_by_timestamp(self, timestamp, include_angle=False):
         location_file = os.path.join(
             self.root, 'location_{0}.npy'.format(timestamp))
         location = np.load(location_file).astype(np.float32)
         cloud = get_point_cloud_from_file(os.path.join(
             self.root, 'point_{0}.npy'.format(timestamp)))
-        return cloud, location[:2], timestamp
+        if not include_angle:
+            location = location[:2]
+        return cloud, location, timestamp
 
     def __len__(self):
         return len(self.file_list)
@@ -105,7 +107,7 @@ class LCTripletDataset(data.Dataset):
             similar_loc = location
             similar_timestamp = timestamp
         else:
-            idx = random.randint(0, len(filtered_neighbors) - 1)
+            idx = np.random.choice(filtered_neighbors, 1)[0]
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
         idx = random.randint(0, len(self.data) - 1)

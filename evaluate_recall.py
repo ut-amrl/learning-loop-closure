@@ -32,6 +32,8 @@ def load_cloud(ds, timestamp):
 obs_timestamps = np.load(os.path.join(args.recall_dataset, 'observation_timestamps.npy'))
 
 # We want to assert that for every recall location, each scan in dataset 0 matches each scan in dataset 1
+total = 0.0
+match = 0.0
 for loc_idx in range(obs_timestamps.shape[0]):
     first_dataset_timestamps = obs_timestamps[loc_idx, 0]
     second_dataset_timestamps = obs_timestamps[loc_idx, 1]
@@ -45,5 +47,9 @@ for loc_idx in range(obs_timestamps.shape[0]):
             emb2, _, _, _ = embedding_for_scan(model, second_cloud)
             
             distance = torch.norm(emb1 - emb2, p=2, dim=1)
-
-            print('distance', distance)
+            if distance.item() < 2:
+                match += 1
+            total += 1
+            print('ds1_timestamp:{0}\tds2_timestamp:{1}\tDistance: {2}'.format(ds1_timestamp[0], ds2_timestamp[0], distance.item()))
+    
+print("Results: {0} / {1} = {2}".format(match, total, match / total))

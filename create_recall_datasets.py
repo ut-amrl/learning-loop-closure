@@ -19,12 +19,13 @@ parser = argparse.ArgumentParser(
     description='Find loop closure locations for some ROS bag')
 parser.add_argument('--first_dataset', type=str, help='path to first dataset')
 parser.add_argument('--second_dataset', type=str, help='path to second dataset')
+parser.add_argument('--out_dataset', default='recall_evall_dataset', type=str, help='path to output dataset')
 args = parser.parse_args()
 
 scans = {}
 localizations = {}
 
-out_dir = 'recall_eval_dataset'
+out_dir = args.out_dataset
 
 try:
     os.makedirs(out_dir)
