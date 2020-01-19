@@ -96,7 +96,7 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=2):
         predictions = torch.cat([predictions_pos, predictions_neg])
         return predictions
     elif model_type == 'full':
-        scores, _, _ = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar, distant], dim=0))
+        scores, _, _ = model(torch.cat([clouds, clouds], dim=0), torch.cat([similar, distant], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
         
         return predictions

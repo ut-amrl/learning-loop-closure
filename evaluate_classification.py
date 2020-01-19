@@ -66,7 +66,7 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    predictions = train_helpers.get_predictions_for_model(model, clouds, similar_clouds, distant_clouds)
+    predictions = train_helpers.get_predictions_for_model(classifier, clouds, similar_clouds, distant_clouds)
 
     train_helpers.update_metrics(metrics, predictions, labels)
 

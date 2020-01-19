@@ -60,12 +60,12 @@ class LCTripletDataset(data.Dataset):
                  root,
                  split='train',
                  num_workers=8,
-                 augmentation_prob=0.4,
+                 augmentation_prob=0.2,
                  jitter_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=True):
         self.root = root
-        self.augmentation_prob = 0.4
+        self.augmentation_prob = augmentation_prob
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
         self.order_augmentation = order_augmentation
