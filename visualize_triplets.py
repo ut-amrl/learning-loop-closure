@@ -62,9 +62,12 @@ for i in range(triplets.shape[0]):
 
         # TODO do away with matplotlib
         import matplotlib.pyplot as plt
-
+        plt.figure(figsize=(9, 3))
+        plt.subplot(131)
         plt.scatter(similar_np[:, 0], similar_np[:, 1], c='green', marker='.')
+        plt.subplot(132)
         plt.scatter(anchor_np[:, 0], anchor_np[:, 1], c='blue', marker='.')
+        plt.subplot(133)
         plt.scatter(distant_np[:, 0], distant_np[:, 1], c='red', marker='.')
         plt.show()
 
