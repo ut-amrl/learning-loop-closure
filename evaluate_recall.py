@@ -14,6 +14,7 @@ parser.add_argument('--recall_dataset', type=str,
                     help='path to the bag file containing recakk observation data')
 parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
+parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
 args = parser.parse_args()
 
 model = create_embedder(args.model)
@@ -47,7 +48,7 @@ for loc_idx in range(obs_timestamps.shape[0]):
             emb2, _, _, _ = embedding_for_scan(model, second_cloud)
             
             distance = torch.norm(emb1 - emb2, p=2, dim=1)
-            if distance.item() < 2:
+            if distance.item() < args.threshold:
                 match += 1
             total += 1
             print('ds1_timestamp:{0}\tds2_timestamp:{1}\tDistance: {2}'.format(ds1_timestamp[0], ds2_timestamp[0], distance.item()))

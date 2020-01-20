@@ -1,61 +1,40 @@
-## Embedding size: 32 (w/ feature transforms)
-### results (trained embedder, distance-classification):
+## Embedding size: 32
+### results (trained embedder, distance-classification)
 
-#### evaluation on training set:
-python evaluate_embedder_classification.py --batch_size 256 --model learning/cls_2d_close_interp_dev/model_39.pth --dataset data/2d_close_interp/ --distance_cache learning/2d_close_interp_dev_distances.pkl 
-(Namespace(batch_size=256, dataset='data/2d_close_interp/', distance_cache='learning/2d_close_interp_dev_distances.pkl', evaluation_set='dev', model='learning/cls_2d_close_interp_dev/model_39.pth', publish_triplets=False, workers=4),)
-('Random Seed: ', 214)
-("Let's use", 8L, 'GPUs!')
-('Loading data into memory...',)
-100%|██████████| 16085/16085 [00:05<00:00, 2828.65it/s]
-Loading overlap information from cache...
-100%|██████████| 16085/16085 [00:07<00:00, 2206.11it/s]
-Saving overlap information to cache...
-('Finished loading data.',)
-62it [00:36,  1.72it/s]
-('(Acc: 0.599231, Precision: 0.999683, Recall: 0.198526)',)
+#### Held-out evaluation set from the same bag file
+Threshold 2:
+('(Acc: 0.618159, Precision: 0.996862, Recall: 0.237065)',)
 
-#### Held-out evaluation set:
- python evaluate_embedder_classification.py --batch_size 256 --model learning/cls_2d_close_interp_dev/model_39.pth --dataset data/2d_close_interp/ --evaluation_set val
-(Namespace(batch_size=256, dataset='data/2d_close_interp/', distance_cache=None, evaluation_set='val', model='learning/cls_2d_close_interp_dev/model_39.pth', publish_triplets=False, workers=4),)
-('Random Seed: ', 7531)
-("Let's use", 8L, 'GPUs!')
-('Loading data into memory...',)
-100%|██████████| 4021/4021 [00:01<00:00, 2645.93it/s]
-100%|██████████| 4021/4021 [03:41<00:00, 18.16it/s] 
-Saving overlap information to cache...
-('Finished loading data.',)
-15it [00:27,  1.84s/it]
-('(Acc: 0.602214, Precision: 0.996207, Recall: 0.205208)',)
+Threshold 4:
+('(Acc: 0.647637, Precision: 0.990902, Recall: 0.298010)',)
 
-### results (trained embedder & classifier):
-#### training (last epoch):
-('[Epoch 39] Total loss: 5.037687, (Acc: 0.978831, Precision: 0.982662, Recall: 0.974861)',)
+Threshold 10:
+('(Acc: 0.751866, Precision: 0.968533, Recall: 0.520647)',)
 
-#### evaluation on training set:
-python evaluate_classification.py --batch_size 128 --model learning/cls_full_2d_close_interp_dev/model_39.pth --evaluation_set dev --dataset data/2d_close_interp/ --distance_cache 2d_close_interp_dev_distances.pkl 
-(Namespace(batch_size=128, dataset='data/2d_close_interp/', distance_cache='2d_close_interp_dev_distances.pkl', evaluation_set='dev', model='learning/cls_full_2d_close_interp_dev/model_39.pth', workers=4),)
-('Random Seed: ', 8438)
-("Let's use", 8L, 'GPUs!')
-('Loading data into memory...',)
-100%|██████████| 16085/16085 [00:05<00:00, 2853.62it/s]
-Loading overlap information from cache...
-100%|██████████| 16085/16085 [00:07<00:00, 2220.32it/s]
-Saving overlap information to cache...
-('Finished loading data.',)
-125it [00:35,  3.53it/s]
-('(Acc: 0.509969, Precision: 0.627498, Recall: 0.049063)',)
+Threshold 15:
+('(Acc: 0.802612, Precision: 0.940282, Recall: 0.646269)',)
 
+Threshold 20:
+('(Acc: 0.847264, Precision: 0.903002, Recall: 0.778109)',)
 
-# Model:
-## Embedding size 32
-### Without Feature Transform
-```
-sum(p.numel() for p in embedder.parameters())
-2291
-```
-### With feature transform
-```
- sum(p.numel() for p in embedder.parameters())
-869683
-```
+Threshold 30:
+('(Acc: 0.848632, Precision: 0.786430, Recall: 0.957214)',)
+
+### Separate bag file, same area, evaluation set
+Threshold 2:
+('(Acc: 0.645588, Precision: 0.983713, Recall: 0.296078)',)
+
+Threshold 4:
+('(Acc: 0.683333, Precision: 0.979487, Recall: 0.374510)',)
+
+Threshold 10:
+('(Acc: 0.761765, Precision: 0.936275, Recall: 0.561765)',)
+
+Threshold 15:
+('(Acc: 0.805882, Precision: 0.891960, Recall: 0.696078)',)
+
+Threshold 20:
+('(Acc: 0.822549, Precision: 0.845588, Recall: 0.789216)',)
+
+Threshold 30:
+('(Acc: 0.773039, Precision: 0.714396, Recall: 0.909804)',)
