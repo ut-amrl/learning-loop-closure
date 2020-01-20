@@ -19,7 +19,8 @@ parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
 parser.add_argument('--embedding_model', type=str,
                     help='state dict of an already trained LC model to use')
-
+parser.add_argument('--only_error', type=bool, help='If True, only show triplets where the model failed', default=False)
+parser.add_argument('--threshold', type=int)
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
@@ -57,13 +58,15 @@ for i in range(triplets.shape[0]):
         distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
 
         if model:
-            predictions = get_predictions_for_model(model, anchor, similar, distant)
+            predictions = get_predictions_for_model(model, anchor, similar, distant, args.threshold)
             print("Predictions: Similar {0}, Distant {1}".format(predictions[0], predictions[1]))
+            if args.only_error and predictions[0] == True and predictions[1] == False:
+                continue
 
         # TODO do away with matplotlib
         import matplotlib.pyplot as plt
         plt.figure(figsize=(9, 3))
-        plt.subplot(131)
+        plt.subplot(131)ra
         plt.scatter(similar_np[:, 0], similar_np[:, 1], c='green', marker='.')
         plt.subplot(132)
         plt.scatter(anchor_np[:, 0], anchor_np[:, 1], c='blue', marker='.')

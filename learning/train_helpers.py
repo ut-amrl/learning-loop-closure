@@ -1,5 +1,5 @@
-from model import FullNet, EmbeddingNet
-from dataset import LCTripletDataset
+from model import FullNet, EmbeddingNet, LCCNet
+from dataset import LCTripletDataset, LCCDataset
 import time
 import torch
 
@@ -21,16 +21,22 @@ def close_logging():
     log_file.close()
     log_file = None
 
-def load_dataset(root, split, distance_cache, num_workers):
+def load_dataset(root, split, distance_cache):
     print_output("Loading data into memory...", )
     dataset = LCTripletDataset(
         root=root,
-        split=split,
-        num_workers=num_workers)
+        split=split)
     dataset.load_data()
     dataset.load_distances(distance_cache)
     dataset.load_triplets()
     dataset.cache_distances()
+    print_output("Finished loading data.")
+    return dataset
+
+def load_lcc_dataset(root):
+    print_output("Loading data into memory...")
+    dataset = LCCDataset(root=root)
+    dataset.load_data()
     print_output("Finished loading data.")
     return dataset
 
@@ -61,6 +67,18 @@ def create_classifier(embedding_model='', model='', feature_transform=False):
 
     classifier.cuda()
     return classifier
+
+def create_lcc(model=''):
+    lcc = LCCNet()
+    if model != '':
+        lcc.load_state_dict(torch.load(model))
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        lcc = torch.nn.DataParallel(lcc)
+    
+    lcc.cuda()
+    return lcc
 
 def save_model(model, outf, epoch):
     to_save = model

@@ -64,7 +64,7 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.workers)
+dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 

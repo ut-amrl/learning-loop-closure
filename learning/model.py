@@ -102,3 +102,20 @@ class FullNet(nn.Module):
         theta = y_theta - x_theta
 
         return out, (x_trans_feat, y_trans_feat), (translation, theta)
+
+class LCCNet(nn.Module):
+    def __init__(self, embedding=EmbeddingNet()):
+        super(LCCNet, self).__init__()
+        self.embedding = embedding
+        self.dropout = nn.Dropout(0.2)
+        self.fc1 = nn.Linear(32, 16)
+        self.fc2 = nn.Linear(16, 2)
+        self.softmax = nn.LogSoftmax(dim=1)
+
+    def forward(self, x):
+        emb, _, translation, theta = self.embedding(x)
+        
+        scores = self.fc2(self.fc1(emb))
+        out = self.softmax(scores)
+
+        return out, translation, theta

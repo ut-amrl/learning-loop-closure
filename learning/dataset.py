@@ -59,7 +59,6 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 num_workers=8,
                  augmentation_prob=0.2,
                  jitter_augmentation=True,
                  person_augmentation=False,
@@ -70,7 +69,6 @@ class LCTripletDataset(data.Dataset):
         self.person_augmentation = person_augmentation
         self.order_augmentation = order_augmentation
         self.split = split
-        self.num_workers = num_workers
 
         info_file = os.path.join(self.root, 'dataset_info.json')
         #from IPython import embed; embed()
@@ -196,3 +194,31 @@ class LCTripletDataset(data.Dataset):
 
     def __len__(self):
         return len(self.triplets)
+
+
+class LCCDataset(data.Dataset):
+    def __init__(self,
+                 root,
+                 split='dev'):
+        self.root = root
+        self.split = split
+
+        info_file = os.path.join(self.root, 'lcc_info.json')
+        self.lcc_info = json.load(open(info_file, 'r'))
+        
+    def load_data(self):
+        parent = os.path.dirname(self.root)
+        self.source_dataset = self.lcc_info['source_dataset_name']
+        split = self.lcc_info['split']
+        self.lc_dataset = LCDataset(os.path.join(parent, self.source_dataset), split)
+        self.labels = np.load(os.path.join(self.root, 'labels.npy')).astype(np.long) # Label is either 0 or 1
+
+    def __getitem__(self, index):
+        cloud, location, timestamp = self.lc_dataset[index]
+        label = self.labels[index]
+
+        return label, cloud, location, timestamp
+
+    def __len__(self):
+        return len(self.lc_dataset)
+    

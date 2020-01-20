@@ -38,3 +38,36 @@ Threshold 20:
 
 Threshold 30:
 ('(Acc: 0.773039, Precision: 0.714396, Recall: 0.909804)',)
+
+### Recall Evaluation, hallways
+Threshold 4:
+Recall: 10.0 / 36.0 = 0.2777777777777778
+
+Threshold 10:
+Recall: 27.0 / 36.0 = 0.75
+
+Threshold 15:
+Recall: 27.0 / 36.0 = 0.75
+
+Threshold 20:
+Recall: 27.0 / 36.0 = 0.75
+
+Threshold 30:
+Recall: 30.0 / 36.0 = 0.8333333333333334
+
+### Recall Evaluation, corners
+Threshold 4:
+Recall: 1.0 / 36.0 = 0.027777777777777776
+
+Threshold 10:
+Recall: 9.0 / 36.0 = 0.25
+
+Threshold 15:
+Recall: 15.0 / 36.0 = 0.4166666666666667
+
+Threshold 20:
+Recall: 21.0 / 36.0 = 0.5833333333333334
+
+Threshold 30:
+Recall: 33.0 / 36.0 = 0.9166666666666666
+

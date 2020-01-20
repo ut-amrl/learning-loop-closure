@@ -13,7 +13,6 @@ import train_helpers
 import time
 from tqdm import tqdm
 from train_helpers import print_output
-from pointnet.model import feature_transform_regularizer
 
 start_time = str(int(time.time()))
 
@@ -24,14 +23,9 @@ parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
-parser.add_argument(
-    '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
-parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
-parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
+parser.add_argument('--outf', type=str, default='lcc', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
-parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
-parser.add_argument('--model', type=str, default='', help='pretrained full model to start with')
-parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
+parser.add_argument('--model', type=str, default='', help='pretrained model to start with')
 
 opt = parser.parse_args()
 train_helpers.initialize_logging(start_time)
@@ -45,31 +39,26 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
+dataset = train_helpers.load_lcc_dataset(opt.dataset)
 
-out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
+out_dir = opt.outf + '_' + dataset.lcc_info['name']
 
 try:
     os.makedirs(out_dir)
 except OSError:
     pass
 
-classifier = train_helpers.create_classifier(opt.embedding_model, opt.model, opt.feature_transform)
-classifier.train()
+lcc_model = train_helpers.create_lcc(opt.model)
+lcc_model.train()
 
-optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
+optimizer = optim.Adam(lcc_model.parameters(), lr=1e-3, weight_decay=1e-5)
 lossFunc = torch.nn.NLLLoss().cuda()
-
-pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
-neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
-labels = torch.cat([pos_labels, neg_labels], dim=0)
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
 
     # We want to reload the triplets every 5 epochs to get new matches
-    dataset.load_triplets()
     batch_count = len(dataset) // opt.batch_size
     print_output("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
@@ -82,23 +71,16 @@ for epoch in range(opt.nepoch):
     metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
     for i, data in tqdm(enumerate(dataloader, 0)):
-        ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
-        clouds = clouds.transpose(2, 1)
-        similar_clouds = similar_clouds.transpose(2, 1)
-        distant_clouds = distant_clouds.transpose(2, 1)
-        
-        clouds = clouds.cuda()
-        similar_clouds = similar_clouds.cuda()
-        distant_clouds = distant_clouds.cuda()
-
-        classifier.zero_grad()
-        scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
-        predictions = torch.argmax(scores, dim=1).cpu()
+        labels, clouds, locations, timestamps = data
+        labels = labels.cuda().squeeze()
+        clouds = clouds.transpose(2, 1).cuda()
+        lcc_model.zero_grad()
+        optimizer.zero_grad()
+        scores, _, _ = lcc_model(clouds)
 
         loss = lossFunc(scores, labels)
-        if opt.feature_transform:
-            loss += feature_transform_regularizer(x_trans_feat) * 1e-3
-            loss += feature_transform_regularizer(y_trans_feat) * 1e-3
+
+        predictions = torch.argmax(scores, dim=1)
 
         train_helpers.update_metrics(metrics, predictions, labels)
 
@@ -109,7 +91,7 @@ for epoch in range(opt.nepoch):
     prec = (metrics[0]) / (metrics[0] + metrics[2])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
     print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
-    train_helpers.save_model(classifier, out_dir, epoch)
+    train_helpers.save_model(lcc_model, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
