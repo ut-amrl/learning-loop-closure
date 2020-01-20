@@ -24,6 +24,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
+parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 train_helpers.initialize_logging(start_time, 'evaluate_')
@@ -65,7 +66,7 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    predictions = train_helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds, 4)
+    predictions = train_helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds, opt.threshold)
 
     train_helpers.update_metrics(metrics, predictions, labels)
 
