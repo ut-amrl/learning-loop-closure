@@ -15,6 +15,8 @@ Threshold 15:
 ('(Acc: 0.802612, Precision: 0.940282, Recall: 0.646269)',)
 w/ feat transform:
 ('(Acc: 0.853980, Precision: 0.985997, Recall: 0.718159)',)
+Embedding size 64:
+('(Acc: 0.858706, Precision: 0.935913, Recall: 0.770149)',)
 
 Threshold 20:
 ('(Acc: 0.847264, Precision: 0.903002, Recall: 0.778109)',)
@@ -36,6 +38,8 @@ Threshold 15:
 ('(Acc: 0.805882, Precision: 0.891960, Recall: 0.696078)',)
 w/ feat transform:
 ('(Acc: 0.806358, Precision: 0.970414, Recall: 0.631985)',)
+Embedding size 64:
+('(Acc: 0.826471, Precision: 0.876697, Recall: 0.759804)',)
 
 Threshold 20:
 ('(Acc: 0.822549, Precision: 0.845588, Recall: 0.789216)',)
