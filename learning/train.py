@@ -128,12 +128,12 @@ for epoch in range(opt.nepoch):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    print('[Epoch %d] Total loss: %f' % (epoch, total_loss))
+    print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     train_helpers.save_model(embedder, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
-print("Completed training for {0} epochs".format(epoch + 1))
+print_output("Completed training for {0} epochs".format(epoch + 1))
 
 if opt.generate_embeddings:
     test_dataset = LCDataset(
@@ -146,7 +146,7 @@ if opt.generate_embeddings:
         shuffle=True,
         num_workers=int(opt.workers),
         drop_last=True)
-    print("Generating output for test set...")
+    print_output("Generating output for test set...")
     OUTPUT_DIR = 'embeddings'
     embedder.eval()
     with torch.no_grad():
