@@ -9,13 +9,13 @@ import torch.nn.functional as F
 class TransformPredictionNetwork(nn.Module):
     def __init__(self):
         super(TransformPredictionNetwork, self).__init__()
-        self.conv1 = torch.nn.Conv1d(2, 16, 1)
-        self.conv2 = torch.nn.Conv1d(16, 32, 1)
-        self.bn1 = nn.BatchNorm1d(16)
-        self.bn2 = nn.BatchNorm1d(32)
-        self.bn3 = nn.BatchNorm1d(24)
-        self.fc1 = nn.Linear(32, 24)
-        self.fc2 = nn.Linear(24, 3)
+        self.conv1 = torch.nn.Conv1d(2, 8, 1)
+        self.conv2 = torch.nn.Conv1d(8, 16, 1)
+        self.bn1 = nn.BatchNorm1d(8)
+        self.bn2 = nn.BatchNorm1d(16)
+        self.bn3 = nn.BatchNorm1d(12)
+        self.fc1 = nn.Linear(16, 12)
+        self.fc2 = nn.Linear(12, 3)
 
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
@@ -57,13 +57,13 @@ class EmbeddingNet(nn.Module):
     def __init__(self, feature_transform=True):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
-        self.conv1 = torch.nn.Conv1d(2, 16, 1)
-        self.conv2 = torch.nn.Conv1d(16, 32, 1)
-        self.bn1 = nn.BatchNorm1d(16)
-        self.bn2 = nn.BatchNorm1d(32)
+        self.conv1 = torch.nn.Conv1d(2, 8, 1)
+        self.conv2 = torch.nn.Conv1d(8, 16, 1)
+        self.bn1 = nn.BatchNorm1d(8)
+        self.bn2 = nn.BatchNorm1d(16)
         self.feature_transform = feature_transform
         if feature_transform:
-            self.fstn = STNkd(k=16)
+            self.fstn = STNkd(k=8)
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
@@ -86,7 +86,7 @@ class FullNet(nn.Module):
         super(FullNet, self).__init__()
         self.embedding = embedding
         self.dropout = nn.Dropout(0.4)
-        self.ff = nn.Linear(64, 2)
+        self.ff = nn.Linear(32, 2)
         self.softmax = nn.LogSoftmax(dim=1)
         nn.init.xavier_uniform_(self.ff.weight)
 
