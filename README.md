@@ -13,22 +13,13 @@ The `learning` folder contains the necessary logic for training.
 
 ### Installing
 
-First you have to install this package:
-https://github.com/fxia22/pointnet.pytorch
-
-You can do this by cloning the above repo then:
-```
-cd pointnet.pytorch
-pip3 install -e .
-```
-
-You will also need some dependencies:
+You will need some dependencies:
 ```
 pip3 install torch scipy
 ```
 
 #### Training
-To train the network, simply run
+To train the embedder network, simply run
 ```
 python train.py --dataset ../data/dataset_name
 ```
@@ -57,10 +48,7 @@ data/
         ...
         point_*timestamp*.data.location
         ...
-        train_test_split/
-            shuffled_train_file_list.json
-            shuffled_test_file_list.json
-            shuffled_val_file_list.json
+	dataset_info.json
 ```
 Here, each .data file contains a bunch of newline-separated point locations of the form "x y z", and each .location file contains the corresponding "location" of the form "x y z".
-The json files simply contain a JSON representation of an array of filenames to use for training, testing, and validation of the network.
+The json file contains general information like dataset name, time, as well as divisions of the data into training, dev, and evaluation sets
