@@ -40,8 +40,8 @@ def load_lcc_dataset(root):
     print_output("Finished loading data.")
     return dataset
 
-def create_embedder(embedding_model='', feature_transform=False):
-    embedder = EmbeddingNet(feature_transform)
+def create_embedder(embedding_model=''):
+    embedder = EmbeddingNet()
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     
@@ -52,8 +52,8 @@ def create_embedder(embedding_model='', feature_transform=False):
     embedder.cuda()
     return embedder
 
-def create_classifier(embedding_model='', model='', feature_transform=False):
-    embedder = EmbeddingNet(feature_transform)
+def create_classifier(embedding_model='', model=''):
+    embedder = EmbeddingNet()
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     classifier = FullNet(embedder)
@@ -101,9 +101,9 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=2):
 
 
     if model_type == 'embedder':
-        anchor_embeddings, _, _, _ = model(clouds)
-        similar_embeddings, _, _, _ = model(similar)
-        distant_embeddings, _, _, _ = model(distant)
+        anchor_embeddings, _, _ = model(clouds)
+        similar_embeddings, _, _ = model(similar)
+        distant_embeddings, _, _ = model(distant)
         
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)

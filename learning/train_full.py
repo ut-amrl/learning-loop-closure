@@ -13,7 +13,6 @@ import train_helpers
 import time
 from tqdm import tqdm
 from train_helpers import print_output
-from pointnet.model import feature_transform_regularizer
 
 start_time = str(int(time.time()))
 
@@ -26,7 +25,6 @@ parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
-parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
 parser.add_argument('--outf', type=str, default='cls_full', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
@@ -54,7 +52,7 @@ try:
 except OSError:
     pass
 
-classifier = train_helpers.create_classifier(opt.embedding_model, opt.model, opt.feature_transform)
+classifier = train_helpers.create_classifier(opt.embedding_model, opt.model)
 classifier.train()
 
 optimizer = optim.Adam(classifier.parameters(), lr=1e-3, weight_decay=1e-5)
@@ -92,13 +90,10 @@ for epoch in range(opt.nepoch):
         distant_clouds = distant_clouds.cuda()
 
         classifier.zero_grad()
-        scores, (x_trans_feat, y_trans_feat), (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
+        scores, (translation, theta) = classifier(torch.cat([clouds, clouds], dim=0), torch.cat([similar_clouds, distant_clouds], dim=0))
         predictions = torch.argmax(scores, dim=1).cpu()
 
         loss = lossFunc(scores, labels)
-        if opt.feature_transform:
-            loss += feature_transform_regularizer(x_trans_feat) * 1e-3
-            loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         train_helpers.update_metrics(metrics, predictions, labels)
 

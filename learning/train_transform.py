@@ -11,7 +11,6 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 from model import FullNet, EmbeddingNet
-from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 from tqdm import tqdm
 
@@ -103,15 +102,13 @@ for epoch in range(opt.nepoch):
         clouds =  clouds.transpose(2, 1)
         transformed = transformed.transpose(2, 1)
 
-        scores, (x_trans_feat, y_trans_feat), (translation_est, theta_est) = classifier(clouds, transformed)
+        scores, (translation_est, theta_est) = classifier(clouds, transformed)
 
         # Compute loss here        
         predictions = torch.argmax(scores, dim=1).cpu()
         loss = lossFunc(scores, labels)
         loss += torch.mean(torch.abs(translation - translation_est))
         loss += torch.mean(torch.abs(theta - theta_est))
-        loss += feature_transform_regularizer(x_trans_feat) * 1e-3
-        loss += feature_transform_regularizer(y_trans_feat) * 1e-3
 
         for i in range(len(predictions)):
             if predictions[i].item() == labels[i].item():

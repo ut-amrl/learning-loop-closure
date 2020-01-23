@@ -10,7 +10,6 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 from model import EmbeddingNet
-from pointnet.model import feature_transform_regularizer
 from dataset import LCDataset, LCTripletDataset
 import time
 from tqdm import tqdm
@@ -45,7 +44,6 @@ parser.add_argument(
     '--train_set', type=str, default='train', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument(
     '--generate_embeddings', type=bool, default=False, help='if true, generate embeddings for test set in embeddings/*timestamp*')
-parser.add_argument('--feature_transform', type=bool, default=False, help='Whether or not to additionally use feature transforms')
 parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
@@ -68,15 +66,12 @@ dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_ca
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 
-if opt.feature_transform:
-    out_dir += '_feat'
-
 try:
     os.makedirs(out_dir)
 except OSError:
     pass
 
-embedder = train_helpers.create_embedder(opt.embedding_model, opt.feature_transform)
+embedder = train_helpers.create_embedder(opt.embedding_model)
 embedder.train()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
@@ -114,16 +109,12 @@ for epoch in range(opt.nepoch):
         optimizer.zero_grad()
         embedder.zero_grad()
 
-        anchor_embeddings, trans_feat, trans, theta = embedder(clouds)
-        similar_embeddings, sim_feat, sim_trans, sim_theta = embedder(similar_clouds)
-        distant_embeddings, dist_feat, dist_trans, dist_theta = embedder(distant_clouds)
+        anchor_embeddings, trans, theta = embedder(clouds)
+        similar_embeddings, sim_trans, sim_theta = embedder(similar_clouds)
+        distant_embeddings, dist_trans, dist_theta = embedder(distant_clouds)
 
         # Compute loss here
         loss = lossFunc.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
-        if opt.feature_transform:
-            loss += feature_transform_regularizer(trans_feat) * 1e-2
-            loss += feature_transform_regularizer(sim_feat) * 1e-2
-            loss += feature_transform_regularizer(dist_feat) * 1e-2
 
         loss.backward()
         optimizer.step()

@@ -1,4 +1,3 @@
-from pointnet.model import STNkd
 import torch
 import math
 from torch import nn
@@ -54,32 +53,22 @@ class TransformNet(nn.Module):
         return transformed, translation, theta
 
 class EmbeddingNet(nn.Module):
-    def __init__(self, feature_transform=True):
+    def __init__(self):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
         self.conv1 = torch.nn.Conv1d(2, 16, 1)
         self.conv2 = torch.nn.Conv1d(16, 32, 1)
         self.bn1 = nn.BatchNorm1d(16)
         self.bn2 = nn.BatchNorm1d(32)
-        self.feature_transform = feature_transform
-        if feature_transform:
-            self.fstn = STNkd(k=16)
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
         x = F.relu(self.bn1(self.conv1(x)))
 
-        trans_feat = None
-        if self.feature_transform:
-            trans_feat = self.fstn(x)
-            x = x.transpose(2, 1)
-            x = torch.bmm(x, trans_feat)
-            x = x.transpose(2, 1)
-
         x = self.bn2(self.conv2(x))
         x = torch.max(x, 2, keepdim=True)[0]
         x = x.squeeze(-1)
-        return x, trans_feat, translation, theta
+        return x, translation, theta
 
 class FullNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
@@ -91,8 +80,8 @@ class FullNet(nn.Module):
         nn.init.xavier_uniform_(self.ff.weight)
 
     def forward(self, x, y):
-        x_emb, x_trans_feat, x_translation, x_theta = self.embedding(x)
-        y_emb, y_trans_feat, y_translation, y_theta = self.embedding(y)
+        x_emb, x_translation, x_theta = self.embedding(x)
+        y_emb, y_translation, y_theta = self.embedding(y)
 
         scores = self.ff(self.dropout(torch.cat([x_emb, y_emb], dim=1)))
 
@@ -101,7 +90,7 @@ class FullNet(nn.Module):
         translation = y_translation - x_translation
         theta = y_theta - x_theta
 
-        return out, (x_trans_feat, y_trans_feat), (translation, theta)
+        return out, (translation, theta)
 
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
