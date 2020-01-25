@@ -58,15 +58,17 @@ class EmbeddingNet(nn.Module):
         self.transform = TransformNet()
         self.conv1 = torch.nn.Conv1d(2, 16, 1)
         self.conv2 = torch.nn.Conv1d(16, 32, 1)
+        self.ff = nn.Linear(32, 16)
         self.bn1 = nn.BatchNorm1d(16)
         self.bn2 = nn.BatchNorm1d(32)
+        nn.init.xavier_uniform_(self.ff.weight)
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
         x = F.relu(self.bn1(self.conv1(x)))
-
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.max_pool1d(x, x.shape[2])
+        x = self.ff(x.transpose(2, 1)).transpose(2, 1)
         return x, translation, theta
 
 class FullNet(nn.Module):
