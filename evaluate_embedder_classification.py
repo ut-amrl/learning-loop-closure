@@ -73,8 +73,8 @@ for i, data in tqdm(enumerate(dataloader, 0)):
         triplets[i, :, 0, 0] = timestamp
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
-        triplets[i, :, 1, 1] = (predictions[:similar_clouds.shape[0]]).cpu()
-        triplets[i, :, 2, 1] = (predictions[similar_clouds.shape[0]:]).cpu()
+        triplets[i, :, 1, 1] = (predictions[:similar_clouds.shape[0]]).cpu().squeeze()
+        triplets[i, :, 2, 1] = (predictions[similar_clouds.shape[0]:]).cpu().squeeze()
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])

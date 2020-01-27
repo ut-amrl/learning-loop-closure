@@ -9,6 +9,28 @@ FOV = np.pi * 3 / 2
 RADIUS = 3
 SAMPLE_RESOLUTION = 6
 
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+def visualize_location(location, color='blue', ax=None):
+    orientation = fix_angle(location[2])
+    arc_patch(location[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=ax, fill=False, color=color, zorder=1)
+
+def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
+    # make sure ax is not empty
+    if ax is None:
+        ax = plt.gca()
+    # generate the points
+    theta = np.linspace(np.radians(theta1), np.radians(theta2), resolution)
+    points = np.vstack((radius*np.cos(theta) + center[0], 
+                        radius*np.sin(theta) + center[1]))
+    points = np.append(points, [[center[0]], [center[1]]], axis=1)
+    # build the polygon and add it to the axes
+    poly = mpatches.Polygon(points.T, closed=True, **kwargs)
+    ax.add_patch(poly)
+    return poly
+
 def fix_angle(theta):
     if (theta < 0):
         theta += np.pi * 2
