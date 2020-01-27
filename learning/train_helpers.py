@@ -30,7 +30,8 @@ def load_dataset(root, split, distance_cache, augment_prob=0.1):
     dataset.load_data()
     dataset.load_distances(distance_cache)
     dataset.load_triplets()
-    dataset.cache_distances()
+    if dataset.computed_new_distances:
+        dataset.cache_distances()
     print_output("Finished loading data.")
     return dataset
 

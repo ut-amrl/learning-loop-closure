@@ -78,20 +78,20 @@ def scan_to_point_cloud(scan, trim_edges=True):
             cloud[idx][1] = point[1]
         angle_offset += scan.angle_increment
 
+    cloud = normalize_point_cloud(cloud, scan.range_max)
+
     return cloud
 
-def normalize_point_cloud(point_set):
+def normalize_point_cloud(point_set, max_range):
     point_set = point_set - \
         np.expand_dims(np.mean(point_set, axis=0), 0)  # center
     point_set = np.delete(point_set, 2, axis=1)
     # normalize
-    dist = np.max(np.sqrt(np.sum(point_set ** 2, axis=1)), 0)
-    point_set = point_set / dist  # scale
+    point_set = point_set / max_range  # scale
     return point_set
 
-def embedding_for_scan(model, scan):
-    normalized_cloud = normalize_point_cloud(scan)
-    cloud = torch.tensor([normalized_cloud])
+def embedding_for_scan(model, cloud):
+    cloud = torch.tensor([cloud])
     cloud = cloud.transpose(2, 1)
     cloud = cloud.cuda()
     result = model(cloud)

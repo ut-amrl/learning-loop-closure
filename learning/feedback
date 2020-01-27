@@ -1,0 +1,13 @@
+
+
+Top K loss:
+
+roc/precision recall curve:
+
+For a given scan, find the "top K" closest, and evaluate how many of those are distant/close
+pick random lc location, pick random scan, and then estimate which of the possible locations it thinks it is in.
+potentially compare against a sequence of frames..
+
+FOV overlap visualizations
+
+Fix matplotlib axis

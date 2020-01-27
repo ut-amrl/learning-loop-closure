@@ -15,14 +15,14 @@ from plyfile import PlyData, PlyElement
 import pickle
 
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from helpers import compute_overlap, normalize_point_cloud
+from helpers import compute_overlap
 
 CLOSE_DISTANCE_THRESHOLD = 1
 OVERLAP_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
     point_set = np.load(filename).astype(np.float32)
-    return normalize_point_cloud(point_set)
+    return point_set
 
 class LCDataset(data.Dataset):
     def __init__(self,
@@ -76,6 +76,7 @@ class LCTripletDataset(data.Dataset):
         # self.overlap_radius = self.dataset_info['scanMetadata']['range_max'] * 0.4 if 'scanMetadata' in self.dataset_info else 4
         self.data_loaded = False
         self.triplets_loaded = False
+        self.computed_new_distances = False
         self.data = []
         self.overlaps = {}
         self.triplets = []
@@ -165,6 +166,7 @@ class LCTripletDataset(data.Dataset):
                 return self.overlaps[key] > OVERLAP_THRESHOLD
             else:
                 overlap = compute_overlap(location, alt_loc)
+                self.computed_new_distances = True
                 self.overlaps[key] = overlap
                 return self.overlaps[key] > OVERLAP_THRESHOLD
 
