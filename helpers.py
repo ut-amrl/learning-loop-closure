@@ -112,12 +112,13 @@ def normalize_point_cloud(point_set, max_range):
     point_set = point_set / max_range  # scale
     return point_set
 
-def embedding_for_scan(model, cloud):
-    cloud = torch.tensor([cloud])
-    cloud = cloud.transpose(2, 1)
-    cloud = cloud.cuda()
-    result = model(cloud)
-    del cloud
+def embedding_for_scan(model, cloud, batched=False):
+    clouds = cloud if batched else [cloud,]
+    clouds = torch.tensor(clouds)
+    clouds = clouds.transpose(2, 1)
+    clouds = clouds.cuda()
+    result = model(clouds)
+    del clouds
     return result
 
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
