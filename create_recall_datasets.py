@@ -91,7 +91,7 @@ ds2_timestamps = np.asarray([name[name.find('location_') + len('location_'):name
 ds1_time_tree = cKDTree(np.asarray([d[:2] for d in ds1_locations]))
 ds2_time_tree = cKDTree(np.asarray([d[:2] for d in ds2_locations]))
 
-THRESHOLD = 0.8
+THRESHOLD = 0.75
 
 def check_overlap(target_loc, locations):
     def checker(loc_idx):
@@ -101,7 +101,7 @@ def check_overlap(target_loc, locations):
     return checker
 
 # For each target location, find a fixed number of nearby observations in each dataset
-obs_per_target = 3
+obs_per_target = 5
 observation_loc_timestamps = np.ndarray((len(target_locations), 2, obs_per_target, 1))
 observation_scan_files = np.ndarray((len(target_locations), 2, obs_per_target, 1))
 for idx, target_loc in enumerate(target_locations):
