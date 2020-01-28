@@ -47,10 +47,10 @@ for i in range(triplets.shape[0]):
         # get first in batch
         triplet = batch_triplets[j]
 
-        anchor_np, anchor_loc, _ = dataset.get_by_timestamp(triplet[0, 0], include_angle=True)
+        anchor_np, anchor_loc, ts = dataset.get_by_timestamp(triplet[0, 0], include_angle=True)
         similar_np, similar_loc, _ = dataset.get_by_timestamp(triplet[1, 0], include_angle=True)
         distant_np, distant_loc, _ = dataset.get_by_timestamp(triplet[2, 0], include_angle=True)
-
+        print("Anchor Timestamp", ts)
         print("Locations", anchor_loc, similar_loc, distant_loc)
 
         anchor = torch.tensor(anchor_np.transpose(1, 0)).unsqueeze(0).cuda()

@@ -17,7 +17,7 @@ import pickle
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from helpers import compute_overlap
 
-CLOSE_DISTANCE_THRESHOLD = 1
+CLOSE_DISTANCE_THRESHOLD = 2
 OVERLAP_THRESHOLD = 0.75
 
 def get_point_cloud_from_file(filename):
@@ -110,10 +110,10 @@ class LCTripletDataset(data.Dataset):
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
 
         idx = random.randint(0, len(self.data) - 1)
-        while idx in filtered_neighbors:
+        # We don't want anything that's even remotely nearby to count as "distant"
+        while idx in neighbors:
             idx = random.randint(0, len(self.data) - 1)
         distant_cloud, distant_loc, distant_timestamp = self.data[idx]
-        
         return (
             (cloud, location, timestamp),
             (similar_cloud, similar_loc, similar_timestamp),

@@ -9,7 +9,6 @@ FOV = np.pi * 3 / 2
 RADIUS = 3
 SAMPLE_RESOLUTION = 6
 
-
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
@@ -22,7 +21,7 @@ def visualize_location(plt, location, color='blue'):
 def visualize_cloud(plt, cloud, color='blue'):
     plt.xlim(-1, 1)
     plt.ylim(-1, 1)
-    plt.scatter(cloud[:, 0], cloud[:, 1], c='blue', marker='.')
+    plt.scatter(cloud[:, 0], cloud[:, 1], c=color, marker='.')
 
 def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
     # make sure ax is not empty
