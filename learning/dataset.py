@@ -20,10 +20,6 @@ from helpers import compute_overlap
 CLOSE_DISTANCE_THRESHOLD = 2
 OVERLAP_THRESHOLD = 0.75
 
-def get_point_cloud_from_file(filename):
-    point_set = np.load(filename).astype(np.float32)
-    return point_set
-
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -46,8 +42,8 @@ class LCDataset(data.Dataset):
         location_file = os.path.join(
             self.root, 'location_{0}.npy'.format(timestamp))
         location = np.load(location_file).astype(np.float32)
-        cloud = get_point_cloud_from_file(os.path.join(
-            self.root, 'point_{0}.npy'.format(timestamp)))
+        cloud_file = os.path.join(self.root, 'point_{0}.npy'.format(timestamp))
+        cloud = np.load(cloud_file).astype(np.float32)
         if not include_angle:
             location = location[:2]
         return cloud, location, timestamp
