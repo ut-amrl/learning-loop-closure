@@ -37,7 +37,6 @@ obs_timestamps = np.load(os.path.join(args.recall_dataset, 'observation_timestam
 total = 0.0
 match = 0.0
 
-
 # For a given anchor timestamp, randomly select possible lc scans from the other input dataset, and find the best {args.k} matches for each of them
 def find_topk_for_choice(choice_ds, choice_timestamp):
     # all our candidates come from the "other" dataset

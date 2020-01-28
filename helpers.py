@@ -13,9 +13,16 @@ SAMPLE_RESOLUTION = 6
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-def visualize_location(location, color='blue', ax=None):
+def visualize_location(plt, location, color='blue'):
     orientation = fix_angle(location[2])
-    arc_patch(location[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=ax, fill=False, color=color, zorder=1)
+    arc_patch(location[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=plt.gca(), fill=False, color=color, zorder=1)
+    plt.gca().set_aspect('equal')
+    plt.gca().autoscale()
+
+def visualize_cloud(plt, cloud, color='blue'):
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
+    plt.scatter(cloud[:, 0], cloud[:, 1], c='blue', marker='.')
 
 def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
     # make sure ax is not empty
