@@ -96,6 +96,9 @@ for epoch in range(opt.nepoch):
         num_workers=num_workers,
         drop_last=True)
 
+    total_similar_dist = 0.0
+    total_distant_dist = 0.0
+
     for i, data in tqdm(enumerate(dataloader, 0)):
         ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
         clouds = clouds.transpose(2, 1)
@@ -113,13 +116,21 @@ for epoch in range(opt.nepoch):
         similar_embeddings, sim_trans, sim_theta = embedder(similar_clouds)
         distant_embeddings, dist_trans, dist_theta = embedder(distant_clouds)
 
+        total_similar_dist += torch.sum(torch.norm(anchor_embeddings - similar_embeddings, dim=1)) 
+        total_distant_dist += torch.sum(torch.norm(anchor_embeddings - distant_embeddings, dim=1)) 
+
         # Compute loss here
         loss = lossFunc.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
 
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
+    
+    avg_similar_dist = total_similar_dist / (batch_count * opt.batch_size)
+    avg_distant_dist = total_distant_dist / (batch_count * opt.batch_size)
+
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
+    print_output('Average distance, Similar: {0} Distant: {1}'.format(avg_similar_dist, avg_distant_dist))
     train_helpers.save_model(embedder, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
