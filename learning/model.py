@@ -64,12 +64,12 @@ class EmbeddingNet(nn.Module):
         nn.init.xavier_uniform_(self.ff.weight)
 
     def forward(self, x):
-        # x, translation, theta = self.transform(x)
+        x, translation, theta = self.transform(x)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
-        x = F.max_pool1d(x, x.shape[2]).squeeze(-1)
-        # x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
-        return x, None, None
+        x = F.max_pool1d(x, x.shape[2])
+        x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
+        return x, translation, theta
 
 class FullNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
