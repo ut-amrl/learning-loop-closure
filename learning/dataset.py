@@ -17,7 +17,8 @@ import pickle
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from helpers import compute_overlap
 
-CLOSE_DISTANCE_THRESHOLD = 2
+CLOSE_DISTANCE_THRESHOLD = 1
+FAR_DISTANCE_THRESHOLD = 2  
 OVERLAP_THRESHOLD = 0.75
 
 class LCDataset(data.Dataset):
@@ -107,7 +108,8 @@ class LCTripletDataset(data.Dataset):
 
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
-        while idx in neighbors:
+        dist_neighbors = self.location_tree.query_ball_point(location[:2], FAR_DISTANCE_THRESHOLD)
+        while idx in dist_neighbors:
             idx = random.randint(0, len(self.data) - 1)
         distant_cloud, distant_loc, distant_timestamp = self.data[idx]
         return (
