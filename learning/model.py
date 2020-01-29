@@ -67,7 +67,7 @@ class EmbeddingNet(nn.Module):
         # x, translation, theta = self.transform(x)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
-        x = F.max_pool1d(x, x.shape[2])
+        x = F.max_pool1d(x, x.shape[2]).squeeze(-1)
         # x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
         return x, None, None
 
