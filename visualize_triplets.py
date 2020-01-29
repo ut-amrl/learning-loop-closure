@@ -7,7 +7,7 @@ import argparse
 from learning.train_helpers import create_classifier, create_embedder, get_predictions_for_model
 from learning.dataset import LCDataset
 from sensor_msgs.msg import PointCloud2
-from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud
+from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud, draw_map
 
 TIMESTEP = 1.5
 
@@ -77,8 +77,10 @@ for i in range(triplets.shape[0]):
         visualize_location(plt, anchor_loc, 'blue')
         visualize_location(plt, similar_loc, 'green')
         visualize_location(plt, distant_loc, 'red')
-        plt.show()
 
+        draw_map(plt, '../../cobot/maps/GDC3/GDC3_vector.txt')
+
+        plt.show()
         # msg = create_ros_pointcloud()
         # publish_ros_pointcloud(anchor_pub, msg, anchor)
         # publish_ros_pointcloud(similar_pub, msg, similar)

@@ -11,6 +11,19 @@ SAMPLE_RESOLUTION = 6
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.collections import LineCollection
+
+def draw_map(plt, map_file):
+    segments = []
+    with open(map_file) as f:
+        for line in f:
+            segments.append([float(n) for n in line.split(',')])
+
+    line_segments = [[(x1, y1), (x2, y2)] for x1, y1, x2, y2 in segments]
+
+    lc = LineCollection(line_segments, color=["k","black"], lw=1)
+    plt.gca().add_collection(lc)
+    plt.gca().autoscale()
 
 def visualize_location(plt, location, color='blue'):
     orientation = fix_angle(location[2])
