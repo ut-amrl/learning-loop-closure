@@ -75,7 +75,7 @@ embedder = train_helpers.create_embedder(opt.embedding_model)
 embedder.train()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
-lossFunc = TripletLoss(10)
+lossFunc = TripletLoss(5)
 
 pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1).cuda()
