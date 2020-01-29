@@ -49,7 +49,7 @@ def find_topk_for_choice(choice_ds, choice_timestamp):
         #Compute embeddings and find distances
         embeddings, _, _ = embedding_for_scan(model, candidates, batched=True)
         anchor, _, _ = embedding_for_scan(model, choice)
-        distances = torch.norm(anchor.repeat(len(embeddings), 1, 1) - embeddings, dim=1).squeeze()
+        distances = torch.norm(anchor.repeat(len(embeddings), 1) - embeddings, dim=1).squeeze()
 
         # Find topK matches
         min_dist, min_indices = torch.topk(distances, args.k, largest=False)
