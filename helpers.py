@@ -5,7 +5,7 @@ from rospy import rostime
 from scipy import spatial
 from tqdm import tqdm
 
-FOV = np.pi * 3 / 2
+FOV = np.pi
 RADIUS = 3
 SAMPLE_RESOLUTION = 6
 
@@ -139,6 +139,20 @@ def embedding_for_scan(model, cloud, batched=False):
     result = model(clouds)
     del clouds
     return result
+
+def visualize_localizations_from_bag(plt, bag, localization_topic):
+    localizations = []
+    print ("Loading Localization from Bag file")
+    print("Start time:", bag.get_start_time())
+    print("End time:", bag.get_end_time())
+
+    for topic, msg, t in tqdm(bag.read_messages(topics=[localization_topic])):
+        localizations.append([msg.x, msg.y, msg.angle])
+
+    localization_xs = [l[0] for l in localizations]
+    localization_ys = [l[1] for l in localizations]
+
+    plt.plot(localization_xs, localization_ys)
 
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
     localizations = {}

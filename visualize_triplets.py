@@ -7,7 +7,7 @@ import argparse
 from learning.train_helpers import create_classifier, create_embedder, get_predictions_for_model
 from learning.dataset import LCDataset
 from sensor_msgs.msg import PointCloud2
-from helpers import get_scans_and_localizations_from_bag, embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud, draw_map
+from helpers import embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud, draw_map
 
 TIMESTEP = 1.5
 
