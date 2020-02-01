@@ -60,6 +60,7 @@ class EmbeddingNet(nn.Module):
         self.conv2 = torch.nn.Conv1d(8, 16, 1)
         self.conv3 = torch.nn.Conv1d(16, 32, 1)
         self.conv4 = torch.nn.Conv1d(32, 32, 1)
+        self.dropout = nn.Dropout(0.5)
         self.ff = nn.Linear(32, 16)
         self.bn1 = nn.BatchNorm1d(8)
         self.bn2 = nn.BatchNorm1d(16)
@@ -75,6 +76,7 @@ class EmbeddingNet(nn.Module):
         x = self.bn4(self.conv4(x))
         x = F.max_pool1d(x, x.shape[2])
         x = F.relu(x)
+        x = self.dropout(x)
         x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
         return x, translation, theta
 
