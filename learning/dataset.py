@@ -11,7 +11,6 @@ import random
 import math
 from tqdm import tqdm
 import json
-from plyfile import PlyData, PlyElement
 import pickle
 
 sys.path.append(os.path.join(os.getcwd(), '..'))
