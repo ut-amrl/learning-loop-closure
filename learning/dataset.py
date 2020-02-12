@@ -23,14 +23,18 @@ OVERLAP_THRESHOLD = 0.75
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,
-                 split='dev'):
+                 split=None):
         self.root = root
         self.split = split
+        self.timestamp_tree = None
 
         info_file = os.path.join(self.root, 'dataset_info.json')
 
         self.dataset_info = json.load(open(info_file, 'r'))
-        self.file_list = self.dataset_info[self.split + '_data']
+        if self.split:
+            self.file_list = self.dataset_info[self.split + '_data']
+        else:
+            self.file_list = glob.glob(os.path.join(self.root, 'point_*'))
 
     def __getitem__(self, index):
         fname = self.file_list[index]
@@ -39,6 +43,23 @@ class LCDataset(data.Dataset):
         return self.get_by_timestamp(timestamp)
 
     def get_by_timestamp(self, timestamp, include_angle=False):
+        location_file = os.path.join(
+            self.root, 'location_{0}.npy'.format(timestamp))
+        location = np.load(location_file).astype(np.float32)
+        cloud_file = os.path.join(self.root, 'point_{0}.npy'.format(timestamp))
+        cloud = np.load(cloud_file).astype(np.float32)
+        if not include_angle:
+            location = location[:2]
+        return cloud, location, timestamp
+
+    def get_by_nearest_timestamp(self, target_timestamp, include_angle=False):
+        if not self.timestamp_tree:
+            self.timestamps = [[float(f[f.find('point_') + len('point_'):f.find('.npy')])] for f in self.file_list]
+            self.timestamp_tree = cKDTree(self.timestamps)
+        
+        _, timestamp_idx = self.timestamp_tree.query([target_timestamp])
+        timestamp =  self.timestamps[timestamp_idx][0]
+
         location_file = os.path.join(
             self.root, 'location_{0}.npy'.format(timestamp))
         location = np.load(location_file).astype(np.float32)

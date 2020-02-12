@@ -23,9 +23,11 @@ import matplotlib.pyplot as plt
 
 for i in range(len(timestamps)):
     timestamp = timestamps[i][0]
+    if float(timestamp) > 5e5: # must be since epoch...
+        timestamp = round(float(timestamp) - dataset.dataset_info['startTime'], 5)
     label = timestamps[i][1]
 
-    cloud, loc, ts = dataset.get_by_timestamp(timestamp)
+    cloud, loc, ts = dataset.get_by_nearest_timestamp(timestamp)
     plt.figure(1)
     if label:
         visualize_cloud(plt, cloud, color='green')
