@@ -11,7 +11,6 @@ import random
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 from learning import train_helpers
-from learning.train_helpers import print_output
 from learning.dataset import LCDataset
 
 
@@ -22,18 +21,17 @@ parser.add_argument(
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
-parser.add_argument('--model', type=str, default='', help='model to evaluate');
+parser.add_argument('--model', type=str, default='', help='model to evaluate')
 parser.add_argument('--low_threshold', type=float, default=0.1, help='Lower threshold of uniquness score')
 parser.add_argument('--high_threshold', type=float, default=0.7, help='Upper threshold of uniquness score')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
-train_helpers.initialize_logging(start_time, 'evaluate_')
-print_output(opt)
+print(opt)
 
 num_workers = int(opt.workers)
 
 opt.manualSeed = random.randint(1, 10000)  # fix seed
-print_output("Random Seed: ", opt.manualSeed)
+print("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
@@ -85,7 +83,7 @@ print(unique_timestamps)
 print(len(unique_timestamps))
 
 # store the timestamps for "unique" examples.
-tagged_scores = [];
+tagged_scores = []
 for i in range(len(uniqueness_scores)):
     score = uniqueness_scores[i]
     if score >= opt.high_threshold:
@@ -93,5 +91,5 @@ for i in range(len(uniqueness_scores)):
     elif score <= opt.low_threshold:
         tagged_scores.append([timestamps[i], 1])
 
-tagged_scores = np.array(tagged_scores);
-np.save('data/labeled_unique_timestamps.npy', tagged_scores);
+tagged_scores = np.array(tagged_scores)
+np.save('data/labeled_unique_timestamps.npy', tagged_scores)
