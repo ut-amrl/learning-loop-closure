@@ -35,6 +35,7 @@ class LCDataset(data.Dataset):
             self.file_list = self.dataset_info[self.split + '_data']
         else:
             self.file_list = glob.glob(os.path.join(self.root, 'point_*'))
+        self.timestamps = [[float(f[f.find('point_') + len('point_'):])] for f in self.file_list]
 
     def __getitem__(self, index):
         fname = self.file_list[index]
@@ -54,12 +55,10 @@ class LCDataset(data.Dataset):
 
     def get_by_nearest_timestamp(self, target_timestamp, include_angle=False):
         if not self.timestamp_tree:
-            self.timestamps = [[float(f[f.find('point_') + len('point_'):f.find('.npy')])] for f in self.file_list]
             self.timestamp_tree = cKDTree(self.timestamps)
         
         _, timestamp_idx = self.timestamp_tree.query([target_timestamp])
         timestamp =  self.timestamps[timestamp_idx][0]
-
         location_file = os.path.join(
             self.root, 'location_{0}.npy'.format(timestamp))
         location = np.load(location_file).astype(np.float32)
@@ -216,29 +215,20 @@ class LCTripletDataset(data.Dataset):
         return len(self.triplets)
 
 
-class LCCDataset(data.Dataset):
+class LCCDataset(LCDataset):
     def __init__(self,
                  root,
+                 timestamps,
                  split='dev'):
-        self.root = root
-        self.split = split
-
-        info_file = os.path.join(self.root, 'lcc_info.json')
-        self.lcc_info = json.load(open(info_file, 'r'))
-        
-    def load_data(self):
-        parent = os.path.dirname(self.root)
-        self.source_dataset = self.lcc_info['source_dataset_name']
-        split = self.lcc_info['split']
-        self.lc_dataset = LCDataset(os.path.join(parent, self.source_dataset), split)
-        self.labels = np.load(os.path.join(self.root, 'labels.npy')).astype(np.long) # Label is either 0 or 1
+        self.labeled_timestamps = np.load(timestamps)
+        super(LCCDataset, self).__init__(root, split)
 
     def __getitem__(self, index):
-        cloud, location, timestamp = self.lc_dataset[index]
-        label = self.labels[index]
+        timestamp, label = self.labeled_timestamps[index]
+        cloud, _, timestamp = self.get_by_nearest_timestamp(timestamp)
 
-        return label, cloud, location, timestamp
+        return int(label), cloud, timestamp
 
     def __len__(self):
-        return len(self.lc_dataset)
+        return len(self.labeled_timestamps)
     

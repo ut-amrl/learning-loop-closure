@@ -35,10 +35,9 @@ def load_dataset(root, split, distance_cache, augment_prob=0.1):
     print_output("Finished loading data.")
     return dataset
 
-def load_lcc_dataset(root):
+def load_lcc_dataset(root, timestamps):
     print_output("Loading data into memory...")
-    dataset = LCCDataset(root=root)
-    dataset.load_data()
+    dataset = LCCDataset(root=root, timestamps=timestamps)
     print_output("Finished loading data.")
     return dataset
 

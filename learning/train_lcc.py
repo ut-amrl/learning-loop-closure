@@ -24,7 +24,8 @@ parser.add_argument(
 parser.add_argument(
     '--nepoch', type=int, default=40, help='number of epochs to train for')
 parser.add_argument('--outf', type=str, default='lcc', help='output folder')
-parser.add_argument('--dataset', type=str, required=True, help="dataset path")
+parser.add_argument('--dataset', type=str, required=True, help="dataset path containing scans")
+parser.add_argument('--labeled_timestamps', type=str, required=True, help="binary label for scans within the dataset")
 parser.add_argument('--model', type=str, default='', help='pretrained model to start with')
 
 opt = parser.parse_args()
@@ -39,9 +40,9 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = train_helpers.load_lcc_dataset(opt.dataset)
+dataset = train_helpers.load_lcc_dataset(opt.dataset, opt.labeled_timestamps)
 
-out_dir = opt.outf + '_' + dataset.lcc_info['name']
+out_dir = opt.outf + '_' + dataset.dataset_info['name']
 
 try:
     os.makedirs(out_dir)
@@ -60,7 +61,6 @@ for epoch in range(opt.nepoch):
 
     # We want to reload the triplets every 5 epochs to get new matches
     batch_count = len(dataset) // opt.batch_size
-    print_output("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=opt.batch_size,
@@ -71,7 +71,7 @@ for epoch in range(opt.nepoch):
     metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
     for i, data in tqdm(enumerate(dataloader, 0)):
-        labels, clouds, locations, timestamps = data
+        labels, clouds, timestamps = data
         labels = labels.cuda().squeeze()
         clouds = clouds.transpose(2, 1).cuda()
         lcc_model.zero_grad()
