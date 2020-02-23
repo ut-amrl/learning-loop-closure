@@ -22,7 +22,7 @@ parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate')
-parser.add_argument('--low_threshold', type=float, default=0.1, help='Lower threshold of uniquness score')
+parser.add_argument('--low_threshold', type=float, default=0.07, help='Lower threshold of uniquness score')
 parser.add_argument('--high_threshold', type=float, default=0.7, help='Upper threshold of uniquness score')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
@@ -62,25 +62,22 @@ with torch.no_grad():
 emb_tree = cKDTree(embeddings)
 loc_tree = cKDTree(locations)
 
-nearby_embs = [emb_tree.query_ball_point(e, .5) for e in embeddings]
+nearby_embs = [emb_tree.query_ball_point(e, 1) for e in embeddings]
 
 uniqueness_scores = []
 unique_timestamps = []
 for i in range(len(nearby_embs)):
     base_loc = locations[i]
     emb_list = nearby_embs[i]
-    nearby_loc_matches = loc_tree.query_ball_point(base_loc, 2)
+    nearby_loc_matches = loc_tree.query_ball_point(base_loc, 1)
     distant_emb_matches = set(emb_list) - set(nearby_loc_matches)
-    uniqueness_score = len(distant_emb_matches) / len(emb_list)
+    uniqueness_score = len(distant_emb_matches) / float(len(emb_list))
     uniqueness_scores.append(uniqueness_score)
     if (uniqueness_score < opt.low_threshold):
         unique_timestamps.append(round(timestamps[i], 5))
 
-print(uniqueness_scores)
-
-print("GOOD TIMESTAMPS")
-print(unique_timestamps)
-print(len(unique_timestamps))
+print("GOOD TIMESTAMPS:")
+print(len(unique_timestamps), 'of', len(uniqueness_scores))
 
 # store the timestamps for "unique" examples.
 tagged_scores = []

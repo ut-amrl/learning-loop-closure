@@ -38,7 +38,7 @@ class LCDataset(data.Dataset):
 
     def __getitem__(self, index):
         fname = self.file_list[index]
-        timestamp = fname[fname.find('_')+1:]
+        timestamp = fname[fname.rfind('_')+1:fname.find('.npy')]
         
         return self.get_by_timestamp(timestamp)
 
@@ -103,7 +103,7 @@ class LCTripletDataset(data.Dataset):
         filelist = self.dataset_info[self.split + '_data']
             
         for fname in tqdm(filelist):
-            timestamp = fname[fname.find('_')+1:]
+            timestamp = fname[fname.rfind('_')+1:]
             location_file = os.path.join(
                 self.root, 'location_{0}.npy'.format(timestamp))
             location = np.load(location_file).astype(np.float32)
