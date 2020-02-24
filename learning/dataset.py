@@ -34,7 +34,8 @@ class LCDataset(data.Dataset):
         if self.split:
             self.file_list = self.dataset_info[self.split + '_data']
         else:
-            self.file_list = glob.glob(os.path.join(self.root, 'point_*'))
+            self.file_list = [f[:f.find('.npy')] for f in glob.glob(os.path.join(self.root, 'point_*.npy'))]
+
         self.timestamps = [[float(f[f.find('point_') + len('point_'):])] for f in self.file_list]
 
     def __getitem__(self, index):
