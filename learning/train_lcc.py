@@ -27,6 +27,7 @@ parser.add_argument('--outf', type=str, default='lcc', help='output folder')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path containing scans")
 parser.add_argument('--labeled_timestamps', type=str, required=True, help="binary label for scans within the dataset")
 parser.add_argument('--model', type=str, default='', help='pretrained model to start with')
+parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding_model to start with')
 
 opt = parser.parse_args()
 train_helpers.initialize_logging(start_time)
@@ -49,7 +50,7 @@ try:
 except OSError:
     pass
 
-lcc_model = train_helpers.create_lcc(opt.model)
+lcc_model = train_helpers.create_lcc(opt.embedding_model, opt.model)
 lcc_model.train()
 
 optimizer = optim.Adam(lcc_model.parameters(), lr=1e-3, weight_decay=1e-5)

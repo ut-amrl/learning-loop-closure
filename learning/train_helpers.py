@@ -69,8 +69,11 @@ def create_classifier(embedding_model='', model=''):
     classifier.cuda()
     return classifier
 
-def create_lcc(model=''):
-    lcc = LCCNet()
+def create_lcc(embedding_model='', model=''):
+    embedder = EmbeddingNet()
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
+    lcc = LCCNet(embedder)
     if model != '':
         lcc.load_state_dict(torch.load(model))
     
