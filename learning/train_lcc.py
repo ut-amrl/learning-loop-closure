@@ -74,15 +74,14 @@ for epoch in range(opt.nepoch):
     for i, data in tqdm(enumerate(dataloader, 0)):
         labels, clouds, timestamps = data
         labels = labels.cuda().squeeze()
+
         clouds = clouds.transpose(2, 1).cuda()
         lcc_model.zero_grad()
         optimizer.zero_grad()
         scores, _, _ = lcc_model(clouds)
 
         loss = lossFunc(scores, labels)
-
         predictions = torch.argmax(scores, dim=1)
-
         train_helpers.update_metrics(metrics, predictions, labels)
 
         loss.backward()

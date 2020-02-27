@@ -17,7 +17,7 @@ from learning.dataset import LCDataset
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--batch_size', type=int, default=2, help='input batch size')
+    '--batch_size', type=int, default=40, help='input batch size')
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")

@@ -73,6 +73,10 @@ def create_lcc(embedding_model='', model=''):
     embedder = EmbeddingNet()
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
+        for param in embedder.parameters():
+            param.requires_grad = False
+        # embedder.eval()
+
     lcc = LCCNet(embedder)
     if model != '':
         lcc.load_state_dict(torch.load(model))

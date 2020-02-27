@@ -34,14 +34,14 @@ class LCDataset(data.Dataset):
         if self.split:
             self.file_list = self.dataset_info[self.split + '_data']
         else:
-            self.file_list = [f[:f.find('.npy')] for f in glob.glob(os.path.join(self.root, 'point_*.npy'))]
+            self.file_list = [f[:f.rfind('.npy')] for f in glob.glob(os.path.join(self.root, 'point_*.npy'))]
 
         self.timestamps = [[float(f[f.find('point_') + len('point_'):])] for f in self.file_list]
 
     def __getitem__(self, index):
         fname = self.file_list[index]
-        timestamp = fname[fname.rfind('_')+1:fname.find('.npy')]
-        
+        timestamp = fname[fname.rfind('_')+1:]
+
         return self.get_by_timestamp(timestamp)
 
     def get_by_timestamp(self, timestamp, include_angle=False):
@@ -60,14 +60,7 @@ class LCDataset(data.Dataset):
         
         _, timestamp_idx = self.timestamp_tree.query([target_timestamp])
         timestamp =  self.timestamps[timestamp_idx][0]
-        location_file = os.path.join(
-            self.root, 'location_{0}.npy'.format(timestamp))
-        location = np.load(location_file).astype(np.float32)
-        cloud_file = os.path.join(self.root, 'point_{0}.npy'.format(timestamp))
-        cloud = np.load(cloud_file).astype(np.float32)
-        if not include_angle:
-            location = location[:2]
-        return cloud, location, timestamp
+        return self.get_by_timestamp(timestamp, include_angle)
 
     def __len__(self):
         return len(self.file_list)
