@@ -119,7 +119,7 @@ class LCCNet(nn.Module):
     def forward(self, x):
         emb, translation, theta = self.embedding(x)
         
-        scores = self.fc3(F.relu(self.fc2(F.relu(self.dropout(self.fc1(emb))))))
+        scores = self.fc3(F.relu(self.fc2(F.relu(self.fc1(self.dropout(emb))))))
         out = self.softmax(scores)
 
         return out, translation, theta
