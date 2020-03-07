@@ -51,7 +51,7 @@ pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1)
 labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
-metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
+metrics = [[0.0, 0.0, 0.0, 0.0]] # True Positive, True Negative, False Positive, False Negative
 
 triplets = np.zeros((batch_count, opt.batch_size, 3, 2))
 
@@ -65,7 +65,7 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    predictions = train_helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds, opt.threshold)
+    predictions_by_threshold = train_helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds)
 
     train_helpers.update_metrics(metrics, predictions, labels)
 

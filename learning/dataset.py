@@ -218,7 +218,8 @@ class LCCDataset(LCDataset):
         super(LCCDataset, self).__init__(root, split)
 
     def __getitem__(self, index):
-        timestamp, label = self.labeled_timestamps[index]
+        timestamp = self.labeled_timestamps[index][0]
+        label = self.labeled_timestamps[index][1]
         cloud, _, timestamp = self.get_by_nearest_timestamp(timestamp)
 
         return int(label), cloud, timestamp

@@ -97,7 +97,7 @@ def save_model(model, outf, epoch):
         to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
-def get_predictions_for_model(model, clouds, similar, distant, threshold=2):
+def get_predictions_for_model(model, clouds, similar, distant):
     model_type = None
     model_to_check = model
     if isinstance(model, torch.nn.DataParallel):
@@ -118,7 +118,7 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=2):
         
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
-
+        
         predictions_pos = (distance_pos < threshold).int()
         predictions_neg = (distance_neg < threshold).int()
 

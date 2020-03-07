@@ -6,6 +6,7 @@ import torch
 import argparse
 from learning.dataset import LCDataset
 from helpers import visualize_cloud
+import random
 
 TIMESTEP = 1.5
 
@@ -21,18 +22,30 @@ dataset = LCDataset(args.dataset)
 
 import matplotlib.pyplot as plt
 
-for i in range(len(timestamps)):
+indices = range(len(timestamps))
+random.shuffle(indices)
+
+for i in indices:
     timestamp = timestamps[i][0]
     if float(timestamp) > 5e5: # must be since epoch...
         timestamp = round(float(timestamp) - dataset.dataset_info['startTime'], 5)
     label = int(timestamps[i][1])
 
     cloud, loc, ts = dataset.get_by_nearest_timestamp(timestamp)
-    plt.title('Timestamp: ' + str(timestamp))
+    plt.suptitle('Timestamp: ' + str(timestamp))
     plt.figure(1)
     if label:
         visualize_cloud(plt, cloud, color='green')
+        if len(timestamps[i]) == 4: # must be covariance, has scale and condition
+            plt.title('Condition: {0} Scale: {1}'.format(timestamps[i][2],timestamps[i][3]))
+        elif len(timestamps[i]) == 3: #must be uniqueness, has just score
+            plt.title('Uniqueness Score: {0}'.format(timestamps[i][2]))
         plt.show()
     elif not args.pos_only:
         visualize_cloud(plt, cloud, color='red')
+        if len(timestamps[i]) == 4: # must be covariance, has scale and condition
+            plt.title('Condition: {0} Scale: {1}'.format(timestamps[i][2],timestamps[i][3]))
+        elif len(timestamps[i]) == 3: #must be uniqueness, has just score
+            plt.title('Uniqueness Score: {0}'.format(timestamps[i][2]))
+
         plt.show()
