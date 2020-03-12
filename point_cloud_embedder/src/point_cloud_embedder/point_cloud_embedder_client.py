@@ -18,15 +18,13 @@ def create_point_cloud_message(points):
     dtype = np.float32
     itemsize = np.dtype(dtype).itemsize
 
-    poitns = np.append(points, np.zeros((points.shape[0], 1)), axis=1)
+    points = np.append(points, np.zeros((points.shape[0], 1)), axis=1)
 
     data = points.astype(dtype).tobytes()
 
     fields = [PointField(
         name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
         for i, n in enumerate('xyz')]
-
-    import pdb; pdb.set_trace()
 
     header = Header(frame_id='map', stamp=rospy.Time.now())
 
@@ -42,8 +40,6 @@ def create_point_cloud_message(points):
         data=data
     )
 
-    pub = rospy.Publisher('/fake', PointCloud2)
-    pub.publish(pc)
     return pc
 
 def embed_cloud_client(cloud_file):
@@ -60,5 +56,5 @@ def embed_cloud_client(cloud_file):
 
 if __name__ == "__main__":
     point_cloud_file = sys.argv[1]
-    embed_cloud_client(point_cloud_file)
+    print "The Result of embedding the point cloud is: {0}".format(embed_cloud_client(point_cloud_file))
     
