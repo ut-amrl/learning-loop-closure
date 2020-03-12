@@ -135,8 +135,7 @@ def normalize_point_cloud(point_set, max_range):
 def embedding_for_scan(model, cloud, batched=False):
     clouds = cloud if batched else [cloud,]
     clouds = torch.tensor(clouds)
-    clouds = clouds.transpose(2, 1)
-    clouds = clouds.cuda()
+    clouds = clouds.transpose(2, 1).cuda()
     result = model(clouds)
     del clouds
     return result

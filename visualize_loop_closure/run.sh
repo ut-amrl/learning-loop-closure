@@ -1,1 +1,0 @@
-./bin/vis_loop_closure --embedding_distance 90 --bag_path ../bags/2019-11-22-10-45-22.bag --lidar_topic /Cobot/Laser --odom_topic /Cobot/Odometry --diff_odom --pose_num 300 --model ../learning/cls_redesign_model.pth 
