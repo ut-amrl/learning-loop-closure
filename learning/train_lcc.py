@@ -54,7 +54,7 @@ lcc_model = train_helpers.create_lcc(opt.embedding_model, opt.model)
 lcc_model.train()
 
 optimizer = optim.Adam(lcc_model.parameters(), lr=1e-3, weight_decay=1e-5)
-lossFunc = torch.nn.NLLLoss().cuda()
+lossFunc = torch.nn.MSELoss().cuda()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
@@ -69,28 +69,28 @@ for epoch in range(opt.nepoch):
         num_workers=num_workers,
         drop_last=True)
 
-    metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
+    # metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
 
     for i, data in tqdm(enumerate(dataloader, 0)):
-        labels, clouds, timestamps = data
-        labels = labels.cuda().squeeze()
+        labels, conditions, scales, clouds, timestamps = data
+        conditions = conditions.cuda()
+        scales = scales.cuda()
 
         clouds = clouds.transpose(2, 1).cuda()
         lcc_model.zero_grad()
         optimizer.zero_grad()
-        scores, _, _ = lcc_model(clouds)
+        scores = lcc_model(clouds)
 
-        loss = lossFunc(scores, labels)
-        predictions = torch.argmax(scores, dim=1)
-        train_helpers.update_metrics(metrics, predictions, labels)
-
+        true_scores = torch.stack((conditions, scales)).transpose(0, 1).float()
+        loss = lossFunc(scores, true_scores)
+        # print("sample scores", scores[0], true_scores[0])
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    acc = (metrics[0] + metrics[1]) / sum(metrics)
-    prec = (metrics[0]) / (metrics[0] + metrics[2])
-    rec = (metrics[0]) / (metrics[0] + metrics[3])
-    print_output('[Epoch %d] Total loss: %f, (Acc: %f, Precision: %f, Recall: %f)' % (epoch, total_loss, acc, prec, rec))
+    # acc = (metrics[0] + metrics[1]) / sum(metrics)
+    # prec = (metrics[0]) / (metrics[0] + metrics[2])
+    # rec = (metrics[0]) / (metrics[0] + metrics[3])
+    print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     train_helpers.save_model(lcc_model, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break

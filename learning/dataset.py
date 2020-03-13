@@ -216,29 +216,15 @@ class LCCDataset(LCDataset):
                  split='dev'):
         self.labeled_timestamps = np.load(timestamps)
         super(LCCDataset, self).__init__(root, split)
-        
-        labels = self.labeled_timestamps[:, 1].astype(np.int32)
-        self.pos_indices = np.where(labels == 1)[0]
-        self.neg_indices = np.where(labels == 0)[0]   
-
-    def get_labeled_cloud(self, index):
-        timestamp = self.labeled_timestamps[index][0]
-        label = int(self.labeled_timestamps[index][1])
-        cloud, _, timestamp = self.get_by_nearest_timestamp(timestamp)
-
-        return label, cloud, timestamp
 
     def __getitem__(self, index):
-        label, cloud, timestamp = self.get_labeled_cloud(index)
-        
-        pos_example = self.get_labeled_cloud(np.random.choice(self.pos_indices))
-        neg_example = self.get_labeled_cloud(np.random.choice(self.neg_indices))
-        
-        #order is anchor, similar, distant
-        if label == 0:
-            return ((label, cloud, timestamp), neg_example, pos_example)
-        else:
-            return ((label, cloud, timestamp), pos_example, neg_example)
+        timestamp = self.labeled_timestamps[index][0]
+        label = int(self.labeled_timestamps[index][1])
+        condition = float(self.labeled_timestamps[index][2])
+        scale = float(self.labeled_timestamps[index][3])
+        cloud, _, timestamp = self.get_by_nearest_timestamp(timestamp)
+
+        return label, condition, scale, cloud, timestamp
 
     def __len__(self):
         return len(self.labeled_timestamps)

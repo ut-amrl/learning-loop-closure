@@ -106,20 +106,18 @@ class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
         super(LCCNet, self).__init__()
         self.embedding = embedding
-        self.dropout = nn.Dropout(0.2)
-        self.fc1 = nn.Linear(16, 32)
-        self.fc2 = nn.Linear(32, 12)
-        self.fc3 = nn.Linear(12, 2)
-        self.softmax = nn.LogSoftmax(dim=1)
-
-        torch.nn.init.xavier_uniform_(self.fc1.weight)
-        torch.nn.init.xavier_uniform_(self.fc2.weight)
-        torch.nn.init.xavier_uniform_(self.fc3.weight)
+        # self.conv1 = torch.nn.Conv1d(16, 12, 1)
+        # self.conv2 = torch.nn.Conv1d(12, 8, 1)
+        # self.bn1 = nn.BatchNorm1d(12)
+        # self.bn2 = nn.BatchNorm1d(8)
+        self.ff = nn.Linear(16, 2)
+        nn.init.xavier_uniform_(self.ff.weight)
 
     def forward(self, x):
-        emb, translation, theta = self.embedding(x)
+        emb, _, _ = self.embedding(x)
         
-        scores = self.fc3(F.relu(self.fc2(F.relu(self.fc1(self.dropout(emb))))))
-        out = self.softmax(scores)
+        # x = self.bn1(self.conv1(emb.unsqueeze(2)))
+        # x = self.bn2(self.conv2(x))
+        out = self.ff(emb)
 
-        return out, translation, theta
+        return out
