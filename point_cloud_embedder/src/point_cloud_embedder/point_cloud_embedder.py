@@ -18,7 +18,6 @@ def create_embed_helper(embedder):
     for point in point_cloud2.read_points(req.cloud, skip_nans=True):
       cloud_np.append([point[0], point[1]])
     cloud_np = np.array(cloud_np).astype(np.float32)
-    cloud_np = normalize_point_cloud(cloud_np, 10, False)
     embedding = embedding_for_scan(embedder, cloud_np)[0].cpu().detach().numpy()
     return GetPointCloudEmbeddingResponse(embedding.squeeze())
   return embed_cloud
