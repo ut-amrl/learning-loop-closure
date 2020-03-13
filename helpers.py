@@ -124,10 +124,11 @@ def scan_to_point_cloud(scan, trim_edges=True):
 
     return cloud
 
-def normalize_point_cloud(point_set, max_range):
+def normalize_point_cloud(point_set, max_range, delete_axis=True):
     point_set = point_set - \
         np.expand_dims(np.mean(point_set, axis=0), 0)  # center
-    point_set = np.delete(point_set, 2, axis=1)
+    if delete_axis:
+        point_set = np.delete(point_set, 2, axis=1)
     # normalize
     point_set = point_set / max_range  # scale
     return point_set

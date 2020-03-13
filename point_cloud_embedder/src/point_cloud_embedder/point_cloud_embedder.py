@@ -9,7 +9,7 @@ from os import path
 
 # TODO fix this hack
 sys.path.append(path.dirname(path.dirname(path.dirname( path.dirname( path.abspath(__file__)  ) ) )))
-from helpers import embedding_for_scan
+from helpers import embedding_for_scan, normalize_point_cloud
 from learning.train_helpers import create_embedder
 
 def create_embed_helper(embedder):
@@ -18,6 +18,7 @@ def create_embed_helper(embedder):
     for point in point_cloud2.read_points(req.cloud, skip_nans=True):
       cloud_np.append([point[0], point[1]])
     cloud_np = np.array(cloud_np).astype(np.float32)
+    cloud_np = normalize_point_cloud(cloud_np, 10, False)
     embedding = embedding_for_scan(embedder, cloud_np)[0].cpu().detach().numpy()
     return GetPointCloudEmbeddingResponse(embedding.squeeze())
   return embed_cloud
