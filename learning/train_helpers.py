@@ -97,7 +97,7 @@ def save_model(model, outf, epoch):
         to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
-def get_predictions_for_model(model, clouds, similar, distant):
+def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
     model_type = None
     model_to_check = model
     if isinstance(model, torch.nn.DataParallel):
