@@ -1,4 +1,4 @@
-from helpers import compute_overlap
+from helpers import compute_overlap, test_point
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,3 +26,32 @@ test_d = np.array([119.95093  ,  67.765594 ,   1.6020247])
 
 print("test", compute_overlap(test_c, test_d))
 print("test", compute_overlap(test_d, test_c))
+
+
+# Explicitly testing test_point fn.
+
+center = np.array([5, 5])
+thetas = np.linspace(0, 2 * np.pi, 12)
+
+location_ne = [center[0], center[1], np.pi / 4]
+location_nw = [center[0], center[1], 3 * np.pi / 4]
+location_sw = [center[0], center[1], 5 * np.pi / 4]
+location_se = [center[0], center[1], 7 * np.pi / 4]
+locations = [location_ne, location_nw, location_sw, location_se]
+
+for location in locations:
+  points = []
+  colors = []
+  for theta in thetas:
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array(((c, -s), (s, c)))
+    distance = 2.5
+    point = center + np.dot(R, [distance, 0])
+    result = test_point(location, point)
+    points.append(point)
+    colors.append(result)
+  points = np.array(points)
+  plt.title("LOCATION")
+  plt.arrow(0, 0, 2 * np.cos(location[2]), 2 * np.sin(location[2]))
+  plt.scatter(points[:, 0], points[:, 1], c=colors)
+  plt.show()
