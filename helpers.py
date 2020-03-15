@@ -68,7 +68,7 @@ def test_point(loc, point):
 
     if start < end and (theta < start or theta > end):
         return False
-    elif end < start and (theta > start and theta < end):
+    elif end < start and (theta < start and theta > end):
         return False
     
     distance = np.linalg.norm(relative_point)
@@ -82,7 +82,7 @@ def get_test_points(location):
     start = orientation - FOV / 2
     end = orientation + FOV / 2
     test_angles = np.linspace(start, end, num=SAMPLE_RESOLUTION)
-    
+
     return np.concatenate([
         [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances]  for angle in test_angles
     ])
@@ -94,11 +94,12 @@ def compute_overlap(loc_a, loc_b):
         if (test_point(loc_b, point)):
             matches += 1.0
     match_ab = matches / len(test_points)
+
     test_points = get_test_points(loc_b)
     matches = 0.0
     for point in test_points:
         if (test_point(loc_a, point)):
-            matches += 1.0
+            matches += 1.0    
     match_ba = matches / len(test_points)
 
     return np.average([match_ab, match_ba])

@@ -81,5 +81,5 @@ prec = (metrics[0]) / (metrics[0] + metrics[2])
 rec = (metrics[0]) / (metrics[0] + metrics[3])
 print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
 if opt.publish_triplets:
-    print("Writing triplets_{0}".format(start_time))
+    print("Writing triplets_{0}.npy".format(start_time))
     np.save('triplets_{0}'.format(start_time), triplets)

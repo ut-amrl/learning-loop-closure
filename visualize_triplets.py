@@ -78,7 +78,7 @@ for i in range(triplets.shape[0]):
         visualize_location(plt, similar_loc, 'green')
         visualize_location(plt, distant_loc, 'red')
 
-        draw_map(plt, '../../cobot/maps/GDC3/GDC3_vector.txt')
+        draw_map(plt, '../cobot/maps/GDC1/GDC1_vector.txt')
 
         plt.show()
         # msg = create_ros_pointcloud()
