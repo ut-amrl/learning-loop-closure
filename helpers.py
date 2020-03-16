@@ -104,7 +104,7 @@ def compute_overlap(loc_a, loc_b):
 
     return np.average([match_ab, match_ba])
 
-def scan_to_point_cloud(scan, trim_edges=True):
+def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
     angle_offset = 0.0
     if trim_edges:
         scan.ranges = scan.ranges[4:-4]
@@ -121,7 +121,10 @@ def scan_to_point_cloud(scan, trim_edges=True):
             cloud[idx][1] = point[1]
         angle_offset += scan.angle_increment
 
-    cloud = normalize_point_cloud(cloud, scan.range_max)
+    if normalize:
+        cloud = normalize_point_cloud(cloud, scan.range_max)
+    else:
+        cloud = np.delete(cloud, 2, axis=1)
 
     return cloud
 

@@ -19,7 +19,7 @@ from helpers import compute_overlap
 CLOSE_DISTANCE_THRESHOLD = 1
 FAR_DISTANCE_THRESHOLD = 2  
 OVERLAP_THRESHOLD = 0.75
-TIME_IGNORE_THRESHOLD = 0.25
+TIME_IGNORE_THRESHOLD = 0.35
 
 class LCDataset(data.Dataset):
     def __init__(self,
