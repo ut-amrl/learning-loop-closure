@@ -70,7 +70,7 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 augmentation_prob=0.1,
+                 augmentation_prob=0.2,
                  jitter_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=True):
@@ -148,7 +148,7 @@ class LCTripletDataset(data.Dataset):
         neighbors = []
         # random perturbations, because why not
         if self.jitter_augmentation:
-            theta = np.random.uniform(-np.pi / 12, np.pi / 12)
+            theta = np.random.uniform(-np.pi / 3, np.pi / 3)
             rotation_matrix = np.array([
                 [np.cos(theta), -np.sin(theta)],
                 [np.sin(theta), np.cos(theta)]
@@ -156,8 +156,6 @@ class LCTripletDataset(data.Dataset):
             augmented = np.zeros(cloud.shape).astype(np.float32)
             # random rotation
             augmented[:, :] = cloud[:, :].dot(rotation_matrix)
-            # random jitter
-            augmented += np.random.normal(0, 0.1, size=cloud.shape)
             neighbors.append(augmented)
         
         if self.person_augmentation:
