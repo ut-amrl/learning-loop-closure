@@ -10,12 +10,11 @@ import torch.optim as optim
 import torch.utils.data
 import numpy as np
 from model import EmbeddingNet
-from dataset import LCDataset, LCTripletDataset
+from data_processing.dataset import LCDataset, LCTripletDataset
 import time
 from tqdm import tqdm
 import train_helpers
 from train_helpers import print_output
-
 
 class TripletLoss(torch.nn.Module):
     """

@@ -9,8 +9,9 @@ import pickle
 import time
 import random
 from tqdm import tqdm
-from learning import train_helpers
-from learning.train_helpers import print_output
+sys.path.append(os.path.join(os.getcwd(), '..'))
+import helpers
+from helpers import initialize_logging, print_output
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -23,10 +24,10 @@ parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
-
+parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
-train_helpers.initialize_logging(start_time, 'evaluate_')
+initialize_logging(start_time, 'evaluate_')
 print_output(opt)
 
 num_workers = int(opt.workers)
@@ -36,9 +37,9 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-classifier = train_helpers.create_classifier('', opt.model)
-classifier.eval()
-dataset = train_helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache)
+embedder = helpers.create_embedder(opt.model)
+embedder.eval()
+dataset = helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, 0)
 batch_count = len(dataset) // opt.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
@@ -65,20 +66,21 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    predictions = train_helpers.get_predictions_for_model(classifier, clouds, similar_clouds, distant_clouds)
+    predictions = helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds, opt.threshold)
 
-    train_helpers.update_metrics(metrics, predictions, labels)
+    helpers.update_metrics(metrics, predictions, labels)
 
     if opt.publish_triplets:
         triplets[i, :, 0, 0] = timestamp
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
-        triplets[i, :, 1, 1] = predictions[:similar_clouds.shape[0]]
-        triplets[i, :, 2, 1] = predictions[similar_clouds.shape[0]:]
+        triplets[i, :, 1, 1] = (predictions[:similar_clouds.shape[0]]).cpu().squeeze()
+        triplets[i, :, 2, 1] = (predictions[similar_clouds.shape[0]:]).cpu().squeeze()
 
 acc = (metrics[0] + metrics[1]) / sum(metrics)
 prec = (metrics[0]) / (metrics[0] + metrics[2])
 rec = (metrics[0]) / (metrics[0] + metrics[3])
 print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
 if opt.publish_triplets:
+    print("Writing triplets_{0}.npy".format(start_time))
     np.save('triplets_{0}'.format(start_time), triplets)

@@ -12,9 +12,7 @@ import math
 from tqdm import tqdm
 import json
 import pickle
-
-sys.path.append(os.path.join(os.getcwd(), '..'))
-from helpers import compute_overlap
+from data_processing_helpers import compute_overlap
 
 CLOSE_DISTANCE_THRESHOLD = 1
 FAR_DISTANCE_THRESHOLD = 2  
