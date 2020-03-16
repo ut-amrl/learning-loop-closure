@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 FOV = np.pi
 RADIUS = 3
-SAMPLE_RESOLUTION = 6
+SAMPLE_RESOLUTION = 10
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches

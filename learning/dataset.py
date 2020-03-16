@@ -19,6 +19,7 @@ from helpers import compute_overlap
 CLOSE_DISTANCE_THRESHOLD = 1
 FAR_DISTANCE_THRESHOLD = 2  
 OVERLAP_THRESHOLD = 0.75
+TIME_IGNORE_THRESHOLD = 0.25
 
 class LCDataset(data.Dataset):
     def __init__(self,
@@ -109,15 +110,18 @@ class LCTripletDataset(data.Dataset):
         should_use_augmented = random.random() < self.augmentation_prob
         neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-        if should_use_augmented or len(filtered_neighbors) == 0:
+        
+        if should_use_augmented:
             augmented_neighbors = self.generate_augmented_neighbors(cloud)
             idx = random.randint(0,  len(augmented_neighbors) - 1)
             similar_cloud = augmented_neighbors[idx]
             similar_loc = location
             similar_timestamp = timestamp
-        else:
+        elif len(filtered_neighbors) > 0:
             idx = np.random.choice(filtered_neighbors, 1)[0]
             similar_cloud, similar_loc, similar_timestamp = self.data[idx]
+        else:
+            return None
 
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
@@ -136,7 +140,7 @@ class LCTripletDataset(data.Dataset):
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
 
-        self.triplets = [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)]
+        self.triplets = filter(None, [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
 
         self.triplets_loaded = True
 
@@ -166,7 +170,16 @@ class LCTripletDataset(data.Dataset):
         return neighbors
 
     def filter_scan_matches(self, timestamp, location, neighbors):
-        return np.asarray(list(filter(self.check_overlap(location, timestamp), neighbors)))
+        filtered = list(filter(self.check_overlap(location, timestamp), neighbors))
+        filtered = list(filter(self.time_filter(timestamp), filtered))
+        return np.array(filtered)
+
+    def time_filter(self, timestamp):
+        def filter_checker(alt_idx):
+            alt_timestamp = self.data[alt_idx][2]
+            return abs(float(timestamp) - float(alt_timestamp)) > TIME_IGNORE_THRESHOLD
+        
+        return filter_checker
 
     def check_overlap(self, location, timestamp):
         def overlap_checker(alt_idx):

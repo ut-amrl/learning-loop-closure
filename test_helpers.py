@@ -27,6 +27,12 @@ test_d = np.array([119.95093  ,  67.765594 ,   1.6020247])
 print("test", compute_overlap(test_c, test_d))
 print("test", compute_overlap(test_d, test_c))
 
+test_locs = [
+  [-2.9331049e+01, -1.9391386e+01,  1.2786581e-02],
+  [-29.3533  , -19.266445,  -3.127946]
+]
+
+print("test real", compute_overlap(test_locs[0], test_locs[1]))
 
 # Explicitly testing test_point fn.
 
