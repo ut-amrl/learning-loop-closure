@@ -60,14 +60,12 @@ class EmbeddingNet(nn.Module):
         self.conv2 = torch.nn.Conv1d(8, 16, 1)
         self.conv3 = torch.nn.Conv1d(16, 32, 1)
         self.conv4 = torch.nn.Conv1d(32, 32, 1)
-        self.dropout = nn.Dropout(0.5)
-        self.ff = nn.Linear(32, 16)
+        self.dropout = nn.Dropout(0.35)
         self.bn1 = nn.BatchNorm1d(8)
         self.bn2 = nn.BatchNorm1d(16)
         self.bn3 = nn.BatchNorm1d(32)
         self.bn4 = nn.BatchNorm1d(32)
-        nn.init.xavier_uniform_(self.ff.weight)
-
+        
     def forward(self, x):
         x, translation, theta = self.transform(x)
         x = self.bn1(self.conv1(x))
@@ -77,7 +75,6 @@ class EmbeddingNet(nn.Module):
         x = F.max_pool1d(x, x.shape[2])
         x = F.relu(x)
         x = self.dropout(x)
-        x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
         return x, translation, theta
 
 class DistanceNet(nn.Module):
