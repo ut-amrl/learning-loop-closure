@@ -80,6 +80,24 @@ class EmbeddingNet(nn.Module):
         x = self.ff(x.transpose(2, 1)).transpose(2, 1).squeeze(-1)
         return x, translation, theta
 
+class DistanceNet(nn.Module):
+    def __init__(self, embedding=EmbeddingNet()):
+        super(DistanceNet, self).__init__()
+        self.embedding = embedding
+        self.dropout = nn.Dropout(0.2)
+        self.ff = nn.Linear(32, 1)
+        nn.init.xavier_uniform_(self.ff.weight)
+
+    def forward(self, x, y):
+        x_emb, x_translation, x_theta = self.embedding(x)
+        y_emb, y_translation, y_theta = self.embedding(y)
+        dist = F.relu(self.ff(self.dropout(torch.cat([x_emb, y_emb], dim=1))))
+
+        translation = y_translation - x_translation
+        theta = y_theta - x_theta
+
+        return dist, translation, theta
+
 class FullNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
         super(FullNet, self).__init__()

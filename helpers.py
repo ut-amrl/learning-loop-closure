@@ -1,4 +1,4 @@
-from model import FullNet, EmbeddingNet, LCCNet
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet
 from data_processing.dataset import LCTripletDataset, LCCDataset
 import time
 import torch
@@ -52,6 +52,24 @@ def create_embedder(embedding_model=''):
 
     embedder.cuda()
     return embedder
+
+def create_distance_model(embedding_model='', model=''):
+    embedder = EmbeddingNet()
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
+
+    distanceModel = DistanceNet(embedder)
+
+    if model != '':
+        distanceModel.load_state_dict(torch.load(model))
+
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        distanceModel = torch.nn.DataParallel(distanceModel)
+
+    distanceModel.cuda()
+    return distanceModel
 
 def create_classifier(embedding_model='', model=''):
     embedder = EmbeddingNet()
