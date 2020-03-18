@@ -9,8 +9,8 @@ from os import path
 
 # TODO fix this hack
 sys.path.append(path.dirname(path.dirname(path.dirname( path.dirname( path.abspath(__file__)  ) ) )))
-from helpers import embedding_for_scan, normalize_point_cloud
-from learning.train_helpers import create_embedder
+from evaluation.evaluation_helpers import embedding_for_scan
+from helpers import create_embedder
 
 def create_embed_helper(embedder):
   def embed_cloud(req):
