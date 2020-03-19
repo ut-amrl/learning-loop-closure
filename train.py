@@ -13,8 +13,8 @@ from model import EmbeddingNet
 from data_processing.dataset import LCDataset, LCTripletDataset
 import time
 from tqdm import tqdm
-import train_helpers
-from train_helpers import print_output
+import helpers
+from helpers import print_output, initialize_logging
 
 class TripletLoss(torch.nn.Module):
     """
@@ -50,7 +50,7 @@ parser.add_argument('--distance_cache', type=str, default=None, help='cached ove
 
 opt = parser.parse_args()
 start_time = str(int(time.time()))
-train_helpers.initialize_logging(start_time)
+initialize_logging(start_time)
 
 print_output(opt)
 
@@ -61,7 +61,7 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = train_helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
+dataset = helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 
@@ -70,7 +70,7 @@ try:
 except OSError:
     pass
 
-embedder = train_helpers.create_embedder(opt.embedding_model)
+embedder = helpers.create_embedder(opt.embedding_model)
 embedder.train()
 
 optimizer = optim.Adam(embedder.parameters(), lr=1e-3, weight_decay=1e-5)
@@ -130,7 +130,7 @@ for epoch in range(opt.nepoch):
 
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     print_output('Average distance, Similar: {0} Distant: {1}'.format(avg_similar_dist, avg_distant_dist))
-    train_helpers.save_model(embedder, out_dir, epoch)
+    helpers.save_model(embedder, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
