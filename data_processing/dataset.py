@@ -71,7 +71,7 @@ class LCTripletDataset(data.Dataset):
                  augmentation_prob=0.2,
                  jitter_augmentation=True,
                  person_augmentation=False,
-                 order_augmentation=True):
+                 order_augmentation=False):
         self.root = root
         self.augmentation_prob = augmentation_prob
         self.jitter_augmentation = jitter_augmentation
@@ -160,6 +160,7 @@ class LCTripletDataset(data.Dataset):
             pass
             # neighbors.append(augmented)
         
+        #maybe we should assume sequential points matter
         if self.order_augmentation:
             neighbors.append(np.random.permutation(cloud))
 

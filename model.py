@@ -56,8 +56,8 @@ class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
         self.transform = TransformNet()
-        self.conv1 = torch.nn.Conv1d(2, 8, 1)
-        self.conv2 = torch.nn.Conv1d(8, 16, 1)
+        self.conv1 = torch.nn.Conv1d(2, 8, 5, 1)
+        self.conv2 = torch.nn.Conv1d(8, 16, 3, 1)
         self.conv3 = torch.nn.Conv1d(16, 32, 1)
         self.conv4 = torch.nn.Conv1d(32, 32, 1)
         self.dropout = nn.Dropout(0.35)
