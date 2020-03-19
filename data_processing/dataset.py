@@ -166,8 +166,8 @@ class LCTripletDataset(data.Dataset):
         return neighbors
 
     def filter_scan_matches(self, timestamp, location, neighbors):
-        filtered = list(filter(self.check_overlap(location, timestamp), neighbors))
-        filtered = list(filter(self.time_filter(timestamp), filtered))
+        filtered = list(filter(self.time_filter(timestamp), neighbors))
+        filtered = list(filter(self.check_overlap(location, timestamp), filtered))
         return np.array(filtered)
 
     def time_filter(self, timestamp):
