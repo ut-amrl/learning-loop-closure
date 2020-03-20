@@ -6,7 +6,7 @@ import random
 import json
 from tqdm import tqdm
 from scipy import spatial
-from helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
+from data_processing_helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
 TIME_SPACING = 0.001
 TRAIN_SPLIT = 0.15
@@ -45,7 +45,7 @@ dataset_info['numScans'] = len(scans.keys())
 loc_timestamps = sorted(localizations.keys())
 localizationTree = spatial.cKDTree([list([l]) for l in loc_timestamps])
 
-base_path = './data/' + args.dataset_name + '/'
+base_path = '../data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
     os.makedirs(base_path)
 
