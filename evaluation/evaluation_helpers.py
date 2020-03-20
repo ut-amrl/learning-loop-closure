@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.collections import LineCollection
 
+FOV = np.pi
+RADIUS = 3
+
 def draw_map(plt, map_file):
     segments = []
     with open(map_file) as f:
@@ -17,7 +20,7 @@ def draw_map(plt, map_file):
     plt.gca().autoscale()
 
 def visualize_location(plt, location, color='blue'):
-    orientation = fix_angle(location[2])
+    orientation = location[2]
     arc_patch(location[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=plt.gca(), fill=False, color=color, zorder=1)
     plt.gca().set_aspect('equal')
     plt.gca().autoscale()

@@ -18,7 +18,6 @@ CLOSE_DISTANCE_THRESHOLD = .75
 FAR_DISTANCE_THRESHOLD = 3
 OVERLAP_THRESHOLD = 0.8
 TIME_IGNORE_THRESHOLD = 0.5
-
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,

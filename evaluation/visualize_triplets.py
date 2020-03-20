@@ -4,10 +4,16 @@ import numpy as np
 from scipy import spatial
 import torch
 import argparse
-from learning.train_helpers import create_classifier, create_embedder, get_predictions_for_model
-from learning.dataset import LCDataset
+
 from sensor_msgs.msg import PointCloud2
-from helpers import embedding_for_scan, create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud, draw_map
+from evaluation_helpers import embedding_for_scan, visualize_location, visualize_cloud, draw_map
+
+
+import sys
+import os
+sys.path.append(os.path.join(os.getcwd(), '..'))
+from helpers import create_classifier, create_embedder, get_predictions_for_model
+from data_processing.dataset import LCDataset
 
 TIMESTEP = 1.5
 
@@ -78,10 +84,6 @@ for i in range(triplets.shape[0]):
         visualize_location(plt, similar_loc, 'green')
         visualize_location(plt, distant_loc, 'red')
 
-        draw_map(plt, '../cobot/maps/GDC1/GDC1_vector.txt')
+        draw_map(plt, '../../cobot/maps/GDC1/GDC1_vector.txt')
 
         plt.show()
-        # msg = create_ros_pointcloud()
-        # publish_ros_pointcloud(anchor_pub, msg, anchor)
-        # publish_ros_pointcloud(similar_pub, msg, similar)
-        # publish_ros_pointcloud(distant_pub, msg, distant)
