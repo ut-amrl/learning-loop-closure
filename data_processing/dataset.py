@@ -14,10 +14,10 @@ import json
 import pickle
 from data_processing_helpers import compute_overlap
 
-CLOSE_DISTANCE_THRESHOLD = 1
-FAR_DISTANCE_THRESHOLD = 2  
-OVERLAP_THRESHOLD = 0.75
-TIME_IGNORE_THRESHOLD = 0.35
+CLOSE_DISTANCE_THRESHOLD = .75
+FAR_DISTANCE_THRESHOLD = 3
+OVERLAP_THRESHOLD = 0.8
+TIME_IGNORE_THRESHOLD = 0.5
 
 class LCDataset(data.Dataset):
     def __init__(self,
@@ -107,7 +107,6 @@ class LCTripletDataset(data.Dataset):
     def _generate_triplet(self, cloud, location, timestamp):
         should_use_augmented = random.random() < self.augmentation_prob
         neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
-        filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
         
         if should_use_augmented:
             augmented_neighbors = self.generate_augmented_neighbors(cloud)
@@ -115,11 +114,13 @@ class LCTripletDataset(data.Dataset):
             similar_cloud = augmented_neighbors[idx]
             similar_loc = location
             similar_timestamp = timestamp
-        elif len(filtered_neighbors) > 0:
-            idx = np.random.choice(filtered_neighbors, 1)[0]
-            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
         else:
-            return None
+            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+            if len(filtered_neighbors) > 0:
+                idx = np.random.choice(filtered_neighbors, 1)[0]
+                similar_cloud, similar_loc, similar_timestamp = self.data[idx]
+            else:
+                return None
 
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
