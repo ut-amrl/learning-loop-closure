@@ -67,7 +67,7 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 augmentation_prob=0.2,
+                 augmentation_prob=0.4,
                  jitter_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=True):
@@ -162,7 +162,7 @@ class LCTripletDataset(data.Dataset):
         
         #We will roll instead of randomly permuting, so sequential local features are maintained
         if self.order_augmentation:
-            neighbors.append(np.roll(cloud, np.random.randint(0, cloud.shape[0] / 2), 0))
+            neighbors.append(np.roll(cloud, np.random.randint(0, cloud.shape[0] / 10), 0))
 
         return neighbors
 

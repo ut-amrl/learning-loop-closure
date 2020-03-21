@@ -66,11 +66,10 @@ class EmbeddingNet(nn.Module):
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
-        x = self.bn1(self.conv1(x))
-        x = self.bn2(self.conv2(x))
-        x = self.bn3(self.conv3(x))
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
         x = F.max_pool1d(x, x.shape[2])
-        x = F.relu(x)
         x = self.dropout(x)
         return x, translation, theta
 
