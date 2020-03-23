@@ -17,11 +17,11 @@ class TransformPredictionNetwork(nn.Module):
         self.fc2 = nn.Linear(24, 3)
 
     def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.bn1(self.conv1(x))
+        x = self.bn2(self.conv2(x))
         x = torch.max(x, 2, keepdim=True)[0]
         x = x.view(-1, 32)
-        x = F.relu(self.bn3(self.fc1(x)))
+        x = self.bn3(self.fc1(x))
         x = self.fc2(x)
         trans = x[:,0:2]
         theta = x[:,2]
@@ -66,9 +66,9 @@ class EmbeddingNet(nn.Module):
 
     def forward(self, x):
         x, translation, theta = self.transform(x)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
+        x = self.bn1(self.conv1(x))
+        x = self.bn2(self.conv2(x))
+        x = self.bn3(self.conv3(x))
         x = F.max_pool1d(x, x.shape[2])
         x = self.dropout(x)
         return x, translation, theta
