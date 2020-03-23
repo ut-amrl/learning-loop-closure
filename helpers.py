@@ -25,8 +25,7 @@ def load_dataset(root, split, distance_cache, augment_prob=0.1):
     print_output("Loading data into memory...", )
     dataset = LCTripletDataset(
         root=root,
-        split=split,
-        augmentation_prob=augment_prob)
+        split=split)
     dataset.load_data()
     dataset.load_distances(distance_cache)
     dataset.load_triplets()

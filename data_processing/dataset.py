@@ -67,12 +67,10 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 augmentation_prob=0.4,
                  jitter_augmentation=True,
                  person_augmentation=False,
-                 order_augmentation=True):
+                 order_augmentation=False):
         self.root = root
-        self.augmentation_prob = augmentation_prob
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
         self.order_augmentation = order_augmentation
@@ -103,24 +101,7 @@ class LCTripletDataset(data.Dataset):
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data_loaded = True
 
-    def _generate_triplet(self, cloud, location, timestamp):
-        should_use_augmented = random.random() < self.augmentation_prob
-        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
-        
-        if should_use_augmented:
-            augmented_neighbors = self.generate_augmented_neighbors(cloud)
-            idx = random.randint(0,  len(augmented_neighbors) - 1)
-            similar_cloud = augmented_neighbors[idx]
-            similar_loc = location
-            similar_timestamp = timestamp
-        else:
-            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-            if len(filtered_neighbors) > 0:
-                idx = np.random.choice(filtered_neighbors, 1)[0]
-                similar_cloud, similar_loc, similar_timestamp = self.data[idx]
-            else:
-                return None
-
+    def _create_triplet(self, cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp):
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
         dist_neighbors = self.location_tree.query_ball_point(location[:2], FAR_DISTANCE_THRESHOLD)
@@ -133,12 +114,34 @@ class LCTripletDataset(data.Dataset):
             (distant_cloud, distant_loc, distant_timestamp)
         )
 
+    def _generate_augmented_triplet(self, cloud, location, timestamp):
+        augmented_neighbors = self.generate_augmented_neighbors(cloud)
+        idx = random.randint(0,  len(augmented_neighbors) - 1)
+        similar_cloud = augmented_neighbors[idx]
+        similar_loc = location
+        similar_timestamp = timestamp
+
+        return self._create_triplet(cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp)
+
+    def _generate_triplet(self, cloud, location, timestamp):
+        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+        filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+        if len(filtered_neighbors) > 0:
+            idx = np.random.choice(filtered_neighbors, 1)[0]
+            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
+        else:
+            return None
+
+        return self._create_triplet(cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp)
+
+
     def load_triplets(self):
         if not self.data_loaded:
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
 
         self.triplets = filter(None, [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
+        self.triplets.extend([self._generate_augmented_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
 
         self.triplets_loaded = True
 
@@ -212,7 +215,7 @@ class LCTripletDataset(data.Dataset):
     def __getitem__(self, index):
         if not self.triplets_loaded:
             raise Exception('Call load_triplets before attempting to access elements')
-
+        
         return self.triplets[index]
 
     def __len__(self):
