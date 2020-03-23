@@ -67,13 +67,17 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
+                 augmentation_prob=0.5,
                  jitter_augmentation=True,
+                 missing_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=False):
         self.root = root
+        self.augmentation_prob = augmentation_prob
         self.jitter_augmentation = jitter_augmentation
         self.person_augmentation = person_augmentation
         self.order_augmentation = order_augmentation
+        self.missing_augmentation = missing_augmentation
         self.split = split
 
         info_file = os.path.join(self.root, 'dataset_info.json')
@@ -99,6 +103,7 @@ class LCTripletDataset(data.Dataset):
             cloud = np.load(os.path.join(self.root, fname + '.npy')).astype(np.float32)
             self.data.append((cloud, location, timestamp))
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
+        self.data = np.array(self.data)
         self.data_loaded = True
 
     def _create_triplet(self, cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp):
@@ -141,7 +146,9 @@ class LCTripletDataset(data.Dataset):
         del self.triplets[:]
 
         self.triplets = filter(None, [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
-        self.triplets.extend([self._generate_augmented_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
+        augment_indices = np.random.choice(range(len(self.data)), int(self.augmentation_prob * len(self.data)))
+        if len(augment_indices):
+            self.triplets.extend([self._generate_augmented_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data[augment_indices])])
 
         self.triplets_loaded = True
 
@@ -166,6 +173,11 @@ class LCTripletDataset(data.Dataset):
         #We will roll instead of randomly permuting, so sequential local features are maintained
         if self.order_augmentation:
             neighbors.append(np.roll(cloud, np.random.randint(0, cloud.shape[0] / 10), 0))
+
+        if self.missing_augmentation:
+            # indices = np.random.choice(range(len(cloud)), int(len(cloud) * 0.95))
+            # neighbors.append(cloud[indices])
+            pass
 
         return neighbors
 
