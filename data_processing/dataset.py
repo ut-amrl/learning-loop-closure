@@ -175,9 +175,8 @@ class LCTripletDataset(data.Dataset):
             neighbors.append(np.roll(cloud, np.random.randint(0, cloud.shape[0] / 10), 0))
 
         if self.missing_augmentation:
-            # indices = np.random.choice(range(len(cloud)), int(len(cloud) * 0.95))
-            # neighbors.append(cloud[indices])
-            pass
+            indices = np.random.choice(range(len(cloud)), int(len(cloud) * 0.95))
+            neighbors.append( np.pad(cloud[indices], ((0, len(cloud) - len(indices)), (0, 0)), 'constant'))
 
         return neighbors
 

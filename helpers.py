@@ -21,7 +21,7 @@ def close_logging():
     log_file.close()
     log_file = None
 
-def load_dataset(root, split, distance_cache, augment_prob=0.5):
+def load_dataset(root, split, distance_cache, augment_prob=0.8):
     print_output("Loading data into memory...", )
     dataset = LCTripletDataset(
         root=root,
