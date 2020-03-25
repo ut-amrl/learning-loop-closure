@@ -5,6 +5,8 @@ import numpy as np
 import sys
 import os
 
+import sys
+import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from data_processing.data_processing_helpers import scan_to_point_cloud
 
