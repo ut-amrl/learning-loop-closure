@@ -19,7 +19,7 @@ from helpers import print_output, initialize_logging, save_model
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--batch_size', type=int, default=2, help='input batch size')
+    '--batch_size', type=int, default=64, help='input batch size')
 parser.add_argument(
     '--workers', type=int, help='number of data loading workers', default=4)
 parser.add_argument(
@@ -47,8 +47,6 @@ torch.manual_seed(opt.manualSeed)
 
 
 dataset = LTFDataset(opt.bag_file, opt.base_topic, opt.filtered_topic, 200)
-dataset.load_data()
-
 out_dir = opt.outf + '_' + os.path.basename(opt.bag_file)
 
 try:
@@ -56,36 +54,29 @@ try:
 except OSError:
     pass
 
-ltf_model = SegNet()
+dataloader = torch.utils.data.DataLoader(
+    dataset,
+    batch_size=opt.batch_size,
+    shuffle=True,
+    num_workers=num_workers,
+    drop_last=True)
+
+ltf_model = SegNet(3, 2).cuda()
 
 optimizer = optim.Adam(ltf_model.parameters(), lr=1e-3, weight_decay=1e-5)
+lossFunc = torch.nn.CrossEntropyLoss()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):
     total_loss = 0
 
     for i, data in tqdm(enumerate(dataloader, 0)):
-        ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
-        clouds = clouds.transpose(2, 1)
-        similar_clouds = similar_clouds.transpose(2, 1)
-        distant_clouds = distant_clouds.transpose(2, 1)
+        original, filtered = data
+
+        generated = ltf_model(original.cuda())[0]
         
-        clouds = clouds.cuda()
-        similar_clouds = similar_clouds.cuda()
-        distant_clouds = distant_clouds.cuda()
-
-        optimizer.zero_grad()
-        embedder.zero_grad()
-
-        anchor_embeddings, trans, theta = embedder(clouds)
-        similar_embeddings, sim_trans, sim_theta = embedder(similar_clouds)
-        distant_embeddings, dist_trans, dist_theta = embedder(distant_clouds)
-
-        total_similar_dist += torch.sum(torch.norm(anchor_embeddings - similar_embeddings, dim=1)) 
-        total_distant_dist += torch.sum(torch.norm(anchor_embeddings - distant_embeddings, dim=1)) 
-
         # Compute loss here
-        loss = lossFunc.forward(anchor_embeddings, similar_embeddings, distant_embeddings)
+        loss = lossFunc.forward(generated, filtered.cuda())
 
         loss.backward()
         optimizer.step()
