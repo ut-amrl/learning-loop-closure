@@ -24,6 +24,7 @@ class LTFDataset:
     timestamps = set()
     self.data = {}
     start_time = bag.get_start_time()
+    nonzero_ct = 0
     for topic, msg, t in tqdm(bag.read_messages(topics=[self.base_topic, self.filtered_topic])):
         if len(timestamps) > 500:
           break
@@ -33,9 +34,16 @@ class LTFDataset:
           self.data[timestamp] = [np.zeros((3, self.dimensions, self.dimensions)).astype(np.float32), np.zeros((self.dimensions, self.dimensions)).astype(np.int)]
         if (topic == self.base_topic):
           self.data[timestamp][0] = np.rollaxis(discretize_point_cloud(scan_to_point_cloud(msg), self.lidar_range, self.dimensions, True), 2, 0)
+          nonzero_ct += len(self.data[timestamp][0].nonzero())
         elif (topic == self.filtered_topic):
           self.data[timestamp][1] = discretize_point_cloud(scan_to_point_cloud(msg), self.lidar_range, self.dimensions)
+          nonzero_ct += len(self.data[timestamp][0].nonzero())
     
+    total_ct = self.dimensions**2 * len(timestamps)
+    nonzero_wt = 1.0 / (float(nonzero_ct) / total_ct)
+    zero_wt = 1.0 / (float(total_ct - nonzero_ct) /total_ct)
+    self.class_weights = (zero_wt, nonzero_wt)
+    print("class weights", self.class_weights)
     self.timestamps = sorted(list(timestamps))
 
   def __getitem__(self, index):

@@ -64,7 +64,7 @@ dataloader = torch.utils.data.DataLoader(
 ltf_model = SegNet(3, 2).cuda()
 
 optimizer = optim.Adam(ltf_model.parameters(), lr=1e-3, weight_decay=1e-5)
-lossFunc = torch.nn.CrossEntropyLoss()
+lossFunc = torch.nn.CrossEntropyLoss(weight=torch.tensor(dataset.class_weights).cuda())
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(opt.nepoch):

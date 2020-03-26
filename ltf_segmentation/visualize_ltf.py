@@ -42,12 +42,25 @@ ltf_model = SegNet(3, 2)
 ltf_model.load_state_dict(torch.load(opt.model))
 ltf_model.eval()
 ltf_model = ltf_model.cuda()
+import matplotlib.pyplot as plt
 
 for original, filtered in dataset:
-  orig = Image.fromarray(original, 'RGB')
-  orig.show()
-  filt = Image.fromarray(filtered, '1')
-  filt.show()
+  plt.figure(0)
+  plt.title('original')
+  plt.imshow(original[0, :, :])
+  plt.figure(1)
+  plt.title('filtered')
+  plt.imshow(filtered)
   import pdb; pdb.set_trace()
+  generated = ltf_model(torch.tensor(original).cuda().unsqueeze(0))[1][0]
+  # now, its 2 x img_size, where [0] is the prob for class 0, [1] is the prob for class 1
+  plt.figure(2)
+  plt.title('generated score')
+  plt.imshow(generated[1].detach().cpu() * 255)
+  plt.figure(3)
+  plt.title('generated pred')
+  plt.imshow(torch.argmax(generated, axis=0).detach().cpu() * 255)
+
+  plt.show()
 
 print('Done...')
