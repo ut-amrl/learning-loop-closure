@@ -27,9 +27,10 @@ def visualize_location(plt, location, color='blue'):
 
 def visualize_cloud(plt, cloud, color='blue'):
     bound = max(np.max(cloud[:, 0]), np.max(cloud[:, 1]), -np.min(cloud[:, 0]), -np.min(cloud[:, 1]))
-    plt.xlim(-bound, bound)
-    plt.ylim(-bound, bound)
-    plt.scatter(cloud[:, 0], cloud[:, 1], c=color, marker='.')
+    plt.xlim(-30, 30)
+    plt.ylim(-30, 30)
+    plt.scatter(cloud[:, 0], cloud[:, 1], c=color, marker='.', s=0.5)
+    plt.gca().set_aspect('equal', adjustable='box')
 
 def arc_patch(center, radius, theta1, theta2, ax=None, resolution=50, **kwargs):
     # make sure ax is not empty

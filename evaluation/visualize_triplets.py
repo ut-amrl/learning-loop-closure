@@ -78,6 +78,7 @@ for i in range(triplets.shape[0]):
         visualize_cloud(plt, anchor_np, color='blue')
         plt.subplot(133)
         visualize_cloud(plt, distant_np, color='red')
+        plt.gca().set_aspect('equal', adjustable='box')
 
         plt.figure(2)
         visualize_location(plt, anchor_loc, 'blue')
