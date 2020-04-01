@@ -13,6 +13,7 @@ from tqdm import tqdm
 import json
 import pickle
 from data_processing_helpers import compute_overlap
+from ltf_segmentation.ltf_helpers import discretize_point_cloud
 
 CLOSE_DISTANCE_THRESHOLD = .75
 FAR_DISTANCE_THRESHOLD = 3
@@ -232,6 +233,36 @@ class LCTripletDataset(data.Dataset):
     def __len__(self):
         return len(self.triplets)
 
+class LCTripletDiscretizedDataset(LCTripletDataset):
+    def __init__(self,
+                 root,
+                 split='train',
+                 augmentation_prob=0.5,
+                 jitter_augmentation=True,
+                 missing_augmentation=True,
+                 person_augmentation=False,
+                 order_augmentation=False):
+        super(LCTripletDiscretizedDataset, self).__init__(root, split, augmentation_prob,
+            jitter_augmentation,
+            missing_augmentation,
+            person_augmentation,
+            order_augmentation)
+    
+    def load_data(self):
+        # Use dataset_info to load data files
+        filelist = self.dataset_info[self.split + '_data']
+            
+        for fname in tqdm(filelist):
+            timestamp = fname[fname.rfind('_')+1:]
+            location_file = os.path.join(
+                self.root, 'location_{0}.npy'.format(timestamp))
+            location = np.load(location_file).astype(np.float32)
+            cloud = np.load(os.path.join(self.root, fname + '.npy')).astype(np.float32)
+            cloud = discretize_point_cloud(cloud, self.dataset_info['scanMetadata']['range_max'], 200)
+            self.data.append((cloud, location, timestamp))
+        self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
+        self.data = np.array(self.data)
+        self.data_loaded = True
 
 class LCCDataset(LCDataset):
     def __init__(self,

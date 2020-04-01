@@ -64,18 +64,21 @@ def compute_overlap(loc_a, loc_b):
 
 def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
     angle_offset = scan.angle_min
-    cloud = np.zeros((len(scan.ranges), 3)).astype(np.float32)
-
+    num_scans = len(scan.ranges) if not trim_edges else int((scan.angle_max - scan.angle_min) / scan.angle_increment)
+    cloud = np.zeros((num_scans, 3)).astype(np.float32)
+    
+    point_idx = 0
     for idx,r in enumerate(scan.ranges):
-        if trim_edges and (angle_offset < scan.range_min + np.pi / 12.0 or angle_offset > scan.range_max - np.pi / 12.0):
-            continue
-        if r >= scan.range_min and r <= scan.range_max:
+        if trim_edges and (angle_offset < scan.angle_min + np.pi / 12.0 or angle_offset > scan.angle_max - np.pi / 12.0):
+            pass #print("SKIPPING", idx)
+        elif r >= scan.range_min and r <= scan.range_max:
             point = np.transpose(np.array([[r, 0]]))
             cos, sin = np.cos(angle_offset), np.sin(angle_offset)
             rotation = np.array([(cos, -sin), (sin, cos)])
             point = np.matmul(rotation, point)
-            cloud[idx][0] = point[0]
-            cloud[idx][1] = point[1]
+            cloud[point_idx][0] = point[0]
+            cloud[point_idx][1] = point[1]
+            point_idx += 1
         angle_offset += scan.angle_increment
 
     if normalize:
