@@ -64,6 +64,12 @@ class LCDataset(data.Dataset):
     def __len__(self):
         return len(self.file_list)
 
+class LCDatasetDiscrete(LCDataset):
+    def get_by_timestamp(self, timestamp, include_angle=False):
+        cloud, location, timestamp = super(LCDatasetDiscrete, self).get_by_timestamp(timestamp, include_angle)
+        img = np.expand_dims(discretize_point_cloud(cloud, self.dataset_info['scanMetadata']['range_max'], 200), 0).astype(np.float32)
+        return img, location, timestamp
+
 class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -233,7 +239,7 @@ class LCTripletDataset(data.Dataset):
     def __len__(self):
         return len(self.triplets)
 
-class LCTripletDiscretizedDataset(LCTripletDataset):
+class LCTripletDatasetDiscrete(LCTripletDataset):
     def __init__(self,
                  root,
                  split='train',
@@ -242,7 +248,7 @@ class LCTripletDiscretizedDataset(LCTripletDataset):
                  missing_augmentation=True,
                  person_augmentation=False,
                  order_augmentation=False):
-        super(LCTripletDiscretizedDataset, self).__init__(root, split, augmentation_prob,
+        super(LCTripletDatasetDiscrete, self).__init__(root, split, augmentation_prob,
             jitter_augmentation,
             missing_augmentation,
             person_augmentation,
@@ -258,11 +264,31 @@ class LCTripletDiscretizedDataset(LCTripletDataset):
                 self.root, 'location_{0}.npy'.format(timestamp))
             location = np.load(location_file).astype(np.float32)
             cloud = np.load(os.path.join(self.root, fname + '.npy')).astype(np.float32)
-            cloud = discretize_point_cloud(cloud, self.dataset_info['scanMetadata']['range_max'], 200)
             self.data.append((cloud, location, timestamp))
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data = np.array(self.data)
         self.data_loaded = True
+
+
+    def __getitem__(self, index):
+        if not self.triplets_loaded:
+            raise Exception('Call load_triplets before attempting to access elements')
+                
+        (
+            (cloud, location, timestamp),
+            (similar_cloud, similar_loc, similar_timestamp),
+            (distant_cloud, distant_loc, distant_timestamp)
+        ) = self.triplets[index]
+
+        img = np.expand_dims(discretize_point_cloud(cloud, self.dataset_info['scanMetadata']['range_max'], 200), 0).astype(np.float32)
+        similar_img = np.expand_dims(discretize_point_cloud(similar_cloud, self.dataset_info['scanMetadata']['range_max'], 200), 0).astype(np.float32)
+        distant_img = np.expand_dims(discretize_point_cloud(distant_cloud, self.dataset_info['scanMetadata']['range_max'], 200), 0).astype(np.float32)
+        
+        return (
+            (img, location, timestamp),
+            (similar_img, similar_loc, similar_timestamp),
+            (distant_img, distant_loc, distant_timestamp)
+        )
 
 class LCCDataset(LCDataset):
     def __init__(self,

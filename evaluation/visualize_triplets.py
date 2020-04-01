@@ -12,8 +12,8 @@ from evaluation_helpers import embedding_for_scan, visualize_location, visualize
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from helpers import create_classifier, create_embedder, get_predictions_for_model
-from data_processing.dataset import LCDataset
+from helpers import create_classifier, create_embedder, create_embedder_discrete, get_predictions_for_model
+from data_processing.dataset import LCDataset, LCDatasetDiscrete
 
 TIMESTEP = 1.5
 
@@ -25,18 +25,26 @@ parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
 parser.add_argument('--embedding_model', type=str,
                     help='state dict of an already trained LC model to use')
+parser.add_argument('--discrete_model', type=str,
+                    help='state dict of an already trained LC model to use')
 parser.add_argument('--only_error', type=bool, help='If True, only show triplets where the model failed', default=False)
 parser.add_argument('--threshold', type=int)
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
-dataset = LCDataset(args.dataset)
+if args.discrete_model:
+    dataset = LCDatasetDiscrete(args.dataset)
+else:
+    dataset = LCDataset(args.dataset)
 
 if args.model:
     model = create_classifier('', args.model)
     model.eval()
 elif args.embedding_model:
     model = create_embedder(args.embedding_model)
+    model.eval()
+elif args.discrete_model:
+    model = create_embedder_discrete(args.discrete_model)
     model.eval()
 else:
     model = None

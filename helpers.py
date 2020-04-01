@@ -1,5 +1,5 @@
-from model import FullNet, EmbeddingNet, LCCNet, DistanceNet
-from data_processing.dataset import LCTripletDataset, LCCDataset
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, DiscreteNet
+from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletDatasetDiscrete
 import time
 import torch
 
@@ -35,6 +35,20 @@ def load_dataset(root, split, distance_cache, augment_prob=0.8):
     print_output("Finished loading data.")
     return dataset
 
+def load_discrete_dataset(root, split, distance_cache, augment_prob=0.8):
+    print_output("Loading data into memory...", )
+    dataset = LCTripletDatasetDiscrete(
+        root=root,
+        split=split,
+        augmentation_prob=augment_prob)
+    dataset.load_data()
+    dataset.load_distances(distance_cache)
+    dataset.load_triplets()
+    if dataset.computed_new_distances:
+        dataset.cache_distances()
+    print_output("Finished loading data.")
+    return dataset
+
 def load_lcc_dataset(root, timestamps):
     print_output("Loading data into memory...")
     dataset = LCCDataset(root=root, timestamps=timestamps)
@@ -43,6 +57,18 @@ def load_lcc_dataset(root, timestamps):
 
 def create_embedder(embedding_model=''):
     embedder = EmbeddingNet()
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        embedder = torch.nn.DataParallel(embedder)
+
+    embedder.cuda()
+    return embedder
+
+def create_embedder_discrete(embedding_model=''):
+    embedder = DiscreteNet()
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     
@@ -120,6 +146,8 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
         model_type = "embedder"
     elif isinstance(model_to_check, FullNet):
         model_type = "full"
+    elif isinstance(model_to_check, DiscreteNet):
+        model_type = "discrete"
     else:
         raise Exception('Unexpected model', model_to_check)
 
@@ -128,6 +156,19 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
         anchor_embeddings, _, _ = model(clouds)
         similar_embeddings, _, _ = model(similar)
         distant_embeddings, _, _ = model(distant)
+        
+        distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
+        distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
+        
+        predictions_pos = (distance_pos < threshold).int()
+        predictions_neg = (distance_neg < threshold).int()
+
+        predictions = torch.cat([predictions_pos, predictions_neg])
+        return predictions
+    elif model_type == 'discrete':
+        anchor_embeddings = model(clouds)
+        similar_embeddings = model(similar)
+        distant_embeddings = model(distant)
         
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)

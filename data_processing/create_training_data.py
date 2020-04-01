@@ -43,7 +43,7 @@ dataset_info['scanMetadata'] = metadata
 dataset_info['numScans'] = len(scans.keys())
 
 loc_timestamps = sorted(localizations.keys())
-localizationTree = spatial.cKDTree([list([l]) for l in loc_timestamps])
+localizationTree = spatial.cKDTree([[l,] for l in loc_timestamps])
 
 base_path = '../data/' + args.dataset_name + '/'
 if not os.path.exists(base_path):
