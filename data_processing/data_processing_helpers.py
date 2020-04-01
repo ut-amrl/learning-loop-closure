@@ -63,13 +63,12 @@ def compute_overlap(loc_a, loc_b):
     return np.average([match_ab, match_ba])
 
 def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
-    angle_offset = 0.0
-    if trim_edges:
-        scan.ranges = scan.ranges[4:-4]
-
+    angle_offset = scan.angle_min
     cloud = np.zeros((len(scan.ranges), 3)).astype(np.float32)
 
     for idx,r in enumerate(scan.ranges):
+        if trim_edges and (angle_offset < scan.range_min + np.pi / 12.0 or angle_offset > scan.range_max - np.pi / 12.0):
+            continue
         if r >= scan.range_min and r <= scan.range_max:
             point = np.transpose(np.array([[r, 0]]))
             cos, sin = np.cos(angle_offset), np.sin(angle_offset)
