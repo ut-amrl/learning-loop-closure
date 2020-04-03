@@ -6,13 +6,13 @@ import torch
 import argparse
 
 from sensor_msgs.msg import PointCloud2
-from evaluation_helpers import embedding_for_scan, visualize_location, visualize_cloud, draw_map
+from evaluation_helpers import embedding_for_scan, visualize_location, draw_map
 
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from helpers import create_classifier, create_embedder, get_predictions_for_model
-from data_processing.dataset import LCDataset
+from helpers import create_classifier, create_embedder_discrete, get_predictions_for_model
+from data_processing.dataset import LCDataset, LCDatasetDiscrete
 
 TIMESTEP = 1.5
 
@@ -22,20 +22,15 @@ parser.add_argument('--dataset', type=str, help='the dataset from which to pull 
 parser.add_argument('--triplets', type=str, help='triplets file to visualize')
 parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
-parser.add_argument('--embedding_model', type=str,
-                    help='state dict of an already trained LC model to use')
 parser.add_argument('--only_error', type=bool, help='If True, only show triplets where the model failed', default=False)
 parser.add_argument('--threshold', type=int)
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
-dataset = LCDataset(args.dataset)
+dataset = LCDatasetDiscrete(args.dataset)
 
 if args.model:
-    model = create_classifier('', args.model)
-    model.eval()
-elif args.embedding_model:
-    model = create_embedder(args.embedding_model)
+    model = create_embedder_discrete(args.model)
     model.eval()
 else:
     model = None
@@ -58,9 +53,9 @@ for i in range(triplets.shape[0]):
         print("Anchor Timestamp", ts)
         print("Locations", anchor_loc, similar_loc, distant_loc)
 
-        anchor = torch.tensor(anchor_np.transpose(1, 0)).unsqueeze(0).cuda()
-        similar = torch.tensor(similar_np.transpose(1, 0)).unsqueeze(0).cuda()
-        distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
+        anchor = torch.tensor(anchor_np).unsqueeze(0).cuda()
+        similar = torch.tensor(similar_np).unsqueeze(0).cuda()
+        distant = torch.tensor(distant_np).unsqueeze(0).cuda()
 
         if model:
             predictions = get_predictions_for_model(model, anchor, similar, distant, args.threshold)
@@ -72,11 +67,11 @@ for i in range(triplets.shape[0]):
         import matplotlib.pyplot as plt
         plt.figure(1, figsize=(9, 3))
         plt.subplot(131)
-        visualize_cloud(plt, similar_np, color='green')
+        plt.imshow(similar_np.squeeze())
         plt.subplot(132)
-        visualize_cloud(plt, anchor_np, color='blue')
+        plt.imshow(anchor_np.squeeze())
         plt.subplot(133)
-        visualize_cloud(plt, distant_np, color='red')
+        plt.imshow(distant_np.squeeze())
         plt.gca().set_aspect('equal', adjustable='box')
 
         plt.figure(2)
