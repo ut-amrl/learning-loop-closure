@@ -64,7 +64,7 @@ def compute_overlap(loc_a, loc_b):
 
 def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
     angle_offset = scan.angle_min
-    num_scans = len(scan.ranges) if not trim_edges else int((scan.angle_max - scan.angle_min) / scan.angle_increment)
+    num_scans = len(scan.ranges) if not trim_edges else int((scan.angle_max - scan.angle_min - 2 * np.pi / 12.0) / scan.angle_increment)
     cloud = np.zeros((num_scans, 3)).astype(np.float32)
     
     point_idx = 0

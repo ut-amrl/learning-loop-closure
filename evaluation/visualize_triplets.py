@@ -8,7 +8,6 @@ import argparse
 from sensor_msgs.msg import PointCloud2
 from evaluation_helpers import embedding_for_scan, visualize_location, visualize_cloud, draw_map
 
-
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
