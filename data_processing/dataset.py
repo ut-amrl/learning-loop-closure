@@ -94,7 +94,10 @@ class LCTripletDataset(data.Dataset):
 
     def load_data(self):
         # Use dataset_info to load data files
-        filelist = self.dataset_info[self.split + '_data']
+        if len(self.split) > 0:
+            filelist = self.dataset_info[self.split + '_data']
+        else:
+            filelist = [os.path.basename(f[:f.rfind('.npy')]) for f in glob.glob(os.path.join(self.root, 'point_*.npy'))]
             
         for fname in tqdm(filelist):
             timestamp = fname[fname.rfind('_')+1:]
@@ -120,6 +123,17 @@ class LCTripletDataset(data.Dataset):
             (distant_cloud, distant_loc, distant_timestamp)
         )
 
+    def _create_all_triplets(self, cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp):
+        idx = random.randint(0, len(self.data) - 1)
+        # We don't want anything that's even remotely nearby to count as "distant"
+        dist_neighbors = self.location_tree.query_ball_point(location[:2], FAR_DISTANCE_THRESHOLD)
+        non_neighbors = np.setdiff1d(range(len(self.data)), dist_neighbors)
+        return [(
+            (cloud, location, timestamp),
+            (similar_cloud, similar_loc, similar_timestamp),
+            (self.data[idx][0], self.data[idx][1], self.data[idx][2])
+        ) for idx in non_neighbors]
+
     def _generate_augmented_triplet(self, cloud, location, timestamp):
         augmented_neighbors = self.generate_augmented_neighbors(cloud)
         idx = random.randint(0,  len(augmented_neighbors) - 1)
@@ -140,6 +154,18 @@ class LCTripletDataset(data.Dataset):
 
         return self._create_triplet(cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp)
 
+    def _generate_all_triplets(self, cloud, location, timestamp):
+        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+        filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+
+        if len(filtered_neighbors) > 0:
+            triplets = []
+            similar = [self.data[idx] for idx in filtered_neighbors]
+            for s in similar:
+                triplets.extend(self._create_all_triplets(cloud, location, timestamp, s[0], s[1], s[2]))
+            return triplets
+        else:
+            return []
 
     def load_triplets(self):
         if not self.data_loaded:
@@ -150,7 +176,20 @@ class LCTripletDataset(data.Dataset):
         augment_indices = np.random.choice(range(len(self.data)), int(self.augmentation_prob * len(self.data)))
         if len(augment_indices):
             self.triplets.extend([self._generate_augmented_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data[augment_indices])])
+        self.triplets_loaded = True
 
+    # This loads the exhaustive set of triplets; should only be used on relatively small datasets
+    # Also, does not include data augmentation
+    def load_all_triplets(self):
+        if not self.data_loaded:
+            raise Exception('Call load_data before attempting to load all triplets')
+        del self.triplets[:]
+
+        for cloud, location, timestamp in tqdm(self.data):
+            triplets = self._generate_all_triplets(cloud, location, timestamp)
+            if len(triplets) > 0:
+                self.triplets.extend(triplets)
+        import pdb; pdb.set_trace()
         self.triplets_loaded = True
 
     def generate_augmented_neighbors(self, cloud):

@@ -25,6 +25,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
+parser.add_argument('--exhaustive', type=bool, default=False, help='Whether or not to check the exhaustive list of all triplets')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 initialize_logging(start_time, 'evaluate_')
@@ -39,7 +40,7 @@ torch.manual_seed(opt.manualSeed)
 
 embedder = helpers.create_embedder(opt.model)
 embedder.eval()
-dataset = helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, 0)
+dataset = helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, 0, opt.exhaustive)
 batch_count = len(dataset) // opt.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
