@@ -87,7 +87,7 @@ for epoch in range(opt.nepoch):
 
     # We want to reload the triplets every 5 epochs to get new matches
     if opt.exhaustive:
-        dataset.load_all_triplets:
+        dataset.load_all_triplets()
     else:
         dataset.load_triplets()
     batch_count = len(dataset) // opt.batch_size
