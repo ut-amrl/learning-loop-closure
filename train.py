@@ -47,6 +47,7 @@ parser.add_argument('--outf', type=str, default='cls', help='output folder')
 parser.add_argument('--embedding_model', type=str, default='', help='pretrained embedding model to start with')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
+parser.add_argument('--exhaustive', type=bool, default=False, help='Whether or not to check the exhaustive list of all triplets')
 
 opt = parser.parse_args()
 start_time = str(int(time.time()))
@@ -61,7 +62,7 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-dataset = helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache)
+dataset = helpers.load_dataset(opt.dataset, opt.train_set, opt.distance_cache, opt.exhaustive)
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 

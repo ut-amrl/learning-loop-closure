@@ -40,7 +40,7 @@ torch.manual_seed(opt.manualSeed)
 
 embedder = helpers.create_embedder(opt.model)
 embedder.eval()
-dataset = helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, 0, opt.exhaustive)
+dataset = helpers.load_dataset(opt.dataset, opt.evaluation_set, opt.distance_cache, opt.exhaustive, 0)
 batch_count = len(dataset) // opt.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
