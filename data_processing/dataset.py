@@ -189,7 +189,6 @@ class LCTripletDataset(data.Dataset):
             triplets = self._generate_all_triplets(cloud, location, timestamp)
             if len(triplets) > 0:
                 self.triplets.extend(triplets)
-        import pdb; pdb.set_trace()
         self.triplets_loaded = True
 
     def generate_augmented_neighbors(self, cloud):

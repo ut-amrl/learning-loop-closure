@@ -86,7 +86,10 @@ for epoch in range(opt.nepoch):
     total_loss = 0
 
     # We want to reload the triplets every 5 epochs to get new matches
-    dataset.load_triplets()
+    if opt.exhaustive:
+        dataset.load_all_triplets:
+    else:
+        dataset.load_triplets()
     batch_count = len(dataset) // opt.batch_size
     print_output("Loaded new training triplets: {0} batches of size {1}".format(batch_count, opt.batch_size))
     dataloader = torch.utils.data.DataLoader(
