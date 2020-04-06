@@ -25,7 +25,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 parser.add_argument('--threshold_min', type=int, default=2, help='Minimum Threshold of distance for which 2 scans are "similar"')
-parser.add_argument('--threshold_max', type=int, default=8, help='Maximum Threshold of distance for which 2 scans are "similar"')
+parser.add_argument('--threshold_max', type=int, default=12, help='Maximum Threshold of distance for which 2 scans are "similar"')
 parser.add_argument('--exhaustive', type=bool, default=False, help='Whether or not to check the exhaustive list of all triplets')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
@@ -54,7 +54,7 @@ pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1)
 labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
-thresholds = np.linspace(opt.threshold_min, opt.threshold_max, opt.threshold_max - opt.threshold_min + 1)
+thresholds = np.linspace(opt.threshold_min, opt.threshold_max, 21)
 
 metrics = np.zeros((len(thresholds), 4)) # True Positive, True Negative, False Positive, False Negative
 
@@ -80,13 +80,30 @@ for i, data in tqdm(enumerate(dataloader, 0)):
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
 
-roc = np.zeros((len(thresholds), 3))
+roc = np.zeros((len(thresholds), 4))
+confusions = np.zeros((len(thresholds), 2, 2))
 for i in range(len(thresholds)):
     threshold_metrics = metrics[i]
     roc[i][0] = (threshold_metrics[0] + threshold_metrics[1]) / sum(threshold_metrics)
     roc[i][1] = (threshold_metrics[0]) / (threshold_metrics[0] + threshold_metrics[2])
     roc[i][2] = (threshold_metrics[0]) / (threshold_metrics[0] + threshold_metrics[3])
-    print_output('(Acc: %f, Precision: %f, Recall: %f) for threshold %d' % (roc[i][0], roc[i][1], roc[i][2], thresholds[i]))
+    roc[i][3] = 2 * roc[i][1] * roc[i][2] / (roc[i][1] + roc[i][2])
+    confusions[i] = [[threshold_metrics[0], threshold_metrics[2]], [threshold_metrics[3], threshold_metrics[1]]]
+    print_output('(Acc: %f, Precision: %f, Recall: %f, F1: %f) for threshold %f' % (roc[i][0], roc[i][1], roc[i][2], roc[i][3], thresholds[i]))
+
+from matplotlib import pyplot as plt
+
+plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+
+plt.legend()
+
+plt.show()
+
 if opt.publish_triplets:
     print("Writing triplets_{0}.npy".format(start_time))
     np.save('triplets_{0}'.format(start_time), triplets)
+    np.save('confusions_{0}'.format(start_time), confusions)

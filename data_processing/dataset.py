@@ -69,7 +69,7 @@ class LCTripletDataset(data.Dataset):
                  root,
                  split='train',
                  augmentation_prob=0.6,
-                 match_repeat_factor=5):
+                 match_repeat_factor=20):
         self.root = root
         self.augmentation_prob = augmentation_prob
         self.M = match_repeat_factor
