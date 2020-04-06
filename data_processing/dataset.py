@@ -68,17 +68,11 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 augmentation_prob=0.5,
-                 jitter_augmentation=True,
-                 missing_augmentation=True,
-                 person_augmentation=False,
-                 order_augmentation=False):
+                 augmentation_prob=0.6,
+                 match_repeat_factor=20):
         self.root = root
         self.augmentation_prob = augmentation_prob
-        self.jitter_augmentation = jitter_augmentation
-        self.person_augmentation = person_augmentation
-        self.order_augmentation = order_augmentation
-        self.missing_augmentation = missing_augmentation
+        self.M = match_repeat_factor
         self.split = split
 
         info_file = os.path.join(self.root, 'dataset_info.json')
@@ -134,25 +128,27 @@ class LCTripletDataset(data.Dataset):
             (self.data[idx][0], self.data[idx][1], self.data[idx][2])
         ) for idx in non_neighbors]
 
-    def _generate_augmented_triplet(self, cloud, location, timestamp):
+    # We want to end up with self.M augmented neighbors for this cloud, if it was chosen
+    def _generate_augmented_triplets(self, cloud, location, timestamp):
         augmented_neighbors = self.generate_augmented_neighbors(cloud)
-        idx = random.randint(0,  len(augmented_neighbors) - 1)
-        similar_cloud = augmented_neighbors[idx]
-        similar_loc = location
-        similar_timestamp = timestamp
+        triplets = []
+        for similar in augmented_neighbors:
+            triplets.append(self._create_triplet(cloud, location, timestamp, similar, location, timestamp))
 
-        return self._create_triplet(cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp)
+        return triplets
 
-    def _generate_triplet(self, cloud, location, timestamp):
+    def _generate_triplets(self, cloud, location, timestamp):
         neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
         if len(filtered_neighbors) > 0:
-            idx = np.random.choice(filtered_neighbors, 1)[0]
-            similar_cloud, similar_loc, similar_timestamp = self.data[idx]
+            triplets = []
+            indices = np.random.choice(filtered_neighbors, self.M)
+            for idx in indices:
+                s = self.data[idx]
+                triplets.append(self._create_triplet(cloud, location, timestamp, s[0], s[1], s[2]))
+            return triplets
         else:
             return None
-
-        return self._create_triplet(cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp)
 
     def _generate_all_triplets(self, cloud, location, timestamp):
         neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
@@ -172,10 +168,15 @@ class LCTripletDataset(data.Dataset):
             raise Exception('Call load_data before attempting to load triplets')
         del self.triplets[:]
 
-        self.triplets = filter(None, [self._generate_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data)])
+        for cloud, location, timestamp in tqdm(self.data):
+            triplets = self._generate_triplets(cloud, location, timestamp)
+            if triplets:
+                self.triplets.extend(triplets)
+
         augment_indices = np.random.choice(range(len(self.data)), int(self.augmentation_prob * len(self.data)))
-        if len(augment_indices):
-            self.triplets.extend([self._generate_augmented_triplet(cloud, location, timestamp) for cloud, location, timestamp in tqdm(self.data[augment_indices])])
+        for augment_idx in tqdm(augment_indices):
+            cloud, location, timestamp = self.data[augment_idx]
+            self.triplets.extend(self._generate_augmented_triplets(cloud, location, timestamp))
         self.triplets_loaded = True
 
     # This loads the exhaustive set of triplets; should only be used on relatively small datasets
@@ -193,8 +194,8 @@ class LCTripletDataset(data.Dataset):
 
     def generate_augmented_neighbors(self, cloud):
         neighbors = []
-        # random perturbations, because why not
-        if self.jitter_augmentation:
+        def _rotation_augmented():
+            # random perturbations, because why not
             theta = np.random.uniform(-np.pi / 3, np.pi / 3)
             rotation_matrix = np.array([
                 [np.cos(theta), -np.sin(theta)],
@@ -203,19 +204,20 @@ class LCTripletDataset(data.Dataset):
             augmented = np.zeros(cloud.shape).astype(np.float32)
             # random rotation
             augmented[:, :] = cloud[:, :].dot(rotation_matrix)
-            neighbors.append(augmented)
-        
-        if self.person_augmentation:
-            pass
-            # neighbors.append(augmented)
+            return augmented
         
         #We will roll instead of randomly permuting, so sequential local features are maintained
-        if self.order_augmentation:
-            neighbors.append(np.roll(cloud, np.random.randint(0, cloud.shape[0] / 10), 0))
-
-        if self.missing_augmentation:
+        def _roll_augmented():
+            return np.roll(cloud, np.random.randint(0, cloud.shape[0] / 10), 0)
+        
+        def _missing_augmented():
             indices = np.random.choice(range(len(cloud)), int(len(cloud) * 0.95))
-            neighbors.append( np.pad(cloud[indices], ((0, len(cloud) - len(indices)), (0, 0)), 'constant'))
+            return np.pad(cloud[indices], ((0, len(cloud) - len(indices)), (0, 0)), 'constant')
+        
+        while len(neighbors) < self.M:
+            neighbors.append(_rotation_augmented())
+            neighbors.append(_roll_augmented())
+            neighbors.append(_missing_augmented())
 
         return neighbors
 
