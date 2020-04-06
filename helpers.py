@@ -114,19 +114,31 @@ def save_model(model, outf, epoch):
         to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
 
-def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
-    model_type = None
+def get_model_type(model):
     model_to_check = model
     if isinstance(model, torch.nn.DataParallel):
         model_to_check = model.module
     
     if isinstance(model_to_check, EmbeddingNet):
-        model_type = "embedder"
+        return "embedder"
     elif isinstance(model_to_check, FullNet):
-        model_type = "full"
+        return "full"
     else:
         raise Exception('Unexpected model', model_to_check)
 
+def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
+    model_type = get_model_type(model)
+    if model_type == 'embedder':
+        distances = get_distances_for_model(model, clouds, similar, distant)
+        predictions = (distances < threshold).int()
+    elif model_type == 'full':
+        scores = get_distances_for_model(model, clouds, similar, distant)
+        predictions = torch.argmax(scores, dim=1).cpu()
+
+    return predictions
+
+def get_distances_for_model(model, clouds, similar, distant):
+    model_type = get_model_type(model)
 
     if model_type == 'embedder':
         anchor_embeddings, _, _ = model(clouds)
@@ -136,16 +148,12 @@ def get_predictions_for_model(model, clouds, similar, distant, threshold=None):
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
         
-        predictions_pos = (distance_pos < threshold).int()
-        predictions_neg = (distance_neg < threshold).int()
-
-        predictions = torch.cat([predictions_pos, predictions_neg])
-        return predictions
+        distances = torch.cat([distance_pos, distance_neg])
+        return distances
     elif model_type == 'full':
         scores, _, _ = model(torch.cat([clouds, clouds], dim=0), torch.cat([similar, distant], dim=0))
-        predictions = torch.argmax(scores, dim=1).cpu()
         
-        return predictions
+        return scores
 
 def update_metrics(metrics, predictions, labels):
     for i in range(len(predictions)):

@@ -24,7 +24,8 @@ parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
-parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
+parser.add_argument('--threshold_min', type=int, default=2, help='Minimum Threshold of distance for which 2 scans are "similar"')
+parser.add_argument('--threshold_max', type=int, default=8, help='Maximum Threshold of distance for which 2 scans are "similar"')
 parser.add_argument('--exhaustive', type=bool, default=False, help='Whether or not to check the exhaustive list of all triplets')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
@@ -53,7 +54,9 @@ pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1)
 labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
-metrics = [0.0, 0.0, 0.0, 0.0] # True Positive, True Negative, False Positive, False Negative
+thresholds = np.linspace(opt.threshold_min, opt.threshold_max, opt.threshold_max - opt.threshold_min + 1)
+
+metrics = np.zeros((len(thresholds), 4)) # True Positive, True Negative, False Positive, False Negative
 
 triplets = np.zeros((batch_count, opt.batch_size, 3, 2))
 
@@ -67,21 +70,23 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    predictions = helpers.get_predictions_for_model(embedder, clouds, similar_clouds, distant_clouds, opt.threshold)
-
-    helpers.update_metrics(metrics, predictions, labels)
+    for i in range(len(thresholds)):
+        distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
+        predictions = (distances < thresholds[i]).int()
+        helpers.update_metrics(metrics[i], predictions, labels)
 
     if opt.publish_triplets:
         triplets[i, :, 0, 0] = timestamp
         triplets[i, :, 1, 0] = similar_timestamp
         triplets[i, :, 2, 0] = distant_timestamp
-        triplets[i, :, 1, 1] = (predictions[:similar_clouds.shape[0]]).cpu().squeeze()
-        triplets[i, :, 2, 1] = (predictions[similar_clouds.shape[0]:]).cpu().squeeze()
 
-acc = (metrics[0] + metrics[1]) / sum(metrics)
-prec = (metrics[0]) / (metrics[0] + metrics[2])
-rec = (metrics[0]) / (metrics[0] + metrics[3])
-print_output('(Acc: %f, Precision: %f, Recall: %f)' % (acc, prec, rec))
+roc = np.zeros((len(thresholds), 3))
+for i in range(len(thresholds)):
+    threshold_metrics = metrics[i]
+    roc[i][0] = (threshold_metrics[0] + threshold_metrics[1]) / sum(threshold_metrics)
+    roc[i][1] = (threshold_metrics[0]) / (threshold_metrics[0] + threshold_metrics[2])
+    roc[i][2] = (threshold_metrics[0]) / (threshold_metrics[0] + threshold_metrics[3])
+    print_output('(Acc: %f, Precision: %f, Recall: %f) for threshold %d' % (roc[i][0], roc[i][1], roc[i][2], thresholds[i]))
 if opt.publish_triplets:
     print("Writing triplets_{0}.npy".format(start_time))
     np.save('triplets_{0}'.format(start_time), triplets)

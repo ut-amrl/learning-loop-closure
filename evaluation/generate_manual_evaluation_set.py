@@ -39,7 +39,7 @@ pairs = sorted(data_reader.get_scans().items(), lambda x, y: 1 if float(x[0]) > 
 
 accepted = []
 
-for timestamp, cloud in pairs[0::30]:
+for timestamp, cloud in pairs[0::50]:
   loc = data_reader.get_closest_localization_by_time(timestamp)[0]
   plt.figure(1)
   plt.clf()
