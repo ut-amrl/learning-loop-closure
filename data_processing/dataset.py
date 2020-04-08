@@ -68,7 +68,7 @@ class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
                  split='train',
-                 augmentation_prob=0.6,
+                 augmentation_prob=0.8,
                  match_repeat_factor=20):
         self.root = root
         self.augmentation_prob = augmentation_prob
