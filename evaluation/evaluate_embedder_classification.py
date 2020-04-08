@@ -70,10 +70,10 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
 
-    for i in range(len(thresholds)):
+    for t in range(len(thresholds)):
         distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
-        predictions = (distances < thresholds[i]).int()
-        helpers.update_metrics(metrics[i], predictions, labels)
+        predictions = (distances < thresholds[t]).int()
+        helpers.update_metrics(metrics[t], predictions, labels)
 
     if opt.publish_triplets:
         triplets[i, :, 0, 0] = timestamp
