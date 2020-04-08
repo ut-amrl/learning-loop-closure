@@ -55,7 +55,6 @@ class TransformNet(nn.Module):
 class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
-        self.transform = TransformNet()
         self.conv1 = torch.nn.Conv1d(2, 32, 5, 1)
         self.conv2 = torch.nn.Conv1d(32, 32, 3, 1)
         self.conv3 = torch.nn.Conv1d(32, 32, 1)
@@ -65,13 +64,12 @@ class EmbeddingNet(nn.Module):
         self.bn3 = nn.BatchNorm1d(32)        
 
     def forward(self, x):
-        x, translation, theta = self.transform(x)
         x = self.bn1(self.conv1(x))
         x = self.bn2(self.conv2(x))
         x = self.bn3(self.conv3(x))
         x = F.max_pool1d(x, x.shape[2])
         x = self.dropout(x)
-        return x, translation, theta
+        return x, None, None
 
 class DistanceNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
