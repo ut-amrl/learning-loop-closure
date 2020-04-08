@@ -54,7 +54,7 @@ pos_labels = torch.tensor(np.ones((opt.batch_size, 1)).astype(np.long)).squeeze(
 neg_labels = torch.tensor(np.zeros((opt.batch_size, 1)).astype(np.long)).squeeze(1)
 labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
-thresholds = np.linspace(opt.threshold_min, opt.threshold_max, 21)
+thresholds = np.linspace(opt.threshold_min, opt.threshold_max, (opt.threshold_max - opt.threshold_min) * 2 + 1)
 
 metrics = np.zeros((len(thresholds), 4)) # True Positive, True Negative, False Positive, False Negative
 
@@ -104,6 +104,6 @@ plt.legend()
 plt.show()
 
 if opt.publish_triplets:
-    print("Writing triplets_{0}.npy".format(start_time))
-    np.save('triplets_{0}'.format(start_time), triplets)
-    np.save('confusions_{0}'.format(start_time), confusions)
+    print("Writing triplets_{0}.npy".format(opt.dataset))
+    np.save('triplets_{0}'.format(opt.dataset), triplets)
+    np.save('confusions_{0}'.format(opt.dataset), confusions)
