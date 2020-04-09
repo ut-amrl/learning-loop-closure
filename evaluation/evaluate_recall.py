@@ -14,7 +14,7 @@ parser.add_argument('--recall_dataset', type=str,
                     help='path to the bag file containing recakk observation data')
 parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
-parser.add_argument('--threshold', type=int, default=2, help='Threshold of distance for which 2 scans are "similar"')
+parser.add_argument('--threshold', type=float, default=2, help='Threshold of distance for which 2 scans are "similar"')
 args = parser.parse_args()
 
 model = create_embedder(args.model)

@@ -15,7 +15,7 @@ import pickle
 from data_processing_helpers import compute_overlap
 from ltf_segmentation.ltf_helpers import discretize_point_cloud
 
-CLOSE_DISTANCE_THRESHOLD = .75
+CLOSE_DISTANCE_THRESHOLD = 2
 FAR_DISTANCE_THRESHOLD = 3
 OVERLAP_THRESHOLD = 0.8
 TIME_IGNORE_THRESHOLD = 0.5
@@ -69,7 +69,7 @@ class LCTripletDataset(data.Dataset):
                  root,
                  split='train',
                  augmentation_prob=0.8,
-                 match_repeat_factor=20):
+                 match_repeat_factor=1):
         self.root = root
         self.augmentation_prob = augmentation_prob
         self.M = match_repeat_factor
@@ -177,6 +177,7 @@ class LCTripletDataset(data.Dataset):
         for augment_idx in tqdm(augment_indices):
             cloud, location, timestamp = self.data[augment_idx]
             self.triplets.extend(self._generate_augmented_triplets(cloud, location, timestamp))
+        
         self.triplets_loaded = True
 
     # This loads the exhaustive set of triplets; should only be used on relatively small datasets

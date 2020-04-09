@@ -6,7 +6,7 @@ from scipy import spatial
 from tqdm import tqdm
 
 FOV = np.pi
-RADIUS = 3
+RADIUS = 5
 SAMPLE_RESOLUTION = 10
 
 def fix_angle(theta):

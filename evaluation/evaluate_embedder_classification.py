@@ -69,7 +69,7 @@ for i, data in tqdm(enumerate(dataloader, 0)):
     clouds = clouds.cuda()
     similar_clouds = similar_clouds.cuda()
     distant_clouds = distant_clouds.cuda()
-
+    
     for t in range(len(thresholds)):
         distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
         predictions = (distances < thresholds[t]).int()
@@ -104,6 +104,7 @@ plt.legend()
 plt.show()
 
 if opt.publish_triplets:
-    print("Writing triplets_{0}.npy".format(opt.dataset))
-    np.save('triplets_{0}'.format(opt.dataset), triplets)
-    np.save('confusions_{0}'.format(opt.dataset), confusions)
+    name = os.path.basename(opt.dataset)
+    print("Writing triplets_{0}.npy".format(name))
+    np.save('triplets_{0}'.format(name), triplets)
+    np.save('confusions_{0}'.format(name), confusions)

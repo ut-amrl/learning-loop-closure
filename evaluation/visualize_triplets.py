@@ -24,8 +24,9 @@ parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
 parser.add_argument('--embedding_model', type=str,
                     help='state dict of an already trained LC model to use')
+parser.add_argument('--map_name', type=str, help='name of map to render', default='GDC3')
 parser.add_argument('--only_error', type=bool, help='If True, only show triplets where the model failed', default=False)
-parser.add_argument('--threshold', type=int)
+parser.add_argument('--threshold', type=float)
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
@@ -84,6 +85,6 @@ for i in range(triplets.shape[0]):
         visualize_location(plt, similar_loc, 'green')
         visualize_location(plt, distant_loc, 'red')
 
-        draw_map(plt, '../../cobot/maps/GDC1/GDC1_vector.txt')
+        draw_map(plt, '../../cobot/maps/{0}/{0}_vector.txt'.format(args.map_name))
 
         plt.show()

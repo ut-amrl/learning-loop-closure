@@ -167,3 +167,5 @@ def update_metrics(metrics, predictions, labels):
             metrics[2] += 1 # False Positive
         elif label and not prediction:
             metrics[3] += 1 # False Negative
+        else:
+            raise Exception('This is bad')
