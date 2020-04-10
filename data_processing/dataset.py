@@ -65,9 +65,14 @@ class LCDataset(data.Dataset):
 class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
-                 split='train'):
+                 split='train',
+                 evaluation=False):
         self.root = root
-        self.augmentation_prob = data_config['AUGMENTATION_PROBABILITY']
+        if not evaluation:
+            self.augmentation_prob = data_config['AUGMENTATION_PROBABILITY']
+        else:
+            self.augmentation_prob = 0
+            
         self.M = data_config['MATCH_REPEAT_FACTOR']
         self.split = split
 

@@ -10,6 +10,12 @@ training_config = {
   'NUM_EPOCH': 30
 }
 
+evaluation_config = {
+  'THRESHOLD_MIN': 2,
+  'THRESHOLD_MAX': 12,
+  'EVALUATION_SET': 'val'
+}
+
 lidar_config = {
   'FOV': np.pi,
   'MAX_RANGE': 10,

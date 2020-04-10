@@ -21,11 +21,12 @@ def close_logging():
     log_file.close()
     log_file = None
 
-def load_dataset(root, split, distance_cache, exhaustive=False):
+def load_dataset(root, split, distance_cache, exhaustive=False, evaluation=False):
     print_output("Loading data into memory...", )
     dataset = LCTripletDataset(
         root=root,
-        split=split)
+        split=split,
+        evaluation=True)
     dataset.load_data()
     dataset.load_distances(distance_cache)
     if exhaustive:
