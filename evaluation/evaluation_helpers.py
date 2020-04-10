@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.collections import LineCollection
 
-FOV = np.pi
-RADIUS = 3
-
 def draw_map(plt, map_file):
     segments = []
     with open(map_file) as f:

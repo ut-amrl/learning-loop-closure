@@ -15,10 +15,8 @@ import pickle
 from data_processing_helpers import compute_overlap
 from ltf_segmentation.ltf_helpers import discretize_point_cloud
 
-CLOSE_DISTANCE_THRESHOLD = 2
-FAR_DISTANCE_THRESHOLD = 3
-OVERLAP_THRESHOLD = 0.8
-TIME_IGNORE_THRESHOLD = 0.5
+sys.path.append(os.path.join(os.getcwd(), '..'))
+from config import data_config
 class LCDataset(data.Dataset):
     def __init__(self,
                  root,
@@ -67,12 +65,10 @@ class LCDataset(data.Dataset):
 class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
-                 split='train',
-                 augmentation_prob=0.8,
-                 match_repeat_factor=1):
+                 split='train'):
         self.root = root
-        self.augmentation_prob = augmentation_prob
-        self.M = match_repeat_factor
+        self.augmentation_prob = data_config['AUGMENTATION_PROBABILITY']
+        self.M = data_config['MATCH_REPEAT_FACTOR']
         self.split = split
 
         info_file = os.path.join(self.root, 'dataset_info.json')
@@ -107,7 +103,7 @@ class LCTripletDataset(data.Dataset):
     def _create_triplet(self, cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp):
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
-        dist_neighbors = self.location_tree.query_ball_point(location[:2], FAR_DISTANCE_THRESHOLD)
+        dist_neighbors = self.location_tree.query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
         while idx in dist_neighbors:
             idx = random.randint(0, len(self.data) - 1)
         distant_cloud, distant_loc, distant_timestamp = self.data[idx]
@@ -120,7 +116,7 @@ class LCTripletDataset(data.Dataset):
     def _create_all_triplets(self, cloud, location, timestamp, similar_cloud, similar_loc, similar_timestamp):
         idx = random.randint(0, len(self.data) - 1)
         # We don't want anything that's even remotely nearby to count as "distant"
-        dist_neighbors = self.location_tree.query_ball_point(location[:2], FAR_DISTANCE_THRESHOLD)
+        dist_neighbors = self.location_tree.query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
         non_neighbors = np.setdiff1d(range(len(self.data)), dist_neighbors)
         return [(
             (cloud, location, timestamp),
@@ -138,7 +134,7 @@ class LCTripletDataset(data.Dataset):
         return triplets
 
     def _generate_triplets(self, cloud, location, timestamp):
-        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+        neighbors = self.location_tree.query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
         if len(filtered_neighbors) > 0:
             triplets = []
@@ -151,7 +147,7 @@ class LCTripletDataset(data.Dataset):
             return None
 
     def _generate_all_triplets(self, cloud, location, timestamp):
-        neighbors = self.location_tree.query_ball_point(location[:2], CLOSE_DISTANCE_THRESHOLD)
+        neighbors = self.location_tree.query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
         filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
 
         if len(filtered_neighbors) > 0:
@@ -214,11 +210,18 @@ class LCTripletDataset(data.Dataset):
         def _missing_augmented():
             indices = np.random.choice(range(len(cloud)), int(len(cloud) * 0.95))
             return np.pad(cloud[indices], ((0, len(cloud) - len(indices)), (0, 0)), 'constant')
+
+        def _translation_augmented():
+            shift = np.random.rand(2) * 5
+            augmented = np.zeros(cloud.shape).astype(np.float32)
+            augmented[:, :] = cloud[:, :] + shift
+            return augmented
         
         while len(neighbors) < self.M:
             neighbors.append(_rotation_augmented())
             neighbors.append(_roll_augmented())
             neighbors.append(_missing_augmented())
+            neighbors.append(_translation_augmented())
 
         return neighbors
 
@@ -230,7 +233,7 @@ class LCTripletDataset(data.Dataset):
     def time_filter(self, timestamp):
         def filter_checker(alt_idx):
             alt_timestamp = self.data[alt_idx][2]
-            return abs(float(timestamp) - float(alt_timestamp)) > TIME_IGNORE_THRESHOLD
+            return abs(float(timestamp) - float(alt_timestamp)) > data_config['TIME_IGNORE_THRESHOLD']
         
         return filter_checker
 
@@ -240,12 +243,12 @@ class LCTripletDataset(data.Dataset):
             alt_timestamp = self.data[alt_idx][2]
             key = (timestamp, alt_timestamp) if timestamp < alt_timestamp else (alt_timestamp, timestamp)
             if key in self.overlaps:
-                return self.overlaps[key] > OVERLAP_THRESHOLD
+                return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
             else:
                 overlap = compute_overlap(location, alt_loc)
                 self.computed_new_distances = True
                 self.overlaps[key] = overlap
-                return self.overlaps[key] > OVERLAP_THRESHOLD
+                return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
 
         return overlap_checker
 
@@ -277,17 +280,8 @@ class LCTripletDataset(data.Dataset):
 class LCTripletDiscretizedDataset(LCTripletDataset):
     def __init__(self,
                  root,
-                 split='train',
-                 augmentation_prob=0.5,
-                 jitter_augmentation=True,
-                 missing_augmentation=True,
-                 person_augmentation=False,
-                 order_augmentation=False):
-        super(LCTripletDiscretizedDataset, self).__init__(root, split, augmentation_prob,
-            jitter_augmentation,
-            missing_augmentation,
-            person_augmentation,
-            order_augmentation)
+                 split='train'):
+        super(LCTripletDiscretizedDataset, self).__init__(root, split)
     
     def load_data(self):
         # Use dataset_info to load data files

@@ -4,8 +4,6 @@ import argparse
 from sensor_msgs.msg import PointCloud2
 from helpers import draw_map, visualize_localizations_from_bag
 
-TIMESTEP = 1.5
-
 parser = argparse.ArgumentParser(
     description='Visualize the models classification for given inputs')
 parser.add_argument('--bag_file', type=str, help='the bag from which to pull the localizations')

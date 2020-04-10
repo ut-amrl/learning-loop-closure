@@ -34,8 +34,6 @@ scans = {}
 localizations = {}
 
 start_time = bag.get_start_time()
-SCAN_TIMESTEP = 0.1
-LOC_TIMESTEP = 0.15
 data_reader = LCBagDataReader(bag, args.lidar_topic, args.localization_topic, SCAN_TIMESTEP, LOC_TIMESTEP)
 
 model = create_embedder(args.model)

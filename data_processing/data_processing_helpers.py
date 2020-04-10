@@ -5,9 +5,11 @@ from rospy import rostime
 from scipy import spatial
 from tqdm import tqdm
 
-FOV = np.pi
-RADIUS = 5
-SAMPLE_RESOLUTION = 10
+
+import os
+import sys
+sys.path.append(os.path.join(os.getcwd(), '..'))
+from config import data_config, lidar_config
 
 def fix_angle(theta):
     if (theta < 0):
@@ -21,8 +23,8 @@ def test_point(loc, point):
     relative_point = point - center
     theta = fix_angle(np.arctan2(relative_point[1], relative_point[0]))
     orientation = fix_angle(loc[2])
-    start = fix_angle(orientation - FOV / 2)
-    end = fix_angle(orientation + FOV / 2)
+    start = fix_angle(orientation - lidar_config['FOV'] / 2)
+    end = fix_angle(orientation + lidar_config['FOV'] / 2)
 
     if start < end and (theta < start or theta > end):
         return False
@@ -30,16 +32,16 @@ def test_point(loc, point):
         return False
     
     distance = np.linalg.norm(relative_point)
-    if distance <= RADIUS:
+    if distance <= data_config['OVERLAP_RADIUS']:
         return True
     return False
 
 def get_test_points(location):
-    test_distances = np.linspace(0.25, RADIUS, num=SAMPLE_RESOLUTION)
+    test_distances = np.linspace(0.25, data_config['OVERLAP_RADIUS'], num=data_config['OVERLAP_SAMPLE_RESOLUTION'])
     orientation = fix_angle(location[2])
-    start = orientation - FOV / 2
-    end = orientation + FOV / 2
-    test_angles = np.linspace(start, end, num=SAMPLE_RESOLUTION)
+    start = orientation - lidar_config['FOV'] / 2
+    end = orientation + lidar_config['FOV'] / 2
+    test_angles = np.linspace(start, end, num=data_config['OVERLAP_SAMPLE_RESOLUTION'])
 
     return np.concatenate([
         [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances]  for angle in test_angles
@@ -88,7 +90,7 @@ def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
 
     return cloud
 
-def normalize_point_cloud(point_set, max_range, delete_axis=True):
+def normalize_point_cloud(point_set, max_range=lidar_config['MAX_RANGE'], delete_axis=True):
     point_set = point_set - \
         np.expand_dims(np.mean(point_set, axis=0), 0)  # center
     if delete_axis:

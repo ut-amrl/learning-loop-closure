@@ -14,8 +14,6 @@ sys.path.append(os.path.join(os.getcwd(), '..'))
 from helpers import create_classifier, create_embedder, get_predictions_for_model
 from data_processing.dataset import LCDataset
 
-TIMESTEP = 1.5
-
 parser = argparse.ArgumentParser(
     description='Visualize the models classification for given inputs')
 parser.add_argument('--dataset', type=str, help='the dataset from which to pull the triplet')

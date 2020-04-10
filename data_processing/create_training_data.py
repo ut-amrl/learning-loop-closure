@@ -2,25 +2,20 @@ import rosbag
 import argparse
 import numpy as np
 import os
+import sys
 import random
 import json
 from tqdm import tqdm
 from scipy import spatial
 from data_processing_helpers import scan_to_point_cloud, get_scans_and_localizations_from_bag
 
-TIME_SPACING = 0.001
-TRAIN_SPLIT = 0.15
-DEV_SPLIT = 0.8
-VAL_SPLIT = 1-DEV_SPLIT
+sys.path.append(os.path.join(os.getcwd(), '..'))
+from config import data_generation_config
 
 parser = argparse.ArgumentParser(
     description='Create some training data from ROS bags')
 parser.add_argument('--bag_file', type=str,
                     help='path to the bag file containing training data')
-parser.add_argument('--lidar_topic', type=str,
-                    help='name of topic containing lidar information')
-parser.add_argument('--localization_topic', type=str,
-                    help='name of topic containing localization information')
 parser.add_argument('--dataset_name', type=str,
                     help='defines the folder in which this generated data will be placed')
 parser.add_argument('--info_only', type=bool,
@@ -37,7 +32,7 @@ dataset_info = {
     'startTime': start_timestamp,
 }
 
-scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, args.lidar_topic, args.localization_topic, TIME_SPACING, TIME_SPACING)
+scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
 
 dataset_info['scanMetadata'] = metadata
 dataset_info['numScans'] = len(scans.keys())
@@ -78,8 +73,8 @@ print("Writing dataset information...", len(filenames))
 
 count = len(filenames)
 train_indices = random.sample(
-    list(range(count)), int(round(count * TRAIN_SPLIT)))
-dev_indices = random.sample(list(range(count)), int(round(count * DEV_SPLIT)))
+    list(range(count)), int(round(count * data_generation_config['TRAIN_SPLIT'])))
+dev_indices = random.sample(list(range(count)), int(round(count * data_generation_config['DEV_SPLIT'])))
 val_indices = set(range(count)) - set(dev_indices)
 
 dataset_info['train_data'] = [filenames[i] for i in train_indices]

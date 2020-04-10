@@ -8,8 +8,6 @@ from learning.dataset import LCDataset
 from helpers import visualize_cloud
 import random
 
-TIMESTEP = 1.5
-
 parser = argparse.ArgumentParser(
     description='Visualize the models classification for given inputs')
 parser.add_argument('--dataset', type=str, help='the dataset from which to pull the triplet')

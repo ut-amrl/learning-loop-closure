@@ -5,8 +5,6 @@ import argparse
 from learning.dataset import LCDataset
 from helpers import create_ros_pointcloud, publish_ros_pointcloud, visualize_location, visualize_cloud
 
-TIMESTEP = 1.5
-
 parser = argparse.ArgumentParser(
     description='Visualize the models classification for given inputs')
 parser.add_argument('--dataset', type=str, help='the dataset from which to pull the cloud')
