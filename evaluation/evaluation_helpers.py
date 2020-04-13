@@ -4,6 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.collections import LineCollection
 
+import sys
+import os
+sys.path.append(os.path.join(os.getcwd(), '..'))
+import helpers
+from helpers import initialize_logging, print_output
+from config import lidar_config, data_config
+
+
 def draw_map(plt, map_file):
     segments = []
     with open(map_file) as f:
@@ -18,7 +26,7 @@ def draw_map(plt, map_file):
 
 def visualize_location(plt, location, color='blue'):
     orientation = location[2]
-    arc_patch(location[:2], RADIUS, np.rad2deg(orientation - FOV/2), np.rad2deg(orientation + FOV/2), ax=plt.gca(), fill=False, color=color, zorder=1)
+    arc_patch(location[:2], data_config['OVERLAP_RADIUS'], np.rad2deg(orientation - lidar_config['FOV']/2), np.rad2deg(orientation + lidar_config['FOV']/2), ax=plt.gca(), fill=False, color=color, zorder=1)
     plt.gca().set_aspect('equal')
     plt.gca().autoscale()
 

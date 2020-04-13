@@ -13,7 +13,7 @@ training_config = {
 evaluation_config = {
   'THRESHOLD_MIN': 1,
   'THRESHOLD_MAX': 12,
-  'EVALUATION_SET': 'val'
+  'EVALUATION_SET': ''
 }
 
 lidar_config = {
