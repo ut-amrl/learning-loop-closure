@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from sensor_msgs.msg import PointCloud2, PointField
+from geometry_msgs.msg import Pose, PoseStamped
 from rospy import rostime
 from scipy import spatial
 from tqdm import tqdm
@@ -123,8 +124,19 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
             last_scan_time = timestamp
             scans[timestamp] = scan_to_point_cloud(msg)
         elif (topic == localization_topic and timestamp - last_localization_time > loc_timestep):
+            loc = []
+            if msg._type == PoseStamped._type:
+                msg = msg.pose
+                angle = np.arctan2(msg.orientation.y, msg.orientation.x)
+                loc = [msg.position.x, msg.position.y, angle]
+            elif msg._type == Pose._type:
+                angle = np.arctan2(msg.orientation.y, msg.orientation.x)
+                loc = [msg.position.x, msg.position.y, angle]
+            else:
+                loc = [msg.x, msg.y, msg.angle]
+                
             last_localization_time = timestamp
-            localizations[timestamp] = np.asarray([msg.x, msg.y, msg.angle])
+            localizations[timestamp] = np.asarray(loc)
     print ("Finished processing Bag file: {0} scans, {1} localizations".format(len(scans.keys()), len(localizations.keys())))
     return scans, localizations, metadata
 
