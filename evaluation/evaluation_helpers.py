@@ -3,13 +3,14 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.collections import LineCollection
-
+from tqdm import tqdm
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
 import helpers
 from helpers import initialize_logging, print_output
 from config import lidar_config, data_config
+from geometry_msgs.msg import Pose, PoseStamped
 
 
 def draw_map(plt, map_file):
@@ -66,7 +67,17 @@ def visualize_localizations_from_bag(plt, bag, localization_topic):
     print("End time:", bag.get_end_time())
 
     for topic, msg, t in tqdm(bag.read_messages(topics=[localization_topic])):
-        localizations.append([msg.x, msg.y, msg.angle])
+        loc = []
+        if msg._type == PoseStamped._type:
+            msg = msg.pose
+            angle = np.arctan2(msg.orientation.y, msg.orientation.x)
+            loc = [msg.position.x, msg.position.y, angle]
+        elif msg._type == Pose._type:
+            angle = np.arctan2(msg.orientation.y, msg.orientation.x)
+            loc = [msg.position.x, msg.position.y, angle]
+        else:
+            loc = [msg.x, msg.y, msg.angle]
+        localizations.append(loc)
 
     localization_xs = [l[0] for l in localizations]
     localization_ys = [l[1] for l in localizations]
