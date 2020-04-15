@@ -22,6 +22,7 @@ parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 parser.add_argument('--publish_triplets', type=bool, default=False, help="if included, publish evaluated triplets, as well as classification result.")
 parser.add_argument('--exhaustive', type=bool, default=False, help='Whether or not to check the exhaustive list of all triplets')
+parser.add_argument('--no_vis', action='store_true', help='when provided, dont visualize the PR curve')
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 initialize_logging(start_time, 'evaluate_')
@@ -86,17 +87,15 @@ for i in range(len(thresholds)):
     confusions[i] = [[threshold_metrics[0], threshold_metrics[2]], [threshold_metrics[3], threshold_metrics[1]]]
     print_output('(Acc: %f, Precision: %f, Recall: %f, F1: %f) for threshold %f' % (roc[i][0], roc[i][1], roc[i][2], roc[i][3], thresholds[i]))
 
-from matplotlib import pyplot as plt
-
-plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
-plt.xlim(0, 1)
-plt.ylim(0, 1)
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-
-plt.legend()
-
-plt.show()
+if not opt.no_vis:
+    from matplotlib import pyplot as plt
+    plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
+    plt.xlim(0, 1)
+    plt.ylim(0, 1)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.legend()
+    plt.show()
 
 if opt.publish_triplets:
     name = os.path.basename(opt.dataset)
