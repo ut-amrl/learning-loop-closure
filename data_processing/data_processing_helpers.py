@@ -6,11 +6,10 @@ from rospy import rostime
 from scipy import spatial
 from tqdm import tqdm
 
-
 import os
 import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from config import data_config, lidar_config
+from config import data_config, lidar_config, data_generation_config
 
 def fix_angle(theta):
     if (theta < 0):
@@ -67,38 +66,64 @@ def compute_overlap(loc_a, loc_b):
 
 def scan_to_point_cloud(scan, trim_edges=True, normalize=False):
     angle_offset = scan.angle_min
-    num_scans = len(scan.ranges) if not trim_edges else int((scan.angle_max - scan.angle_min - 2 * np.pi / 12.0) / scan.angle_increment)
-    cloud = np.zeros((num_scans, 3)).astype(np.float32)
-    
+    num_scans = len(scan.ranges) if not trim_edges else int((scan.angle_max - scan.angle_min - 2 * np.pi / 12.0) / scan.angle_increment) + 1
+    cloud = np.zeros((num_scans, 2)).astype(np.float32)
     point_idx = 0
     for idx,r in enumerate(scan.ranges):
         if trim_edges and (angle_offset < scan.angle_min + np.pi / 12.0 or angle_offset > scan.angle_max - np.pi / 12.0):
             pass #print("SKIPPING", idx)
-        elif r >= scan.range_min and r <= scan.range_max:
-            point = np.transpose(np.array([[r, 0]]))
-            cos, sin = np.cos(angle_offset), np.sin(angle_offset)
-            rotation = np.array([(cos, -sin), (sin, cos)])
-            point = np.matmul(rotation, point)
-            cloud[point_idx][0] = point[0]
-            cloud[point_idx][1] = point[1]
+        else:
+            if r >= scan.range_min and r <= scan.range_max:
+                point = np.array([r, 0])
+                cos, sin = np.cos(angle_offset), np.sin(angle_offset)
+                rotation = np.array([(cos, -sin), (sin, cos)])
+                point = np.matmul(rotation, point)
+                cloud[point_idx][0] = point[0]
+                cloud[point_idx][1] = point[1]
             point_idx += 1
         angle_offset += scan.angle_increment
 
     if normalize:
         cloud = normalize_point_cloud(cloud, scan.range_max)
-    else:
-        cloud = np.delete(cloud, 2, axis=1)
+    # else:
+    #     cloud = np.delete(cloud, 2, axis=1)
 
     return cloud
 
 def normalize_point_cloud(point_set, max_range=lidar_config['MAX_RANGE'], delete_axis=True):
     point_set = point_set - \
         np.expand_dims(np.mean(point_set, axis=0), 0)  # center
-    if delete_axis:
-        point_set = np.delete(point_set, 2, axis=1)
+    # if delete_axis:
+    #     point_set = np.delete(point_set, 2, axis=1)
     # normalize
     point_set = point_set / max_range  # scale
     return point_set
+
+def partition_point_cloud(point_set, threshold):
+    prev_pt = point_set[0]
+    partitions = []
+    curr_partition = []
+    for point in point_set:
+        if (np.linalg.norm(point - prev_pt) < threshold) and len(curr_partition) < data_generation_config['MAX_PARTITION_SIZE']:
+            curr_partition.append(point)
+        elif len(curr_partition) > 0:
+            partitions.append(curr_partition)
+            curr_partition = []
+        prev_pt = point
+
+    if len(curr_partition) > 0:
+        partitions.append(curr_partition)
+
+    lengths = [len(p) for p in partitions]
+
+    sorted_indices = np.argsort(lengths)[::-1][:data_generation_config['MAX_PARTITION_COUNT']] # Make sure we only retain the largest partitions
+    partition_array = np.zeros((data_generation_config['MAX_PARTITION_COUNT'], data_generation_config['MAX_PARTITION_SIZE'], 2)).astype(np.float32)
+    for i in range(data_generation_config['MAX_PARTITION_COUNT']):
+        if i in sorted_indices:
+            partition_array[i, 0:len(partitions[i]), :] = partitions[i]
+
+    import pdb; pdb.set_trace()
+    return partition_array
 
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
     localizations = {}

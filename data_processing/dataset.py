@@ -12,7 +12,7 @@ import math
 from tqdm import tqdm
 import json
 import pickle
-from data_processing_helpers import compute_overlap
+from data_processing_helpers import compute_overlap, partition_point_cloud
 from ltf_segmentation.ltf_helpers import discretize_point_cloud
 
 sys.path.append(os.path.join(os.getcwd(), '..'))
@@ -303,6 +303,26 @@ class LCTripletDiscretizedDataset(LCTripletDataset):
         self.location_tree = cKDTree(np.asarray([d[1][:2] for d in self.data]))
         self.data = np.array(self.data)
         self.data_loaded = True
+
+class LCTripletStructuredDataset(LCTripletDataset):
+    def __init__(self,
+                 root,
+                 split='train',
+                 threshold=0.5):
+        super(LCTripletStructuredDataset, self).__init__(root, split)
+        self.threshold = threshold        
+
+    def __getitem__(self, index):
+        if not self.triplets_loaded:
+            raise Exception('Call load_triplets before attempting to access elements')
+        
+        triplet = self.triplets[index]
+        return (
+            (partition_point_cloud(triplet[0][0], self.threshold), triplet[0][1], triplet[0][2]),
+            (partition_point_cloud(triplet[1][0], self.threshold), triplet[1][1], triplet[1][2]),
+            (partition_point_cloud(triplet[2][0], self.threshold), triplet[2][1], triplet[2][2])
+        )
+
 
 class LCCDataset(LCDataset):
     def __init__(self,
