@@ -9,6 +9,7 @@ learning/logs/*
 learning/embeddings/*
 learning/__pycache__/*
 __pycache__/*
+evaluation/precision_recall_curve.png
 **/*.pth
 **/*.pkl
 visualize_loop_closure/temp_pc_file.txt
