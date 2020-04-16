@@ -149,7 +149,7 @@ def get_model_type(model):
     if isinstance(model, torch.nn.DataParallel):
         model_to_check = model.module
     
-    if isinstance(model_to_check, EmbeddingNet):
+    if isinstance(model_to_check, EmbeddingNet) or isinstance(model_to_check, StructuredEmbeddingNet):
         return "embedder"
     elif isinstance(model_to_check, FullNet):
         return "full"
@@ -171,10 +171,15 @@ def get_distances_for_model(model, clouds, similar, distant):
     model_type = get_model_type(model)
 
     if model_type == 'embedder':
-        anchor_embeddings, _, _ = model(clouds)
-        similar_embeddings, _, _ = model(similar)
-        distant_embeddings, _, _ = model(distant)
-        
+        if isinstance(model, EmbeddingNet):
+            anchor_embeddings, _, _ = model(clouds)
+            similar_embeddings, _, _ = model(similar)
+            distant_embeddings, _, _ = model(distant)
+        elif isinstance(model, StructuredEmbeddingNet):
+            anchor_embeddings = model(clouds)
+            similar_embeddings = model(similar)
+            distant_embeddings = model(distant)
+
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
         
