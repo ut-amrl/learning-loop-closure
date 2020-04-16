@@ -122,7 +122,6 @@ def partition_point_cloud(point_set, threshold):
         if i in sorted_indices:
             partition_array[i, 0:len(partitions[i]), :] = partitions[i]
 
-    import pdb; pdb.set_trace()
     return partition_array
 
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
