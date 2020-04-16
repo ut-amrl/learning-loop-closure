@@ -12,6 +12,8 @@ import sys
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from config import data_config, lidar_config
 
+test_distances = np.linspace(0.25, data_config['OVERLAP_RADIUS'], num=data_config['OVERLAP_SAMPLE_RESOLUTION'])
+
 def fix_angle(theta):
     if (theta < 0):
         theta += np.pi * 2
@@ -38,15 +40,14 @@ def test_point(loc, point):
     return False
 
 def get_test_points(location):
-    test_distances = np.linspace(0.25, data_config['OVERLAP_RADIUS'], num=data_config['OVERLAP_SAMPLE_RESOLUTION'])
     orientation = fix_angle(location[2])
     start = orientation - lidar_config['FOV'] / 2
     end = orientation + lidar_config['FOV'] / 2
     test_angles = np.linspace(start, end, num=data_config['OVERLAP_SAMPLE_RESOLUTION'])
 
-    return np.concatenate([
-        [[location[0] + d * np.cos(angle), location[1] + d * np.sin(angle)] for d in test_distances]  for angle in test_angles
-    ])
+    return np.concatenate(
+        [[location[:2] + d * np.array([np.cos(angle), np.sin(angle)]) for d in test_distances]  for angle in test_angles]
+    )
 
 def compute_overlap(loc_a, loc_b):
     test_points = get_test_points(loc_a)
