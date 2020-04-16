@@ -1,13 +1,13 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 50,
-  'NUM_WORKERS': 8,
+  'BATCH_SIZE': 256,
+  'NUM_WORKERS': 24,
 }
 
 training_config = {
-  'TRAIN_SET': 'train',
-  'NUM_EPOCH': 30
+  'TRAIN_SET': 'dev',
+  'NUM_EPOCH': 90
 }
 
 evaluation_config = {
@@ -40,8 +40,8 @@ data_generation_config = {
   'VAL_SPLIT': 1 - DEV_SPLIT,
   'LIDAR_TOPIC': '/scan',
   'LOCALIZATION_TOPIC': '/simulator_true_pose',
-  'MAX_PARTITION_COUNT': 8,
-  'MAX_PARTITION_SIZE': 1000,
+  'MAX_PARTITION_COUNT': 10,
+  'MAX_PARTITION_SIZE': 1200,
 }
 
 visualization_config = {
