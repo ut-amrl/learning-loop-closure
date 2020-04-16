@@ -111,6 +111,20 @@ class FullNet(nn.Module):
 
         return out, (translation, theta)
 
+class StructuredEmbeddingNet(nn.Module):
+    def __init__(self, threshold=0.5, embedding=EmbeddingNet()):
+        super(StructuredEmbeddingNet, self).__init__()
+        self.embedding = embedding
+        self.lstm = torch.nn.LSTM(32, 32, batch_first=True)
+
+    def forward(self, x):
+        batch_size, partitions, partition_size, dims = x.shape
+        c_in = x.view(batch_size * partitions, dims, partition_size)
+        c_out = self.embedding(c_in)[0]
+        r_in = c_out.view(batch_size, partitions, 32)
+        _, (h_out, c_out) = self.lstm(r_in)
+        return h_out.squeeze()
+
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
         super(LCCNet, self).__init__()

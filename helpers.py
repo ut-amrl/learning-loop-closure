@@ -1,5 +1,5 @@
-from model import FullNet, EmbeddingNet, LCCNet, DistanceNet
-from data_processing.dataset import LCTripletDataset, LCCDataset
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet
+from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset
 import time
 import torch
 
@@ -20,6 +20,24 @@ def close_logging():
     global log_file
     log_file.close()
     log_file = None
+
+def load_structured_dataset(root, split, distance_cache, exhaustive=False, evaluation=False, threshold=0.5):
+    print_output("Loading data into memory...", )
+    dataset = LCTripletStructuredDataset(
+        root=root,
+        split=split,
+        threshold=threshold)
+    dataset.load_data()
+    dataset.load_distances(distance_cache)
+    if exhaustive:
+        dataset.load_all_triplets()
+    else:
+        dataset.load_triplets()
+
+    if dataset.computed_new_distances:
+        dataset.cache_distances()
+    print_output("Finished loading data.")
+    return dataset
 
 def load_dataset(root, split, distance_cache, exhaustive=False, evaluation=False):
     print_output("Loading data into memory...", )
@@ -47,6 +65,18 @@ def load_lcc_dataset(root, timestamps):
 
 def create_embedder(embedding_model=''):
     embedder = EmbeddingNet()
+    if embedding_model != '':
+        embedder.load_state_dict(torch.load(embedding_model))
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        embedder = torch.nn.DataParallel(embedder)
+
+    embedder.cuda()
+    return embedder
+
+def create_structured_embedder(embedding_model=''):
+    embedder = StructuredEmbeddingNet()
     if embedding_model != '':
         embedder.load_state_dict(torch.load(embedding_model))
     

@@ -44,6 +44,7 @@ class LTFDataset:
     zero_wt = 1.0 / (float(total_ct - nonzero_ct) /total_ct)
     self.class_weights = (zero_wt, nonzero_wt)
     print("class weights", self.class_weights)
+    self.class_weights = (1.0, 10.0)
     self.timestamps = sorted(list(timestamps))
 
   def __getitem__(self, index):

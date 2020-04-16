@@ -15,8 +15,6 @@ from helpers import initialize_logging, print_output
 from config import execution_config, evaluation_config
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    '--evaluation_set', type=str, default='dev', help='subset of the data to train on. One of [val, dev, train].')
 parser.add_argument('--dataset', type=str, required=True, help="dataset path")
 parser.add_argument('--model', type=str, default='', help='model to evaluate');
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')

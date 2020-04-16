@@ -9,14 +9,11 @@ import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from data_processing.data_processing_helpers import LCBagDataReader
 from evaluation.evaluation_helpers import visualize_cloud, visualize_location, draw_map
+from config import data_generation_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '--bag_file', type=str, required=True, help='bag file to walk through for evaluation scans')
-parser.add_argument(
-    '--localization_topic', type=str, default='/Cobot/Localization', help='localization topic')
-parser.add_argument(
-    '--lidar_topic', type=str, default='/Cobot/Laser', help='lidar topics')
 parser.add_argument(
     '--map_name', type=str, required=True, help='map over which bag file is walking')
 parser.add_argument(
@@ -33,7 +30,7 @@ dataset_info = {}
 bag = rosbag.Bag(args.bag_file)
 start_timestamp = bag.get_start_time()
 
-data_reader = LCBagDataReader(bag, args.lidar_topic, args.localization_topic)
+data_reader = LCBagDataReader(bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'])
 
 pairs = sorted(data_reader.get_scans().items(), lambda x, y: 1 if float(x[0]) > float(y[0]) else -1)
 
@@ -47,7 +44,7 @@ for timestamp, cloud in pairs[0::50]:
   plt.figure(2)
   plt.clf()
   draw_map(plt, map_file)
-  visualize_location(plt, loc, 'blue')
+  visualize_location(plt, loc, 'green')
 
   plt.show(block=False)
   accept = str(raw_input('Is this scan a keyframe? (y/n): '))
