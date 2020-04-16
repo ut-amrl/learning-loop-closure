@@ -85,15 +85,22 @@ for i in range(len(thresholds)):
     confusions[i] = [[threshold_metrics[0], threshold_metrics[2]], [threshold_metrics[3], threshold_metrics[1]]]
     print_output('(Acc: %f, Precision: %f, Recall: %f, F1: %f) for threshold %f' % (roc[i][0], roc[i][1], roc[i][2], roc[i][3], thresholds[i]))
 
+import matplotlib as mpl
+if opt.no_vis:
+    mpl.use('Agg')
+from matplotlib import pyplot as plt
+
+plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.legend()
+
 if not opt.no_vis:
-    from matplotlib import pyplot as plt
-    plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
-    plt.xlim(0, 1)
-    plt.ylim(0, 1)
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.legend()
     plt.show()
+else:
+    plt.savefig('precision_recall_curve.png')
 
 if opt.publish_triplets:
     name = os.path.basename(opt.dataset)
