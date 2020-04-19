@@ -1,12 +1,12 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 256,
-  'NUM_WORKERS': 24,
+  'BATCH_SIZE': 32,
+  'NUM_WORKERS': 4,
 }
 
 training_config = {
-  'TRAIN_SET': 'dev',
+  'TRAIN_SET': 'train',
   'NUM_EPOCH': 90
 }
 
@@ -28,7 +28,7 @@ data_config = {
   'FAR_DISTANCE_THRESHOLD': 3,
   'OVERLAP_SIMILARITY_THRESHOLD': 0.7,
   'TIME_IGNORE_THRESHOLD': 1,
-  'MATCH_REPEAT_FACTOR': 5,
+  'MATCH_REPEAT_FACTOR': 1,
   'AUGMENTATION_PROBABILITY': 0.8
 }
 
@@ -42,6 +42,7 @@ data_generation_config = {
   'LOCALIZATION_TOPIC': '/simulator_true_pose',
   'MAX_PARTITION_COUNT': 10,
   'MAX_PARTITION_SIZE': 1200,
+  'MIN_PARTITION_SIZE': 50
 }
 
 visualization_config = {
