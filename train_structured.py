@@ -54,11 +54,6 @@ torch.manual_seed(opt.manualSeed)
 
 dataset = helpers.load_structured_dataset(opt.dataset, training_config['TRAIN_SET'], opt.distance_cache, opt.exhaustive)
 
-
-from data_processing import data_processing_helpers
-data_processing_helpers.partition_point_cloud(dataset.triplets[0][0][0], 0.5)
-import pdb; pdb.set_trace()
-
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
 
 try:

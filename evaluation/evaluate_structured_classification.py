@@ -48,7 +48,7 @@ pos_labels = torch.tensor(np.ones((execution_config['BATCH_SIZE'], 1)).astype(np
 neg_labels = torch.tensor(np.zeros((execution_config['BATCH_SIZE'], 1)).astype(np.long)).squeeze(1)
 labels = torch.cat([pos_labels, neg_labels], dim=0).cuda()
 
-thresholds = np.linspace(evaluation_config['THRESHOLD_MIN'], evaluation_config['THRESHOLD_MAX'], (evaluation_config['THRESHOLD_MAX'] - evaluation_config['THRESHOLD_MIN']) * 2 + 1)
+thresholds = np.linspace(evaluation_config['THRESHOLD_MIN'], evaluation_config['THRESHOLD_MAX'], (evaluation_config['THRESHOLD_MAX'] - evaluation_config['THRESHOLD_MIN']) * 4 + 1)
 
 metrics = np.zeros((len(thresholds), 4)) # True Positive, True Negative, False Positive, False Negative
 
