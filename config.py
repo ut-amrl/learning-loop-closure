@@ -1,12 +1,14 @@
 import numpy as np
 
 execution_config = {
+<<<<<<< HEAD
   'BATCH_SIZE': 512,
   'NUM_WORKERS': 24,
 }
 
 training_config = {
-  'TRAIN_SET': 'dev',
+  'TRAIN_SET': 'train',
+  'VALIDATION_SET': 'val',
   'NUM_EPOCH': 90
 }
 
@@ -42,6 +44,7 @@ data_generation_config = {
   'LOCALIZATION_TOPIC': '/Cobot/Localization',
   'MAX_PARTITION_COUNT': 10,
   'MAX_PARTITION_SIZE': 1200,
+  'MIN_PARTITION_SIZE': 50
 }
 
 visualization_config = {

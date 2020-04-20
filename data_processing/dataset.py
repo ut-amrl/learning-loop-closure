@@ -323,7 +323,6 @@ class LCTripletStructuredDataset(LCTripletDataset):
             (partition_point_cloud(triplet[2][0], self.threshold), triplet[2][1], triplet[2][2])
         )
 
-
 class LCCDataset(LCDataset):
     def __init__(self,
                  root,

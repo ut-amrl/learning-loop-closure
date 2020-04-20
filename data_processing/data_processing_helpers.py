@@ -107,12 +107,14 @@ def partition_point_cloud(point_set, threshold):
     for point in point_set:
         if (np.linalg.norm(point - prev_pt) < threshold) and len(curr_partition) < data_generation_config['MAX_PARTITION_SIZE']:
             curr_partition.append(point)
-        elif len(curr_partition) > 0:
+        elif len(curr_partition) > data_generation_config['MIN_PARTITION_SIZE']:
             partitions.append(curr_partition)
+            curr_partition = []
+        else:
             curr_partition = []
         prev_pt = point
 
-    if len(curr_partition) > 0:
+    if len(curr_partition) > data_generation_config['MIN_PARTITION_SIZE']:
         partitions.append(curr_partition)
 
     lengths = [len(p) for p in partitions]
@@ -122,6 +124,20 @@ def partition_point_cloud(point_set, threshold):
     for i in range(data_generation_config['MAX_PARTITION_COUNT']):
         if i in sorted_indices:
             partition_array[i, 0:len(partitions[i]), :] = partitions[i]
+
+    # from matplotlib import pyplot as plt
+    # import random
+    # plt.figure()
+    # plt.scatter(point_set[:, 0], point_set[:, 1])
+
+    # plt.figure()
+    # for partition in partition_array:
+    #     if len(partition.nonzero()[0]):
+    #         color = (random.random(), random.random(), random.random())
+    #         plt.scatter(partition[:, 0], partition[:, 1], color=color)  
+    
+    # plt.show()
+    # import pdb; pdb.set_trace()
 
     return partition_array
 
