@@ -171,11 +171,14 @@ def get_distances_for_model(model, clouds, similar, distant):
     model_type = get_model_type(model)
 
     if model_type == 'embedder':
-        if isinstance(model, EmbeddingNet):
+        if isinstance(model, torch.nn.DataParallel):
+            model_to_check = model.module
+
+        if isinstance(model_to_check, EmbeddingNet):
             anchor_embeddings, _, _ = model(clouds)
             similar_embeddings, _, _ = model(similar)
             distant_embeddings, _, _ = model(distant)
-        elif isinstance(model, StructuredEmbeddingNet):
+        elif isinstance(model_to_check, StructuredEmbeddingNet):
             anchor_embeddings = model(clouds)
             similar_embeddings = model(similar)
             distant_embeddings = model(distant)

@@ -52,16 +52,18 @@ class TransformNet(nn.Module):
         transformed = rotated + translations
         return transformed, translation, theta
 
+EMBEDDING_SIZE = 32
+
 class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
-        self.conv1 = torch.nn.Conv1d(2, 32, 5, 1)
-        self.conv2 = torch.nn.Conv1d(32, 32, 3, 1)
-        self.conv3 = torch.nn.Conv1d(32, 32, 1)
+        self.conv1 = torch.nn.Conv1d(2, EMBEDDING_SIZE, 5, 1)
+        self.conv2 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 3, 1)
+        self.conv3 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 1)
         self.dropout = nn.Dropout(0.25)
-        self.bn1 = nn.BatchNorm1d(32)
-        self.bn2 = nn.BatchNorm1d(32)
-        self.bn3 = nn.BatchNorm1d(32)        
+        self.bn1 = nn.BatchNorm1d(EMBEDDING_SIZE)
+        self.bn2 = nn.BatchNorm1d(EMBEDDING_SIZE)
+        self.bn3 = nn.BatchNorm1d(EMBEDDING_SIZE)        
 
     def forward(self, x):
         x = self.bn1(self.conv1(x))
@@ -116,13 +118,14 @@ class StructuredEmbeddingNet(nn.Module):
         super(StructuredEmbeddingNet, self).__init__()
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
-        # self.lstm = torch.nn.LSTM(32, 32, batch_first=True)
+        # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
 
     def forward(self, x):
         batch_size, partitions, partition_size, dims = x.shape
         c_in = x.view(batch_size * partitions, dims, partition_size)
         c_out = self.embedding(c_in)[0]
-        r_in = c_out.view(batch_size, partitions, 32)
+        r_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
+        # self.lstm.flatten_parameters()
         # _, (h_out, c_out) = self.lstm(r_in)
         h_out = torch.mean(r_in, dim=1)
         return h_out.squeeze()

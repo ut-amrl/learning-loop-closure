@@ -1,8 +1,8 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 32,
-  'NUM_WORKERS': 4,
+  'BATCH_SIZE': 512,
+  'NUM_WORKERS': 24,
 }
 
 training_config = {
@@ -12,9 +12,9 @@ training_config = {
 }
 
 evaluation_config = {
-  'THRESHOLD_MIN': 1,
-  'THRESHOLD_MAX': 12,
-  'EVALUATION_SET': 'val'
+  'THRESHOLD_MIN': 0,
+  'THRESHOLD_MAX': 4,
+  'EVALUATION_SET': 'dev'
 }
 
 lidar_config = {
@@ -29,7 +29,7 @@ data_config = {
   'FAR_DISTANCE_THRESHOLD': 3,
   'OVERLAP_SIMILARITY_THRESHOLD': 0.7,
   'TIME_IGNORE_THRESHOLD': 1,
-  'MATCH_REPEAT_FACTOR': 1,
+  'MATCH_REPEAT_FACTOR': 15,
   'AUGMENTATION_PROBABILITY': 0.8
 }
 
@@ -39,8 +39,8 @@ data_generation_config = {
   'TRAIN_SPLIT': 0.15,
   'DEV_SPLIT': DEV_SPLIT,
   'VAL_SPLIT': 1 - DEV_SPLIT,
-  'LIDAR_TOPIC': '/scan',
-  'LOCALIZATION_TOPIC': '/simulator_true_pose',
+  'LIDAR_TOPIC': '/Cobot/Laser',
+  'LOCALIZATION_TOPIC': '/Cobot/Localization',
   'MAX_PARTITION_COUNT': 10,
   'MAX_PARTITION_SIZE': 1200,
   'MIN_PARTITION_SIZE': 50
