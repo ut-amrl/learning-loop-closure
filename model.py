@@ -116,14 +116,15 @@ class StructuredEmbeddingNet(nn.Module):
         super(StructuredEmbeddingNet, self).__init__()
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
-        self.lstm = torch.nn.LSTM(32, 32, batch_first=True)
+        # self.lstm = torch.nn.LSTM(32, 32, batch_first=True)
 
     def forward(self, x):
         batch_size, partitions, partition_size, dims = x.shape
         c_in = x.view(batch_size * partitions, dims, partition_size)
         c_out = self.embedding(c_in)[0]
         r_in = c_out.view(batch_size, partitions, 32)
-        _, (h_out, c_out) = self.lstm(r_in)
+        # _, (h_out, c_out) = self.lstm(r_in)
+        h_out = torch.mean(r_in, dim=1)
         return h_out.squeeze()
 
 class LCCNet(nn.Module):

@@ -148,7 +148,7 @@ for epoch in range(training_config['NUM_EPOCH']):
 
 
     if epoch % 5 == 0:
-        val_metrics = []
+        val_metrics = np.zeros(4)
         val_dataloader = torch.utils.data.DataLoader(
             validation_set,
             batch_size=execution_config['BATCH_SIZE'],
