@@ -7,6 +7,7 @@ execution_config = {
 
 training_config = {
   'TRAIN_SET': 'train',
+  'VALIDATION_SET': 'val',
   'NUM_EPOCH': 90
 }
 

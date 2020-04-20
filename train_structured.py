@@ -54,6 +54,8 @@ torch.manual_seed(opt.manualSeed)
 
 dataset = helpers.load_structured_dataset(opt.dataset, training_config['TRAIN_SET'], opt.distance_cache, opt.exhaustive)
 
+validation_set = helpers.load_structured_dataset(opt.dataset, training_config['VALIDATION_SET'], opt.distance_cache, opt.exhaustive)
+
 from data_processing import data_processing_helpers
 data_processing_helpers.partition_point_cloud(dataset.triplets[0][0][0], 0.5)
 import pdb; pdb.set_trace()
@@ -76,6 +78,8 @@ print_output("Press 'return' at any time to finish training after the current ep
 pos_labels = torch.tensor(np.ones((execution_config['BATCH_SIZE'] * data_config['MATCH_REPEAT_FACTOR'], 1)).astype(np.long)).squeeze(1).cuda()
 neg_labels = torch.tensor(np.zeros((execution_config['BATCH_SIZE'] * data_config['MATCH_REPEAT_FACTOR'], 1)).astype(np.long)).squeeze(1).cuda()
 labels = torch.cat([pos_labels, neg_labels], dim=0)
+
+THRESHOLD = 3
 
 for epoch in range(training_config['NUM_EPOCH']):
     total_loss = 0
@@ -115,8 +119,8 @@ for epoch in range(training_config['NUM_EPOCH']):
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
  
-        anchor_matches = (distance_pos < 3).int()
-        distant_matches = (distance_neg < 3).int()
+        anchor_matches = (distance_pos < THRESHOLD).int()
+        distant_matches = (distance_neg < THRESHOLD).int()
 
         update_metrics(metrics, torch.cat((anchor_matches, distant_matches)), labels)
 
@@ -129,7 +133,7 @@ for epoch in range(training_config['NUM_EPOCH']):
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
-    import pdb; pdb.set_trace()
+
     avg_similar_dist = total_similar_dist / (batch_count * execution_config['BATCH_SIZE'])
     avg_distant_dist = total_distant_dist / (batch_count * execution_config['BATCH_SIZE'])
 
@@ -141,6 +145,33 @@ for epoch in range(training_config['NUM_EPOCH']):
     recall = (metrics[0]) / (metrics[0] + metrics[3])
     f1 = 2 * precision * recall / (precision + recall)
     print_output('Metrics: Acc {0}, Prec {1}, Recall {2}, F1 {3}'.format(acc, precision, recall, f1))
+
+
+    if epoch % 5 == 0:
+        val_metrics = []
+        val_dataloader = torch.utils.data.DataLoader(
+            validation_set,
+            batch_size=execution_config['BATCH_SIZE'],
+            shuffle=True,
+            num_workers=num_workers,
+            drop_last=True)
+
+
+        for i, data in tqdm(enumerate(val_dataloader, 0)):
+            ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
+
+            clouds = clouds.cuda()
+            similar_clouds = similar_clouds.cuda()
+            distant_clouds = distant_clouds.cuda()
+            
+            distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
+            predictions = (distances < THRESHOLD).int()
+            helpers.update_metrics(val_metrics, predictions, labels)
+        val_acc = (val_metrics[0] + val_metrics[1]) / sum(val_metrics)
+        val_precision = (val_metrics[0]) / (val_metrics[0] + val_metrics[2])
+        val_recall = (val_metrics[0]) / (val_metrics[0] + val_metrics[3])
+        val_f1 = 2 * val_precision * val_recall / (val_precision + val_recall)
+        print_output('Validation Metrics: val_acc {0}, Prec {1}, val_recall {2}, val_f1 {3}'.format(val_acc, val_precision, val_recall, val_f1))
 
     helpers.save_model(embedder, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
