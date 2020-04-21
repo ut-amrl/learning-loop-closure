@@ -1,8 +1,8 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 512,
-  'NUM_WORKERS': 24,
+  'BATCH_SIZE': 40,
+  'NUM_WORKERS': 8,
 }
 
 training_config = {
@@ -14,7 +14,7 @@ training_config = {
 evaluation_config = {
   'THRESHOLD_MIN': 0,
   'THRESHOLD_MAX': 4,
-  'EVALUATION_SET': 'dev'
+  'EVALUATION_SET': 'val'
 }
 
 lidar_config = {
@@ -29,7 +29,7 @@ data_config = {
   'FAR_DISTANCE_THRESHOLD': 3,
   'OVERLAP_SIMILARITY_THRESHOLD': 0.7,
   'TIME_IGNORE_THRESHOLD': 1,
-  'MATCH_REPEAT_FACTOR': 15,
+  'MATCH_REPEAT_FACTOR': 1,
   'AUGMENTATION_PROBABILITY': 0.8
 }
 

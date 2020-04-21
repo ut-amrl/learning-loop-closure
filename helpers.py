@@ -171,6 +171,7 @@ def get_distances_for_model(model, clouds, similar, distant):
     model_type = get_model_type(model)
 
     if model_type == 'embedder':
+        model_to_check = model
         if isinstance(model, torch.nn.DataParallel):
             model_to_check = model.module
 

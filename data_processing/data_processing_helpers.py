@@ -120,24 +120,30 @@ def partition_point_cloud(point_set, threshold):
     lengths = [len(p) for p in partitions]
 
     sorted_indices = np.argsort(lengths)[::-1][:data_generation_config['MAX_PARTITION_COUNT']] # Make sure we only retain the largest partitions
-    partition_array = np.zeros((data_generation_config['MAX_PARTITION_COUNT'], data_generation_config['MAX_PARTITION_SIZE'], 2)).astype(np.float32)
+    partition_array = np.zeros((data_generation_config['MAX_PARTITION_COUNT'], data_generation_config['MAX_PARTITION_SIZE'] + 1, 2)).astype(np.float32)
     for i in range(data_generation_config['MAX_PARTITION_COUNT']):
         if i in sorted_indices:
-            partition_array[i, 0:len(partitions[i]), :] = partitions[i]
+            center = np.mean(partitions[i], axis=0)
+            centered_partition = np.array(partitions[i]) - center
+            partition_array[i, 0:len(partitions[i]), :] = centered_partition
+            partition_array[i, data_generation_config['MAX_PARTITION_SIZE']:data_generation_config['MAX_PARTITION_SIZE']+1, :] = center
 
     # from matplotlib import pyplot as plt
     # import random
     # plt.figure()
     # plt.scatter(point_set[:, 0], point_set[:, 1])
-
+    # lower_bound = min(np.min(point_set[:, 0]), np.min(point_set[:, 1]))
+    # upper_bound = max(np.max(point_set[:, 0]), np.max(point_set[:, 1]))
+    # plt.xlim(lower_bound, upper_bound)
+    # plt.ylim(lower_bound, upper_bound)
     # plt.figure()
+    # plt.xlim(lower_bound, upper_bound)
+    # plt.ylim(lower_bound, upper_bound)
     # for partition in partition_array:
     #     if len(partition.nonzero()[0]):
     #         color = (random.random(), random.random(), random.random())
-    #         plt.scatter(partition[:, 0], partition[:, 1], color=color)  
-    
+    #         plt.scatter(partition[:, 0], partition[:, 1], color=color)
     # plt.show()
-    # import pdb; pdb.set_trace()
 
     return partition_array
 

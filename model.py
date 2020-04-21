@@ -3,6 +3,11 @@ import math
 from torch import nn
 import torch.nn.functional as F
 
+import os
+import sys
+sys.path.append(os.path.join(os.getcwd(), '..'))
+from config import data_generation_config
+
 # Predicts a 3-length vector [0:2] are x,y translation
 # [2] is theta
 class TransformPredictionNetwork(nn.Module):
@@ -119,16 +124,23 @@ class StructuredEmbeddingNet(nn.Module):
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
         # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
+        self.ff = torch.nn.Linear((EMBEDDING_SIZE+2) * data_generation_config['MAX_PARTITION_COUNT'], EMBEDDING_SIZE)
+
 
     def forward(self, x):
-        batch_size, partitions, partition_size, dims = x.shape
-        c_in = x.view(batch_size * partitions, dims, partition_size)
+        batch_size, partitions, partition_and_center_size, dims = x.shape
+        partition_size = partition_and_center_size - 1
+        centers = x[:, :, partition_size:, :].squeeze()
+        c_in = x[:batch_size, :partitions, :partition_size, :dims].view(batch_size * partitions, dims, partition_size)
         c_out = self.embedding(c_in)[0]
         r_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
+        # BATCH_SIZE X PARTITION_COUNT X EMBEDDING_SIZE + 2 (last 2 are the "center")
+        spatial = torch.cat((r_in, centers), dim=2)
+        l_in = spatial.view(batch_size, partitions*(EMBEDDING_SIZE + 2))
+        l_out = self.ff(l_in)
         # self.lstm.flatten_parameters()
         # _, (h_out, c_out) = self.lstm(r_in)
-        h_out = torch.mean(r_in, dim=1)
-        return h_out.squeeze()
+        return l_out
 
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):

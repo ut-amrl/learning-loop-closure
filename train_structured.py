@@ -54,6 +54,10 @@ torch.manual_seed(opt.manualSeed)
 
 dataset = helpers.load_structured_dataset(opt.dataset, training_config['TRAIN_SET'], opt.distance_cache, opt.exhaustive)
 
+dataset[200]
+dataset[120]
+dataset[375]
+
 validation_set = helpers.load_structured_dataset(opt.dataset, training_config['VALIDATION_SET'], opt.distance_cache, opt.exhaustive)
 
 out_dir = opt.outf + '_' + dataset.dataset_info['name'] + '_' + dataset.split
