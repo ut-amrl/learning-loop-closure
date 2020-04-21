@@ -58,7 +58,6 @@ class TransformNet(nn.Module):
         return transformed, translation, theta
 
 EMBEDDING_SIZE = 32
-
 class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
@@ -71,9 +70,9 @@ class EmbeddingNet(nn.Module):
         self.bn3 = nn.BatchNorm1d(EMBEDDING_SIZE)        
 
     def forward(self, x):
-        x = self.bn1(self.conv1(x))
-        x = self.bn2(self.conv2(x))
-        x = self.bn3(self.conv3(x))
+        x = self.bn1(F.relu(self.conv1(x)))
+        x = self.bn2(F.relu(self.conv2(x)))
+        x = self.bn3(F.relu(self.conv3(x)))
         x = F.max_pool1d(x, x.shape[2])
         x = self.dropout(x)
         return x, None, None
@@ -124,7 +123,6 @@ class StructuredEmbeddingNet(nn.Module):
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
         # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
-        self.ff = torch.nn.Linear((EMBEDDING_SIZE+2) * data_generation_config['MAX_PARTITION_COUNT'], EMBEDDING_SIZE)
 
 
     def forward(self, x):
@@ -134,13 +132,12 @@ class StructuredEmbeddingNet(nn.Module):
         c_in = x[:batch_size, :partitions, :partition_size, :dims].view(batch_size * partitions, dims, partition_size)
         c_out = self.embedding(c_in)[0]
         r_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
+        import pdb; pdb.set_trace()
         # BATCH_SIZE X PARTITION_COUNT X EMBEDDING_SIZE + 2 (last 2 are the "center")
         spatial = torch.cat((r_in, centers), dim=2)
-        l_in = spatial.view(batch_size, partitions*(EMBEDDING_SIZE + 2))
-        l_out = self.ff(l_in)
         # self.lstm.flatten_parameters()
         # _, (h_out, c_out) = self.lstm(r_in)
-        return l_out
+        return mp_out
 
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
