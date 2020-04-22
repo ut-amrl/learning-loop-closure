@@ -13,7 +13,7 @@ training_config = {
 
 evaluation_config = {
   'THRESHOLD_MIN': 0,
-  'THRESHOLD_MAX': 4,
+  'THRESHOLD_MAX': 16,
   'EVALUATION_SET': 'val'
 }
 

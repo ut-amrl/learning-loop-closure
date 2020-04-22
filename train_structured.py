@@ -96,6 +96,7 @@ for epoch in range(training_config['NUM_EPOCH']):
         batch_size=execution_config['BATCH_SIZE'],
         shuffle=True,
         num_workers=num_workers,
+        pin_memory=True,
         drop_last=True)
 
     total_similar_dist = 0.0
@@ -103,7 +104,7 @@ for epoch in range(training_config['NUM_EPOCH']):
     metrics = torch.zeros(4)
 
     for i, data in tqdm(enumerate(dataloader, 0)):
-        ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
+        (((clouds, length), locations, _), ((similar_clouds, similar_length), similar_locs, _), ((distant_clouds, distant_length), distant_locs, _)) = data
         
         clouds = clouds.cuda()
         similar_clouds = similar_clouds.cuda()
@@ -112,9 +113,9 @@ for epoch in range(training_config['NUM_EPOCH']):
         optimizer.zero_grad()
         embedder.zero_grad()
 
-        anchor_embeddings = embedder(clouds)
-        similar_embeddings = embedder(similar_clouds)
-        distant_embeddings = embedder(distant_clouds)
+        anchor_embeddings = embedder(clouds, length)
+        similar_embeddings = embedder(similar_clouds, similar_length)
+        distant_embeddings = embedder(distant_clouds, distant_length)
 
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
@@ -148,30 +149,32 @@ for epoch in range(training_config['NUM_EPOCH']):
 
 
     if epoch % 5 == 0:
-        val_metrics = np.zeros(4)
-        val_dataloader = torch.utils.data.DataLoader(
-            validation_set,
-            batch_size=execution_config['BATCH_SIZE'],
-            shuffle=True,
-            num_workers=num_workers,
-            drop_last=True)
+        with torch.no_grad():
+            val_metrics = np.zeros(4)
+            val_dataloader = torch.utils.data.DataLoader(
+                validation_set,
+                batch_size=execution_config['BATCH_SIZE'],
+                shuffle=True,
+                num_workers=num_workers,
+                pin_memory=True,
+                drop_last=True)
 
 
-        for i, data in tqdm(enumerate(val_dataloader, 0)):
-            ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
+            for i, data in tqdm(enumerate(val_dataloader, 0)):
+                ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
 
-            clouds = clouds.cuda()
-            similar_clouds = similar_clouds.cuda()
-            distant_clouds = distant_clouds.cuda()
-            
-            distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
-            predictions = (distances < THRESHOLD).int()
-            helpers.update_metrics(val_metrics, predictions, labels)
-        val_acc = (val_metrics[0] + val_metrics[1]) / sum(val_metrics)
-        val_precision = (val_metrics[0]) / (val_metrics[0] + val_metrics[2])
-        val_recall = (val_metrics[0]) / (val_metrics[0] + val_metrics[3])
-        val_f1 = 2 * val_precision * val_recall / (val_precision + val_recall)
-        print_output('Validation Metrics: val_acc {0}, Prec {1}, val_recall {2}, val_f1 {3}'.format(val_acc, val_precision, val_recall, val_f1))
+                clouds[0] = clouds[0].cuda()
+                similar_clouds[0] = similar_clouds[0].cuda()
+                distant_clouds[0] = distant_clouds[0].cuda()
+                
+                distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
+                predictions = (distances < THRESHOLD).int()
+                helpers.update_metrics(val_metrics, predictions, labels)
+            val_acc = (val_metrics[0] + val_metrics[1]) / sum(val_metrics)
+            val_precision = (val_metrics[0]) / (val_metrics[0] + val_metrics[2])
+            val_recall = (val_metrics[0]) / (val_metrics[0] + val_metrics[3])
+            val_f1 = 2 * val_precision * val_recall / (val_precision + val_recall)
+            print_output('Validation Metrics: val_acc {0}, Prec {1}, val_recall {2}, val_f1 {3}'.format(val_acc, val_precision, val_recall, val_f1))
 
     helpers.save_model(embedder, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):

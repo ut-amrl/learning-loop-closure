@@ -118,6 +118,7 @@ def partition_point_cloud(point_set, threshold):
         partitions.append(curr_partition)
 
     lengths = [len(p) for p in partitions]
+    length = len(partitions)
 
     sorted_indices = np.argsort(lengths)[::-1][:data_generation_config['MAX_PARTITION_COUNT']] # Make sure we only retain the largest partitions
     partition_array = np.zeros((data_generation_config['MAX_PARTITION_COUNT'], data_generation_config['MAX_PARTITION_SIZE'] + 1, 2)).astype(np.float32)
@@ -145,7 +146,7 @@ def partition_point_cloud(point_set, threshold):
     #         plt.scatter(partition[:, 0], partition[:, 1], color=color)
     # plt.show()
 
-    return partition_array
+    return partition_array, length
 
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
     localizations = {}

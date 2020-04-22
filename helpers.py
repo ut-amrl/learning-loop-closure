@@ -180,9 +180,9 @@ def get_distances_for_model(model, clouds, similar, distant):
             similar_embeddings, _, _ = model(similar)
             distant_embeddings, _, _ = model(distant)
         elif isinstance(model_to_check, StructuredEmbeddingNet):
-            anchor_embeddings = model(clouds)
-            similar_embeddings = model(similar)
-            distant_embeddings = model(distant)
+            anchor_embeddings = model(clouds[0], clouds[1])
+            similar_embeddings = model(similar[0], similar[1])
+            distant_embeddings = model(distant[0], distant[1])
 
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)

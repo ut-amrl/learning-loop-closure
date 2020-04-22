@@ -123,21 +123,49 @@ class StructuredEmbeddingNet(nn.Module):
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
         # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
+        self.att_weights = torch.nn.Parameter(torch.Tensor(1, EMBEDDING_SIZE),
+                                     requires_grad=True)
 
+        torch.nn.init.xavier_uniform_(self.att_weights.data)
 
-    def forward(self, x):
+    def forward(self, x, l):
         batch_size, partitions, partition_and_center_size, dims = x.shape
         partition_size = partition_and_center_size - 1
         centers = x[:, :, partition_size:, :].squeeze()
         c_in = x[:batch_size, :partitions, :partition_size, :dims].view(batch_size * partitions, dims, partition_size)
         c_out = self.embedding(c_in)[0]
         r_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
-        import pdb; pdb.set_trace()
+
+        weights = torch.bmm(r_in,
+            self.att_weights  # (1, hidden_size)
+            .permute(1, 0)  # (hidden_size, 1)
+            .unsqueeze(0)  # (1, hidden_size, 1)
+            .repeat(batch_size, 1, 1) # (batch_size, hidden_size, 1)
+            )
+
+        attentions = F.softmax(F.relu(weights.squeeze()))
+        # create mask based on the sentence lengths
+        mask = torch.autograd.Variable(torch.ones(attentions.size())).cuda()
+        for i, l in enumerate(l):
+            if l < partition_and_center_size - 2:
+                mask[i, l:] = 0
+
+         # apply mask and renormalize attention scores (weights)
+        masked = attentions * mask
+        _sums = masked.sum(-1).unsqueeze(1).expand_as(masked)  # sums per row
+        attentions = masked.div(_sums)
+            
+        # apply weights
+        weighted = torch.mul(r_in, attentions.unsqueeze(-1).expand_as(r_in))
+
+        # get the final fixed vector representations of the sentences
+        representations = weighted.sum(1).squeeze()
+        return representations
         # BATCH_SIZE X PARTITION_COUNT X EMBEDDING_SIZE + 2 (last 2 are the "center")
-        spatial = torch.cat((r_in, centers), dim=2)
+        # spatial = torch.cat((r_in, centers), dim=2)
         # self.lstm.flatten_parameters()
         # _, (h_out, c_out) = self.lstm(r_in)
-        return mp_out
+        # return mp_out
 
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):
