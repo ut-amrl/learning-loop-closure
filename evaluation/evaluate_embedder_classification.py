@@ -33,9 +33,9 @@ print_output("Random Seed: ", opt.manualSeed)
 random.seed(opt.manualSeed)
 torch.manual_seed(opt.manualSeed)
 
-embedder = helpers.create_structured_embedder(opt.model)
+embedder = helpers.create_embedder(opt.model)
 embedder.eval()
-dataset = helpers.load_structured_dataset(opt.dataset, evaluation_config['EVALUATION_SET'], opt.distance_cache, opt.exhaustive, True)
+dataset = helpers.load_dataset(opt.dataset, evaluation_config['EVALUATION_SET'], opt.distance_cache, opt.exhaustive, True)
 batch_count = len(dataset) // execution_config['BATCH_SIZE']
 dataloader = torch.utils.data.DataLoader(
     dataset,
@@ -59,9 +59,9 @@ print("Evaluation over {0} batches of size {1}".format(batch_count, execution_co
 for i, data in tqdm(enumerate(dataloader, 0)):
     ((clouds, locations, timestamp), (similar_clouds, similar_locs, similar_timestamp), (distant_clouds, distant_locs, distant_timestamp)) = data
 
-    clouds = clouds.cuda()
-    similar_clouds = similar_clouds.cuda()
-    distant_clouds = distant_clouds.cuda()
+    clouds = clouds.transpose(2, 1).cuda()
+    similar_clouds = similar_clouds.transpose(2, 1).cuda()
+    distant_clouds = distant_clouds.transpose(2, 1).cuda()
     
     for t in range(len(thresholds)):
         distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)

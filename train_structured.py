@@ -147,7 +147,6 @@ for epoch in range(training_config['NUM_EPOCH']):
     f1 = 2 * precision * recall / (precision + recall)
     print_output('Metrics: Acc {0}, Prec {1}, Recall {2}, F1 {3}'.format(acc, precision, recall, f1))
 
-
     if epoch % 5 == 0:
         with torch.no_grad():
             val_metrics = np.zeros(4)

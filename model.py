@@ -68,7 +68,7 @@ class EmbeddingNet(nn.Module):
         self.conv5 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 1)
         self.dropout = nn.Dropout(0.25)
         self.bn1 = nn.BatchNorm1d(EMBEDDING_SIZE)
-        self.bn2 = nn.BatchNorm1d(EMBEDDING_SIZE)
+        self.bn2 = nn.BatchNorm1d(EMBEDDING_SIZE*2)
         self.bn3 = nn.BatchNorm1d(EMBEDDING_SIZE)
         self.bn4 = nn.BatchNorm1d(EMBEDDING_SIZE)  
         self.bn5 = nn.BatchNorm1d(EMBEDDING_SIZE)  

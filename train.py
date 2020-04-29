@@ -94,13 +94,9 @@ for epoch in range(training_config['NUM_EPOCH']):
 
     for i, data in tqdm(enumerate(dataloader, 0)):
         ((clouds, locations, _), (similar_clouds, similar_locs, _), (distant_clouds, distant_locs, _)) = data
-        clouds = clouds.transpose(2, 1)
-        similar_clouds = similar_clouds.transpose(2, 1)
-        distant_clouds = distant_clouds.transpose(2, 1)
-        
-        clouds = clouds.cuda()
-        similar_clouds = similar_clouds.cuda()
-        distant_clouds = distant_clouds.cuda()
+        clouds = clouds.transpose(2, 1).cuda()
+        similar_clouds = similar_clouds.transpose(2, 1).cuda()
+        distant_clouds = distant_clouds.transpose(2, 1).cuda()
 
         optimizer.zero_grad()
         embedder.zero_grad()
