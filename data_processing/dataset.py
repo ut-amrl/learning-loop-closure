@@ -62,6 +62,34 @@ class LCDataset(data.Dataset):
     def __len__(self):
         return len(self.file_list)
 
+class MergedDataset(data.Dataset):
+    def __init__(self, datasets, name):
+        self.datasets = datasets
+        self.name = name
+
+    def load_data(self):
+        for dataset in self.datasets:
+            dataset.load_data()
+    
+    def load_triplets(self):
+        for dataset in self.datasets:
+            dataset.load_triplets()
+    
+    def load_all_triplets(self):
+        for dataset in self.datasets:
+            dataset.load_all_triplets()
+
+    def __getitem__(self, index):
+        max_idx = 0
+        for dataset in self.datasets:
+            max_idx += len(dataset)
+            if index >= max_idx:
+                continue
+            return dataset[index - max_idx]
+
+    def __len__(self):
+        return np.sum([len(dataset) for dataset in self.datasets])
+
 class LCTripletDataset(data.Dataset):
     def __init__(self,
                  root,
