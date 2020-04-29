@@ -131,8 +131,8 @@ class StructuredEmbeddingNet(nn.Module):
     def forward(self, x, l):
         batch_size, partitions, partition_and_center_size, dims = x.shape
         partition_size = partition_and_center_size - 1
-        centers = x[:, :, partition_size:, :].squeeze()
-        c_in = x[:batch_size, :partitions, :partition_size, :dims].view(batch_size * partitions, dims, partition_size)
+        centers = x[:, :, partition_size:, :]
+        c_in = (x[:batch_size, :partitions, :partition_size, :dims] + centers.repeat(1, 1, partition_size, 1)).view(batch_size * partitions, dims, partition_size) 
         c_out = self.embedding(c_in)[0]
         r_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
 
@@ -143,7 +143,7 @@ class StructuredEmbeddingNet(nn.Module):
             .repeat(batch_size, 1, 1) # (batch_size, hidden_size, 1)
             )
 
-        attentions = F.softmax(F.relu(weights.squeeze()))
+        attentions = F.softmax(F.relu(weights.squeeze(-1)))
         # create mask based on the sentence lengths
         mask = torch.autograd.Variable(torch.ones(attentions.size())).cuda()
         for i, l in enumerate(l):
@@ -159,7 +159,7 @@ class StructuredEmbeddingNet(nn.Module):
         weighted = torch.mul(r_in, attentions.unsqueeze(-1).expand_as(r_in))
 
         # get the final fixed vector representations of the sentences
-        representations = weighted.sum(1).squeeze()
+        representations = weighted.sum(1).squeeze(-1)
         return representations
         # BATCH_SIZE X PARTITION_COUNT X EMBEDDING_SIZE + 2 (last 2 are the "center")
         # spatial = torch.cat((r_in, centers), dim=2)

@@ -323,6 +323,20 @@ class LCTripletStructuredDataset(LCTripletDataset):
             (partition_point_cloud(triplet[2][0], self.threshold), triplet[2][1], triplet[2][2])
         )
 
+class LCStructuredDataset(LCDataset):
+    def __init__(self,
+                 root,
+                 split=None,
+                 threshold=0.5):
+        super(LCStructuredDataset, self).__init__(root, split)
+        self.threshold = threshold
+
+    def get_by_timestamp(self, timestamp, include_angle=False):
+        cloud, location, timestamp = super(LCStructuredDataset, self).get_by_timestamp(timestamp, include_angle)
+
+        return (partition_point_cloud(cloud, self.threshold), location, timestamp)
+
+
 class LCCDataset(LCDataset):
     def __init__(self,
                  root,
