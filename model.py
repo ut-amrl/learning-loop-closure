@@ -62,17 +62,23 @@ class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
         self.conv1 = torch.nn.Conv1d(2, EMBEDDING_SIZE, 5, 1)
-        self.conv2 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 3, 1)
-        self.conv3 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 1)
+        self.conv2 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE*2, 3, 2)
+        self.conv3 = torch.nn.Conv1d(EMBEDDING_SIZE*2, EMBEDDING_SIZE, 3, 1)
+        self.conv4 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 3)
+        self.conv5 = torch.nn.Conv1d(EMBEDDING_SIZE, EMBEDDING_SIZE, 1)
         self.dropout = nn.Dropout(0.25)
         self.bn1 = nn.BatchNorm1d(EMBEDDING_SIZE)
         self.bn2 = nn.BatchNorm1d(EMBEDDING_SIZE)
-        self.bn3 = nn.BatchNorm1d(EMBEDDING_SIZE)        
+        self.bn3 = nn.BatchNorm1d(EMBEDDING_SIZE)
+        self.bn4 = nn.BatchNorm1d(EMBEDDING_SIZE)  
+        self.bn5 = nn.BatchNorm1d(EMBEDDING_SIZE)  
 
     def forward(self, x):
         x = self.bn1(F.relu(self.conv1(x)))
         x = self.bn2(F.relu(self.conv2(x)))
         x = self.bn3(F.relu(self.conv3(x)))
+        x = self.bn4(F.relu(self.conv4(x)))
+        x = self.bn5(F.relu(self.conv5(x)))
         x = F.max_pool1d(x, x.shape[2])
         x = self.dropout(x)
         return x, None, None
