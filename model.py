@@ -123,9 +123,9 @@ class FullNet(nn.Module):
 
         return out, (translation, theta)
 
-class StructuredEmbeddingNet(nn.Module):
+class AttentionEmbeddingNet(nn.Module):
     def __init__(self, threshold=0.75, embedding=EmbeddingNet()):
-        super(StructuredEmbeddingNet, self).__init__()
+        super(AttentionEmbeddingNet, self).__init__()
         self.embedding = embedding
         # self.conv = torch.nn.Conv1d(32, 32, 1)
         # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
@@ -156,7 +156,7 @@ class StructuredEmbeddingNet(nn.Module):
             if l < partition_and_center_size - 2:
                 mask[i, l:] = 0
 
-         # apply mask and renormalize attention scores (weights)
+        # apply mask and renormalize attention scores (weights)
         masked = attentions * mask
         _sums = masked.sum(-1).unsqueeze(1).expand_as(masked)  # sums per row
         attentions = masked.div(_sums)
@@ -167,11 +167,43 @@ class StructuredEmbeddingNet(nn.Module):
         # get the final fixed vector representations of the sentences
         representations = weighted.sum(1).squeeze(-1)
         return representations
-        # BATCH_SIZE X PARTITION_COUNT X EMBEDDING_SIZE + 2 (last 2 are the "center")
-        # spatial = torch.cat((r_in, centers), dim=2)
-        # self.lstm.flatten_parameters()
-        # _, (h_out, c_out) = self.lstm(r_in)
-        # return mp_out
+
+class StructuredEmbeddingNet(nn.Module):
+    def __init__(self, threshold=0.75, embedding=EmbeddingNet()):
+        super(StructuredEmbeddingNet, self).__init__()
+        self.embedding = embedding
+        # self.conv = torch.nn.Conv1d(32, 32, 1)
+        # self.lstm = torch.nn.LSTM(EMBEDDING_SIZE, 32, batch_first=True)
+        self.att_weights = torch.nn.Parameter(torch.Tensor(1, EMBEDDING_SIZE),
+                                     requires_grad=True)
+
+        torch.nn.init.xavier_uniform_(self.att_weights.data)
+
+    def forward(self, x, l):
+        batch_size, partitions, partition_and_center_size, dims = x.shape
+        partition_size = partition_and_center_size - 1
+        centers = x[:, :, partition_size:, :].squeeze()
+        c_in = (x[:batch_size, :partitions, :partition_size, :dims]).view(batch_size * partitions, dims, partition_size) 
+        c_out = self.embedding(c_in)[0]
+        h_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)
+        h_out = torch.zeros(batch_size, EMBEDDING_SIZE).cuda()
+
+        # create a mask for each part of the batch
+        indices = torch.arange(0, partitions).unsqueeze(0).repeat(batch_size, 1).cuda()
+        limits = l.unsqueeze(1).expand(batch_size, partitions)
+        mask = indices <= limits
+
+        norm_dist = torch.distributions.Normal(0, 0.5)
+        for i in range(partitions):
+            distances = torch.norm(centers[:, i, :].unsqueeze(1).repeat(1, partitions, 1) - centers[:, :, :], dim=2)
+            weights = torch.exp(norm_dist.log_prob(distances))
+            # Zero out weights for things we shouldnt care about
+            weights *= mask
+
+            h_out += torch.sum(weights.unsqueeze(2) * h_in, dim=1)
+
+        # get the final fixed vector representations of the sentences
+        return h_out
 
 class LCCNet(nn.Module):
     def __init__(self, embedding=EmbeddingNet()):

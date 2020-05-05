@@ -109,6 +109,9 @@ for epoch in range(training_config['NUM_EPOCH']):
         clouds = clouds.cuda()
         similar_clouds = similar_clouds.cuda()
         distant_clouds = distant_clouds.cuda()
+        length = length.cuda()
+        similar_length = similar_length.cuda()
+        distant_length = distant_length.cuda()
 
         optimizer.zero_grad()
         embedder.zero_grad()
@@ -165,6 +168,10 @@ for epoch in range(training_config['NUM_EPOCH']):
                 clouds[0] = clouds[0].cuda()
                 similar_clouds[0] = similar_clouds[0].cuda()
                 distant_clouds[0] = distant_clouds[0].cuda()
+
+                clouds[1] = clouds[1].cuda()
+                similar_clouds[1] = similar_clouds[1].cuda()
+                distant_clouds[1] = distant_clouds[1].cuda()
                 
                 distances = helpers.get_distances_for_model(embedder, clouds, similar_clouds, distant_clouds)
                 predictions = (distances < THRESHOLD).int()
