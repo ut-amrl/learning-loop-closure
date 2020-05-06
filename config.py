@@ -1,19 +1,21 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 40,
-  'NUM_WORKERS': 8,
+  'BATCH_SIZE': 256,
+  'NUM_WORKERS': 16,
 }
 
 training_config = {
   'TRAIN_SET': 'train',
   'VALIDATION_SET': 'val',
-  'NUM_EPOCH': 90
+  'NUM_EPOCH': 90,
+  'MARGIN': 5,
+  'SIMILAR_THRESHOLD': 25
 }
 
 evaluation_config = {
-  'THRESHOLD_MIN': 0,
-  'THRESHOLD_MAX': 16,
+  'THRESHOLD_MIN': 5,
+  'THRESHOLD_MAX': 15,
   'EVALUATION_SET': 'val'
 }
 

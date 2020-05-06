@@ -193,7 +193,7 @@ class StructuredEmbeddingNet(nn.Module):
         limits = l.unsqueeze(1).expand(batch_size, partitions)
         mask = indices <= limits
 
-        norm_dist = torch.distributions.Normal(0, 0.5)
+        norm_dist = torch.distributions.Normal(0, 1.5)
         for i in range(partitions):
             distances = torch.norm(centers[:, i, :].unsqueeze(1).repeat(1, partitions, 1) - centers[:, :, :], dim=2)
             weights = torch.exp(norm_dist.log_prob(distances))
@@ -202,7 +202,7 @@ class StructuredEmbeddingNet(nn.Module):
 
             h_out += torch.sum(weights.unsqueeze(2) * h_in, dim=1)
 
-        # get the final fixed vector representations of the sentences
+        # get the final fixed vector representations of the scan
         return h_out
 
 class LCCNet(nn.Module):
