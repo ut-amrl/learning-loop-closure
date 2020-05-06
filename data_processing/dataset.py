@@ -12,7 +12,7 @@ import math
 from tqdm import tqdm
 import json
 import pickle
-from data_processing_helpers import compute_overlap, partition_point_cloud
+from data_processing_helpers import compute_overlap, partition_point_cloud, LCBagDataReader
 from ltf_segmentation.ltf_helpers import discretize_point_cloud
 
 sys.path.append(os.path.join(os.getcwd(), '..'))
@@ -364,7 +364,6 @@ class LCStructuredDataset(LCDataset):
 
         return (partition_point_cloud(cloud, self.threshold), location, timestamp)
 
-
 class LCCDataset(LCDataset):
     def __init__(self,
                  root,
@@ -385,3 +384,75 @@ class LCCDataset(LCDataset):
     def __len__(self):
         return len(self.labeled_timestamps)
     
+
+class LCLaserDataset(data.Dataset):
+    def __init__(self, bag_file):
+        super(LCLaserDataset, self).__init__()
+        self.bag_file = bag_file
+        self.data_reader = LCBagDataReader(bag_file, data_config['LIDAR_TOPIC'], data_config['LOCALIZATION_TOPIC'], convert_to_clouds=False)
+
+    def get_scan_by_idx(self, index):
+        return self.data_reader.scans[self.data_reader.scan_timestamps[index]]
+
+    def get_location_by_idx(self, index):
+        return self.data_reader.localizations[self.data_reader.localization_timestamps[index]]
+
+    def __getitem__(self, index):
+        scan = self.get_scan_by_idx(index)
+        location = self.get_location_by_idx(index)
+        loc_count = len(self.data_reader.localization_timestamps)
+        timestamp = self.data_reader.scan_timestamps[index]
+
+        if index >= loc_count:
+            dist_idx = random.randint(0, loc_count - 1)
+            # We don't want anything that's even remotely nearby to count as "distant"
+            dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
+            while dist_idx in dist_neighbors:
+                dist_idx = random.randint(0, loc_count - 1)
+
+            dist_location = self.get_location_by_idx(dist_idx)
+            dist_scan = self.get_scan_by_idx(dist_idx)
+            dist_timestamp = self.data_reader.scan_timestamps[dist_idx]
+
+            return ((scan, location, timestamp), (dist_scan, dist_location, dist_timestamp), 0)
+        else:
+            neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
+            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+            if len(filtered_neighbors) > 0:
+                triplets = []
+                indices = np.random.choice(filtered_neighbors, 1)
+
+    def filter_scan_matches(self, timestamp, location, neighbors):
+        filtered = list(filter(self.time_filter(timestamp), filtered))
+        filtered = list(filter(self.check_overlap(location, timestamp), filtered))
+        return np.array(filtered)
+
+    def time_filter(self, timestamp):
+        def filter_checker(alt_idx):
+            alt_timestamp = self.data_reader.scans[self.data_reader.scan_timestamps[alt_idx]]
+            return abs(float(timestamp) - float(alt_timestamp)) > data_config['TIME_IGNORE_THRESHOLD']
+        
+        return filter_checker
+
+    def check_overlap(self, location, timestamp):
+        def overlap_checker(alt_idx):
+            alt_loc = self.data[alt_idx][1]
+            alt_timestamp = self.data[alt_idx][2]
+            key = (timestamp, alt_timestamp) if timestamp < alt_timestamp else (alt_timestamp, timestamp)
+            if key in self.overlaps:
+                return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
+            else:
+                overlap = compute_overlap(location, alt_loc)
+                self.computed_new_distances = True
+                self.overlaps[key] = overlap
+                return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
+
+        return overlap_checker
+    
+    
+    def __len__(self):
+        return len(self.localizations) * 2
+
+
+
+

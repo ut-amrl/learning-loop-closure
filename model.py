@@ -224,3 +224,18 @@ class LCCNet(nn.Module):
         out = self.ff(emb)
 
         return out
+
+
+class ScanConvNet(nn.Module):
+    def __init__(self):
+        self.s1 = nn.Sequential(
+            nn.Conv1d(2, 1, 7, 3),
+        )
+
+    def forward(self, x, y):
+        import pdb; pdb.set_trace()
+        output  = self.s1()
+        import pdb; pdb.set_trace()
+
+
+        return output

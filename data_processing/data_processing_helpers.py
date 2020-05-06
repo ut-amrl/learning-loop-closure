@@ -148,7 +148,7 @@ def partition_point_cloud(point_set, threshold):
 
     return partition_array, length
 
-def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
+def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, convert_to_clouds=True, scan_timestep=0, loc_timestep=0):
     localizations = {}
     scans = {}
     metadata = {}
@@ -170,7 +170,7 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
                 metadata['angle_increment'] = msg.angle_increment
 
             last_scan_time = timestamp
-            scans[timestamp] = scan_to_point_cloud(msg)
+            scans[timestamp] = scan_to_point_cloud(msg) if convert_to_clouds else msg.ranges
         elif (topic == localization_topic and timestamp - last_localization_time > loc_timestep):
             loc = []
             if msg._type == PoseStamped._type:
@@ -189,8 +189,8 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, s
     return scans, localizations, metadata
 
 class LCBagDataReader:
-    def __init__(self, bag, lidar_topic, localization_topic, scan_timestep=0, loc_timestep=0):
-        scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, scan_timestep, loc_timestep)
+    def __init__(self, bag, lidar_topic, localization_topic, convert_to_clouds=False, scan_timestep=0, loc_timestep=0):
+        scans, localizations, metadata = get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, convert_to_clouds, scan_timestep, loc_timestep)
         self.scans = scans
         self.localizations = localizations
         self.metadata = metadata
