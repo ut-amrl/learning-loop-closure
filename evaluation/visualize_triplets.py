@@ -11,8 +11,8 @@ from evaluation_helpers import embedding_for_scan, visualize_location, visualize
 import sys
 import os
 sys.path.append(os.path.join(os.getcwd(), '..'))
-from helpers import create_classifier, create_embedder, get_predictions_for_model
-from data_processing.dataset import LCDataset
+from helpers import create_classifier, create_embedder, get_predictions_for_model, create_structured_embedder
+from data_processing.dataset import LCDataset, LCStructuredDataset
 
 parser = argparse.ArgumentParser(
     description='Visualize the models classification for given inputs')
@@ -22,19 +22,28 @@ parser.add_argument('--model', type=str,
                     help='state dict of an already trained LC model to use')
 parser.add_argument('--embedding_model', type=str,
                     help='state dict of an already trained LC model to use')
+parser.add_argument('--structured_model', type=str,
+                    help='state dict of an already trained LC model to use')
 parser.add_argument('--map_name', type=str, help='name of map to render', default='GDC3')
 parser.add_argument('--only_error', type=bool, help='If True, only show triplets where the model failed', default=False)
 parser.add_argument('--threshold', type=float)
 args = parser.parse_args()
 
 triplets = np.load(args.triplets)
-dataset = LCDataset(args.dataset)
+
+if args.structured_model:
+    dataset = LCStructuredDataset(args.dataset)
+else: 
+    dataset = LCDataset(args.dataset)
 
 if args.model:
     model = create_classifier('', args.model)
     model.eval()
 elif args.embedding_model:
     model = create_embedder(args.embedding_model)
+    model.eval()
+elif args.structured_model:
+    model = create_structured_embedder(args.structured_model)
     model.eval()
 else:
     model = None
@@ -43,6 +52,14 @@ else:
 # similar_pub = rospy.Publisher('similar', PointCloud2, queue_size=10)
 # distant_pub = rospy.Publisher('distant', PointCloud2, queue_size=10)
 # rospy.init_node('visualizer', anonymous=True)
+
+def visualize_segmented_cloud(plt, partition_array):
+    import random
+    for partition in partition_array:
+        if len(partition.nonzero()[0]):
+            color = (random.random(), random.random(), random.random())
+            center = np.repeat(partition[-1:], partition.shape[0] - 1, 0)
+            plt.scatter(partition[:-1, 0] + center[:, 0], partition[:-1, 1] + center[:, 1], color=color)
 
 for i in range(triplets.shape[0]):
     # get first triplet
@@ -57,9 +74,14 @@ for i in range(triplets.shape[0]):
         print("Anchor Timestamp", ts)
         print("Locations", anchor_loc, similar_loc, distant_loc)
 
-        anchor = torch.tensor(anchor_np.transpose(1, 0)).unsqueeze(0).cuda()
-        similar = torch.tensor(similar_np.transpose(1, 0)).unsqueeze(0).cuda()
-        distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
+        if args.structured_model:
+            anchor = (torch.tensor(anchor_np[0]).unsqueeze(0).cuda(), torch.tensor(anchor_np[1]).unsqueeze(0).cuda())
+            similar = (torch.tensor(similar_np[0]).unsqueeze(0).cuda(), torch.tensor(similar_np[1]).unsqueeze(0).cuda())
+            distant = (torch.tensor(distant_np[0]).unsqueeze(0).cuda(), torch.tensor(distant_np[1]).unsqueeze(0).cuda())
+        else:
+            anchor = torch.tensor(anchor_np.transpose(1, 0)).unsqueeze(0).cuda()
+            similar = torch.tensor(similar_np.transpose(1, 0)).unsqueeze(0).cuda()
+            distant = torch.tensor(distant_np.transpose(1, 0)).unsqueeze(0).cuda()
 
         if model:
             predictions = get_predictions_for_model(model, anchor, similar, distant, args.threshold)
@@ -71,11 +93,11 @@ for i in range(triplets.shape[0]):
         import matplotlib.pyplot as plt
         plt.figure(1, figsize=(9, 3))
         plt.subplot(131)
-        visualize_cloud(plt, similar_np, color='green')
+        visualize_segmented_cloud(plt, similar_np[0])
         plt.subplot(132)
-        visualize_cloud(plt, anchor_np, color='blue')
+        visualize_segmented_cloud(plt, anchor_np[0])
         plt.subplot(133)
-        visualize_cloud(plt, distant_np, color='red')
+        visualize_segmented_cloud(plt, distant_np[0])
         plt.gca().set_aspect('equal', adjustable='box')
 
         plt.figure(2)
@@ -83,6 +105,6 @@ for i in range(triplets.shape[0]):
         visualize_location(plt, similar_loc, 'green')
         visualize_location(plt, distant_loc, 'red')
 
-        draw_map(plt, '../../cobot/maps/{0}/{0}_vector.txt'.format(args.map_name))
+        draw_map(plt, '../../../cobot/maps/{0}/{0}_vector.txt'.format(args.map_name))
 
         plt.show()

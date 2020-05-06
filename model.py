@@ -182,7 +182,7 @@ class StructuredEmbeddingNet(nn.Module):
     def forward(self, x, l):
         batch_size, partitions, partition_and_center_size, dims = x.shape
         partition_size = partition_and_center_size - 1
-        centers = x[:, :, partition_size:, :].squeeze()
+        centers = x[:, :, partition_size:, :].squeeze(2)
         c_in = (x[:batch_size, :partitions, :partition_size, :dims]).view(batch_size * partitions, dims, partition_size) 
         c_out = self.embedding(c_in)[0]
         h_in = c_out.view(batch_size, partitions, EMBEDDING_SIZE)

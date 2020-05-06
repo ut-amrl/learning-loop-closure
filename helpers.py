@@ -183,10 +183,10 @@ def get_distances_for_model(model, clouds, similar, distant):
             anchor_embeddings = model(clouds[0], clouds[1])
             similar_embeddings = model(similar[0], similar[1])
             distant_embeddings = model(distant[0], distant[1])
-
+        
         distance_pos = torch.norm(anchor_embeddings - similar_embeddings, p=2, dim=1)
         distance_neg = torch.norm(anchor_embeddings - distant_embeddings, p=2, dim=1)
-        
+
         distances = torch.cat([distance_pos, distance_neg])
         return distances
     elif model_type == 'full':
