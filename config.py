@@ -2,13 +2,13 @@ import numpy as np
 
 execution_config = {
   'BATCH_SIZE': 40,
-  'NUM_WORKERS': 8,
+  'NUM_WORKERS': 4,
 }
 
 training_config = {
   'TRAIN_SET': 'train',
   'VALIDATION_SET': 'val',
-  'NUM_EPOCH': 90
+  'NUM_EPOCH': 240
 }
 
 evaluation_config = {

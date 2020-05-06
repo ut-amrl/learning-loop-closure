@@ -1,5 +1,5 @@
-from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet
-from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet, ScanMatchNet
+from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset, LCLaserDataset
 import time
 import torch
 
@@ -60,6 +60,15 @@ def load_dataset(root, split, distance_cache, exhaustive=False, evaluation=False
 def load_lcc_dataset(root, timestamps):
     print_output("Loading data into memory...")
     dataset = LCCDataset(root=root, timestamps=timestamps)
+    print_output("Finished loading data.")
+    return dataset
+
+def load_laser_dataset(bag_file, name):
+    print_output("Loading data into memory...", )
+    dataset = LCLaserDataset(bag_file, name)
+    dataset.load_distances()
+    dataset.load_data()
+    dataset.cache_distances()
     print_output("Finished loading data.")
     return dataset
 
@@ -137,6 +146,18 @@ def create_lcc(embedding_model='', model=''):
     
     lcc.cuda()
     return lcc
+    
+def create_scan_matcher(model=''):
+    scan_matcher = ScanMatchNet()
+    if model != '':
+        scan_matcher.load_state_dict(torch.load(model))
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        scan_matcher = torch.nn.DataParallel(scan_matcher)
+
+    scan_matcher.cuda()
+    return scan_matcher
 
 def save_model(model, outf, epoch):
     to_save = model

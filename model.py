@@ -226,16 +226,40 @@ class LCCNet(nn.Module):
         return out
 
 
-class ScanConvNet(nn.Module):
+class ScanMatchNet(nn.Module):
     def __init__(self):
-        self.s1 = nn.Sequential(
-            nn.Conv1d(2, 1, 7, 3),
+        super(ScanMatchNet, self).__init__()
+        self.convNet = nn.Sequential(
+            nn.Conv1d(2, 1, 7),
+            nn.MaxPool1d(kernel_size=1, stride=3),
+            nn.Conv1d(1, 1, 3),
+            nn.Conv1d(1, 1, 3),
+            nn.ReLU(),
+            nn.Conv1d(1, 1, 3),
+            nn.Conv1d(1, 1, 3),
+            nn.ReLU(),
+            nn.Conv1d(1, 1, 3),
+            nn.Conv1d(1, 1, 3),
+            nn.ReLU(),
+            nn.Conv1d(1, 1, 3),
+            nn.Conv1d(1, 1, 3),
+            nn.ReLU(),
+            nn.AvgPool1d(1, 7)
+        )
+
+        self.ff = nn.Sequential(
+            nn.Linear(49, 1024),
+            nn.Dropout(),
+            nn.Linear(1024, 1024),
+            nn.Dropout(),
+            nn.Linear(1024, 512),
+            nn.Dropout(),
+            nn.Linear(512, 2)
         )
 
     def forward(self, x, y):
-        import pdb; pdb.set_trace()
-        output  = self.s1()
-        import pdb; pdb.set_trace()
+        xy = torch.cat((x.unsqueeze(1), y.unsqueeze(1)), dim=1)
+        conv  = self.convNet(xy)
+        output  = self.ff(conv)
 
-
-        return output
+        return output.squeeze(1)
