@@ -18,7 +18,9 @@ from config import training_config, execution_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--outf', type=str, default='matcher', help='output folder')
-parser.add_argument('--model', type=str, default='', help='pretrained scan matcher model to start with')
+parser.add_argument('--conv_model', type=str, default='', help='pretrained scan conv model to start with')
+parser.add_argument('--match_model', type=str, default='', help='pretrained scan matcher model to start with')
+parser.add_argument('--transform_model', type=str, default='', help='pretrained scan transform model to start with')
 parser.add_argument('--bag_file', type=str, required=True, help="bag file")
 parser.add_argument('--name', type=str, default='laser_dataset', help="bag file")
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
@@ -45,15 +47,16 @@ try:
 except OSError:
     pass
 
-matcher = helpers.create_scan_matcher(opt.model)
-matcher.train()
+scan_conv, scan_match, scan_transform = helpers.create_laser_networks(opt.model)
+scan_conv.train()
+scan_match.train()
+scan_transform.train()
 
-optimizer = optim.Adam(matcher.parameters(), lr=1e-3, weight_decay=1e-6)
-lossFunc = torch.nn.CrossEntropyLoss()
-
-pos_labels = torch.tensor(np.ones((execution_config['BATCH_SIZE'], 1)).astype(np.long)).squeeze(1).cuda()
-neg_labels = torch.tensor(np.zeros((execution_config['BATCH_SIZE'], 1)).astype(np.long)).squeeze(1).cuda()
-labels = torch.cat([pos_labels, neg_labels], dim=0)
+conv_optimizer = optim.Adam(scan_conv.parameters(), lr=1e-3, weight_decay=1e-6)
+match_optimizer = optim.Adam(scan_match.parameters(), lr=1e-3, weight_decay=1e-6)
+transform_optimizer = optim.Adam(scan_transform.parameters(), lr=1e-3, weight_decay=1e-6)
+matchLossFunc = torch.nn.CrossEntropyLoss()
+transLossFunc = torch.nn.MSELoss()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
 for epoch in range(training_config['NUM_EPOCH']):
@@ -78,18 +81,31 @@ for epoch in range(training_config['NUM_EPOCH']):
         alt_clouds = alt_clouds.cuda()
         labels = labels.cuda()
 
-        optimizer.zero_grad()
-        matcher.zero_grad()
+        conv_optimizer.zero_grad()
+        match_optimizer.zero_grad()
+        transform_optimizer.zero_grad()
+        scan_conv.zero_grad()
+        scan_match.zero_grad()
+        scan_transform.zero_grad()
 
-        scores = matcher(clouds, alt_clouds)
+        conv = scan_conv(clouds, alt_clouds)
+
+        scores = scan_match(conv)
         predictions = torch.argmax(F.softmax(scores), dim=1)
-        loss = lossFunc.forward(scores, labels)
+        loss = matchLossFunc.forward(scores, labels)
+        import pdb; pdb.set_trace()
+        transforms = scan_transform(conv)
+        true_transforms = locations - alt_locs
+        true_transforms[:, 2] = torch.fmod(true_transforms[:, 2], 2 * np.pi)
+        loss += transLossFunc.forward(transforms, true_transforms)
 
         correct += torch.sum(predictions == labels)
         total += len(labels)
 
         loss.backward()
-        optimizer.step()
+        conv_optimizer.step()
+        match_optimizer.step()
+        transform_optimizer.step()
         total_loss += loss.item()
     
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))

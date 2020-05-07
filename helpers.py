@@ -1,4 +1,4 @@
-from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet, ScanMatchNet
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet, ScanMatchNet, ScanConvNet, ScanTransformNet
 from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset, LCLaserDataset
 import time
 import torch
@@ -147,17 +147,25 @@ def create_lcc(embedding_model='', model=''):
     lcc.cuda()
     return lcc
     
-def create_scan_matcher(model=''):
-    scan_matcher = ScanMatchNet()
-    if model != '':
-        scan_matcher.load_state_dict(torch.load(model))
+def create_laser_networks(conv_model='', match_model='', transform_model=''):
+    scan_conv = ScanConvNet()
+    if conv_model != '':
+        scan_conv.load_state_dict(torch.load(conv_model))
+
+    scan_transform = ScanTransformNet()
+    if transform_model != '':
+        scan_transform.load_state_dict(torch.load(transform_model))
+
+    scan_match = ScanMatchNet()
+    if match_model != '':
+        scan_match.load_state_dict(torch.load(match_model))
     
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
-        scan_matcher = torch.nn.DataParallel(scan_matcher)
+        scan_conv = torch.nn.DataParallel(scan_conv)
 
-    scan_matcher.cuda()
-    return scan_matcher
+    scan_conv.cuda()
+    return scan_conv, scan_match, scan_transform
 
 def save_model(model, outf, epoch):
     to_save = model

@@ -225,19 +225,25 @@ class LCCNet(nn.Module):
 
         return out
 
+class ScanTransformNet(nn.Module):
+    def __init__(self):
+        super(ScanTransformNet, self).__init__()
 
+        self.ff = nn.Sequential(
+            nn.Linear(52 * 64, 1024),
+            nn.Dropout(p=0.3),
+            nn.Linear(1024, 1024),
+            nn.Dropout(p=0.3),
+            nn.Linear(1024, 512),
+            nn.Dropout(p=0.3),
+            nn.Linear(512, 3)
+        )
+
+    def forward(self, x):
+        return self.ff(x).squeeze(1)
 class ScanMatchNet(nn.Module):
     def __init__(self):
         super(ScanMatchNet, self).__init__()
-
-        self.conv = nn.Conv1d(64, 64, 3, padding=1)
-        self.relu = nn.ReLU()
-        self.initialConv = nn.Sequential(
-            nn.Conv1d(2, 64, 7),
-            nn.MaxPool1d(kernel_size=1, stride=3)
-        )
-
-        self.avgPool = nn.AvgPool1d(1, 7)
 
         self.ff = nn.Sequential(
             nn.Linear(52 * 64, 1024),
@@ -248,6 +254,22 @@ class ScanMatchNet(nn.Module):
             nn.Dropout(p=0.3),
             nn.Linear(512, 2)
         )
+
+    def forward(self, x):
+        return self.ff(x).squeeze(1)
+
+class ScanConvNet(nn.Module):
+    def __init__(self):
+        super(ScanConvNet, self).__init__()
+
+        self.conv = nn.Conv1d(64, 64, 3, padding=1)
+        self.relu = nn.ReLU()
+        self.initialConv = nn.Sequential(
+            nn.Conv1d(2, 64, 7),
+            nn.MaxPool1d(kernel_size=1, stride=3)
+        )
+
+        self.avgPool = nn.AvgPool1d(1, 7)
 
     def forward(self, x, y):
         xy = torch.cat((x.unsqueeze(1), y.unsqueeze(1)), dim=1)
@@ -283,6 +305,6 @@ class ScanMatchNet(nn.Module):
 
         conv = self.avgPool(conv)
 
-        output  = self.ff(conv.view(xy.shape[0], -1))
+        output = conv.view(xy.shape[0], -1)
 
-        return output.squeeze(1)
+        return output
