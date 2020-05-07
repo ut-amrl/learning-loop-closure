@@ -1,14 +1,14 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 120,
-  'NUM_WORKERS': 4,
+  'BATCH_SIZE': 1024,
+  'NUM_WORKERS': 8,
 }
 
 training_config = {
   'TRAIN_SET': 'train',
   'VALIDATION_SET': 'val',
-  'NUM_EPOCH': 240
+  'NUM_EPOCH': 50
 }
 
 evaluation_config = {
