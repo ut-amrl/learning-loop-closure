@@ -163,15 +163,19 @@ def create_laser_networks(conv_model='', match_model='', transform_model=''):
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         scan_conv = torch.nn.DataParallel(scan_conv)
+        scan_match = torch.nn.DataParallel(scan_match)
+        scan_transform = torch.nn.DataParallel(scan_transform)
 
     scan_conv.cuda()
+    scan_match.cuda()
+    scan_transform.cuda()
     return scan_conv, scan_match, scan_transform
 
-def save_model(model, outf, epoch):
+def save_model(model, outf, epoch, name_prefix=''):
     to_save = model
     if torch.cuda.device_count() > 1:
         to_save = model.module
-    torch.save(to_save.state_dict(), '%s/model_%d.pth' % (outf, epoch))
+    torch.save(to_save.state_dict(), '%s/model_%s_%d.pth' % (outf, name_prefix, epoch))
 
 def get_model_type(model):
     model_to_check = model

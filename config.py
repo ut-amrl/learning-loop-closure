@@ -1,14 +1,16 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 1024,
+  'BATCH_SIZE': 200,
   'NUM_WORKERS': 8,
 }
 
 training_config = {
   'TRAIN_SET': 'train',
   'VALIDATION_SET': 'val',
-  'NUM_EPOCH': 50
+  'NUM_EPOCH': 50,
+  'LASER_MATCH_WEIGHT': 0.5,
+  'LASER_TRANS_WEIGHT': 0.5
 }
 
 evaluation_config = {

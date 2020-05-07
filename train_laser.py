@@ -47,7 +47,7 @@ try:
 except OSError:
     pass
 
-scan_conv, scan_match, scan_transform = helpers.create_laser_networks(opt.model)
+scan_conv, scan_match, scan_transform = helpers.create_laser_networks(opt.conv_model, opt.match_model, opt.transform_model)
 scan_conv.train()
 scan_match.train()
 scan_transform.train()
@@ -92,14 +92,20 @@ for epoch in range(training_config['NUM_EPOCH']):
 
         conv = scan_conv(clouds, alt_clouds)
 
+        # import pdb; pdb.set_trace()
+        #Compute match prediction
         scores = scan_match(conv)
         predictions = torch.argmax(F.softmax(scores), dim=1)
-        loss = matchLossFunc.forward(scores, labels)
-        import pdb; pdb.set_trace()
-        transforms = scan_transform(conv)
-        true_transforms = locations - alt_locs
-        true_transforms[:, 2] = torch.fmod(true_transforms[:, 2], 2 * np.pi)
-        loss += transLossFunc.forward(transforms, true_transforms)
+        loss = training_config['LASER_MATCH_WEIGHT'] * matchLossFunc.forward(scores, labels)
+
+        # Compute transforms, but only for things that *should* match
+        match_indices = labels.nonzero()
+        filtered = conv[match_indices]
+        transforms = scan_transform(filtered)
+        true_transforms = (locations - alt_locs)[match_indices]
+        # Clamp angle between -pi and pi
+        true_transforms[:, :, 2] = torch.fmod(2 * np.pi + true_transforms[:, :, 2], 2 * np.pi) - np.pi
+        loss += training_config['LASER_TRANS_WEIGHT'] * transLossFunc.forward(transforms, true_transforms.squeeze(1).cuda())
 
         correct += torch.sum(predictions == labels)
         fp += torch.sum(predictions > labels)
@@ -114,7 +120,9 @@ for epoch in range(training_config['NUM_EPOCH']):
     
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     print_output('Correct: {0} / {1} = {2}; FP: {3}; FN: {4}'.format(correct, total, float(correct) / total, fp, fn))
-    helpers.save_model(matcher, out_dir, epoch)
+    helpers.save_model(scan_conv, out_dir, epoch, 'conv')
+    helpers.save_model(scan_match, out_dir, epoch, 'match')
+    helpers.save_model(scan_transform, out_dir, epoch, 'transform')
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 
