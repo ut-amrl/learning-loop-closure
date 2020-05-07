@@ -1,7 +1,7 @@
 import numpy as np
 
 execution_config = {
-  'BATCH_SIZE': 40,
+  'BATCH_SIZE': 120,
   'NUM_WORKERS': 4,
 }
 

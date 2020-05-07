@@ -453,43 +453,33 @@ class LCLaserDataset(data.Dataset):
         self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, 0.125, 0.125)
         loc_count = len(self.data_reader.localization_timestamps)
         self.data = []
-        for index in tqdm(range(loc_count * 2)):
-            if index >= loc_count:
-                access_idx = index - loc_count
-            else:
-                access_idx = index
+        for index in tqdm(range(loc_count)):
+            scan = self.get_scan_by_idx(index)
+            location = self.get_location_by_idx(index)
+            timestamp = self.data_reader.scan_timestamps[index]
+            
+            dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
 
-            scan = self.get_scan_by_idx(access_idx)
-            location = self.get_location_by_idx(access_idx)
-            timestamp = self.data_reader.scan_timestamps[access_idx]
+            neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
+            
+            filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+            for sim_idx in filtered_neighbors:
+                sim_location = self.get_location_by_idx(sim_idx)
+                sim_scan = self.get_scan_by_idx(sim_idx)
+                sim_timestamp = self.data_reader.scan_timestamps[sim_idx]
+                
+                self.data.append(((scan, location, timestamp), (sim_scan, sim_location, sim_timestamp), 1))
 
-            if index >= loc_count:
                 dist_idx = random.randint(0, loc_count - 1)
                 # We don't want anything that's even remotely nearby to count as "distant"
-                dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
                 while dist_idx in dist_neighbors:
                     dist_idx = random.randint(0, loc_count - 1)
 
                 dist_location = self.get_location_by_idx(dist_idx)
                 dist_scan = self.get_scan_by_idx(dist_idx)
                 dist_timestamp = self.data_reader.scan_timestamps[dist_idx]
-
                 self.data.append(((scan, location, timestamp), (dist_scan, dist_location, dist_timestamp), 0))
-            else:
-                neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
-                filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-                if len(filtered_neighbors) > 0:
-                    triplets = []
-                    sim_idx = np.random.choice(filtered_neighbors, 1)[0]
-                else:
-                    sim_idx = access_idx
-                
-                sim_location = self.get_location_by_idx(sim_idx)
-                sim_scan = self.get_scan_by_idx(sim_idx)
-                sim_timestamp = self.data_reader.scan_timestamps[sim_idx]
-                
-                self.data.append(((scan, location, timestamp), (sim_scan, sim_location, sim_timestamp), 1))
-        
+
         self.data_loaded= True
 
     

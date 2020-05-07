@@ -60,8 +60,8 @@ for epoch in range(training_config['NUM_EPOCH']):
     total_loss = 0
 
     batch_count = len(dataset) // execution_config['BATCH_SIZE']
-    print_output("Loaded new training triplets: {0} batches of size {1}".format(batch_count, execution_config['BATCH_SIZE']))
-    dataset.load_data()
+    print_output("Loaded new training data: {0} batches of size {1}".format(batch_count, execution_config['BATCH_SIZE']))
+    # dataset.load_data()
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=execution_config['BATCH_SIZE'],

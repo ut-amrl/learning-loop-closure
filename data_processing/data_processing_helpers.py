@@ -210,7 +210,7 @@ class LCBagDataReader:
         return self.scan_timestamps
 
     def get_localization_timestamps(self):
-        return self.get_localization_timestamps
+        return self.localization_timestamps
 
     def get_localization_tree(self):
         return self.localizationTree

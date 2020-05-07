@@ -229,37 +229,60 @@ class LCCNet(nn.Module):
 class ScanMatchNet(nn.Module):
     def __init__(self):
         super(ScanMatchNet, self).__init__()
-        self.convNet = nn.Sequential(
-            nn.Conv1d(2, 1, 7),
-            nn.MaxPool1d(kernel_size=1, stride=3),
-            nn.Conv1d(1, 1, 3),
-            nn.Conv1d(1, 1, 3),
-            nn.ReLU(),
-            nn.Conv1d(1, 1, 3),
-            nn.Conv1d(1, 1, 3),
-            nn.ReLU(),
-            nn.Conv1d(1, 1, 3),
-            nn.Conv1d(1, 1, 3),
-            nn.ReLU(),
-            nn.Conv1d(1, 1, 3),
-            nn.Conv1d(1, 1, 3),
-            nn.ReLU(),
-            nn.AvgPool1d(1, 7)
+
+        self.conv = nn.Conv1d(64, 64, 3, padding=1)
+        self.relu = nn.ReLU()
+        self.initialConv = nn.Sequential(
+            nn.Conv1d(2, 64, 7),
+            nn.MaxPool1d(kernel_size=1, stride=3)
         )
 
+        self.avgPool = nn.AvgPool1d(1, 7)
+
         self.ff = nn.Sequential(
-            nn.Linear(49, 1024),
-            nn.Dropout(),
+            nn.Linear(52 * 64, 1024),
+            nn.Dropout(p=0.3),
             nn.Linear(1024, 1024),
-            nn.Dropout(),
+            nn.Dropout(p=0.3),
             nn.Linear(1024, 512),
-            nn.Dropout(),
+            nn.Dropout(p=0.3),
             nn.Linear(512, 2)
         )
 
     def forward(self, x, y):
         xy = torch.cat((x.unsqueeze(1), y.unsqueeze(1)), dim=1)
-        conv  = self.convNet(xy)
-        output  = self.ff(conv)
+        last_checkpoint = self.initialConv(xy)
+
+        #First block
+        conv = self.conv(last_checkpoint)
+        conv = self.relu(conv)
+        conv = self.conv(conv)
+        conv = conv + last_checkpoint
+        last_checkpoint = self.relu(conv)
+
+        #Second block
+        conv = self.conv(last_checkpoint)
+        conv = self.relu(conv)
+        conv = self.conv(conv)
+        conv = conv + last_checkpoint
+        last_checkpoint = self.relu(conv)
+
+        #Third block
+        conv = self.conv(last_checkpoint)
+        conv = self.relu(conv)
+        conv = self.conv(conv)
+        conv = conv + last_checkpoint
+        last_checkpoint = self.relu(conv)
+
+        #Fourth block
+        conv = self.conv(last_checkpoint)
+        conv = self.relu(conv)
+        conv = self.conv(conv)
+        conv = conv * last_checkpoint
+        last_checkpoint = self.relu(conv)
+
+        conv = self.avgPool(conv)
+
+        output  = self.ff(conv.view(xy.shape[0], -1))
 
         return output.squeeze(1)
