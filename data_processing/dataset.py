@@ -395,7 +395,7 @@ class LCLaserDataset(data.Dataset):
         self.data_loaded = False
 
     def get_scan_by_idx(self, index):
-        return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]]).astype(np.float32)
+        return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
 
     def get_location_by_idx(self, index):
         return np.asarray(self.data_reader.localizations[self.data_reader.localization_timestamps[index]]).astype(np.float32)
@@ -450,7 +450,7 @@ class LCLaserDataset(data.Dataset):
             pickle.dump(self.overlaps, f)
 
     def load_data(self):
-        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, 0.125, 0.125)
+        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, 0.075, 0.075)
         loc_count = len(self.data_reader.localization_timestamps)
         self.data = []
         for index in tqdm(range(loc_count)):

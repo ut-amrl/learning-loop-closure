@@ -25,6 +25,9 @@ parser.add_argument('--bag_file', type=str, required=True, help="bag file")
 parser.add_argument('--name', type=str, default='laser_dataset', help="bag file")
 parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
 
+parser.add_argument('--train_transform', action='store_true')
+parser.add_argument('--lock_conv', action='store_true')
+
 opt = parser.parse_args()
 start_time = str(int(time.time()))
 initialize_logging(start_time)
@@ -55,7 +58,7 @@ scan_transform.train()
 conv_optimizer = optim.Adam(scan_conv.parameters(), lr=1e-3, weight_decay=1e-6)
 match_optimizer = optim.Adam(scan_match.parameters(), lr=1e-3, weight_decay=1e-6)
 transform_optimizer = optim.Adam(scan_transform.parameters(), lr=1e-3, weight_decay=1e-6)
-matchLossFunc = torch.nn.CrossEntropyLoss(weight=torch.FloatTensor([50.0, 1.0]).cuda())
+matchLossFunc = torch.nn.CrossEntropyLoss(weight=torch.FloatTensor([40.0, 1.0]).cuda())
 transLossFunc = torch.nn.MSELoss()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
@@ -98,14 +101,15 @@ for epoch in range(training_config['NUM_EPOCH']):
         predictions = torch.argmax(F.softmax(scores), dim=1)
         loss = training_config['LASER_MATCH_WEIGHT'] * matchLossFunc.forward(scores, labels)
 
-        # Compute transforms, but only for things that *should* match
-        match_indices = labels.nonzero()
-        filtered = conv[match_indices]
-        transforms = scan_transform(filtered)
-        true_transforms = (locations - alt_locs)[match_indices]
-        # Clamp angle between -pi and pi
-        true_transforms[:, :, 2] = torch.fmod(2 * np.pi + true_transforms[:, :, 2], 2 * np.pi) - np.pi
-        loss += training_config['LASER_TRANS_WEIGHT'] * transLossFunc.forward(transforms, true_transforms.squeeze(1).cuda())
+        if opt.train_transform:
+            # Compute transforms, but only for things that *should* match
+            match_indices = labels.nonzero()
+            filtered = conv[match_indices]
+            transforms = scan_transform(filtered)
+            true_transforms = (locations - alt_locs)[match_indices]
+            # Clamp angle between -pi and pi
+            true_transforms[:, :, 2] = torch.fmod(2 * np.pi + true_transforms[:, :, 2], 2 * np.pi) - np.pi
+            loss += training_config['LASER_TRANS_WEIGHT'] * transLossFunc.forward(transforms, true_transforms.squeeze(1).cuda())
 
         correct += torch.sum(predictions == labels)
         fp += torch.sum(predictions > labels)
@@ -113,7 +117,8 @@ for epoch in range(training_config['NUM_EPOCH']):
         total += len(labels)
 
         loss.backward()
-        conv_optimizer.step()
+        if not opt.lock_conv:
+            conv_optimizer.step()
         match_optimizer.step()
         transform_optimizer.step()
         total_loss += loss.item()

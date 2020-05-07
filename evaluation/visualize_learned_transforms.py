@@ -23,6 +23,7 @@ parser.add_argument('--match_model', type=str, required=False)
 parser.add_argument('--conv_model', type=str, required=False)
 parser.add_argument('--transform_model', type=str, required=False)
 
+
 opt = parser.parse_args()
 
 scan_conv, scan_match, scan_transform = helpers.create_laser_networks(opt.conv_model, opt.match_model, opt.transform_model)
@@ -39,43 +40,22 @@ else:
   alt_bag = rosbag.Bag(opt.bag_file)
 
 bag_reader = LCBagDataReader(bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], convert_to_clouds, opt.time_spacing, opt.time_spacing)
-alt_reader = LCBagDataReader(alt_bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], convert_to_clouds, opt.time_spacing, opt.time_spacing)
-
-base_trajectory = []
-for timestamp in bag_reader.get_localization_timestamps():
-  loc = bag_reader.get_localizations()[timestamp]
-  base_trajectory.append(loc[:2])
-base_trajectory = np.array(base_trajectory)
-
-
-target_trajectory = []
-for timestamp in alt_reader.get_localization_timestamps():
-  loc = alt_reader.get_localizations()[timestamp]
-  target_trajectory.append(loc[:2])
-target_trajectory = np.array(target_trajectory)
 
 with torch.no_grad():
-  #Set up trajectory plot
-  from matplotlib import pyplot as plt
-  from mpl_toolkits.mplot3d import Axes3D
-  fig = plt.figure()
-  ax = fig.add_subplot(111, projection='3d')
-  ax.plot(base_trajectory[:, 0], base_trajectory[:, 1], 0, color='blue')
-  ax.plot(target_trajectory[:, 0], target_trajectory[:, 1], 5, color='green')
-
-  # Now find loop closures along these trajectories
-  # First lets try 1 to many
-  for base_idx in np.linspace(0, 200, 20):
+  # Walk through the bag and get some transforms, try to recover them
+  for base_idx in np.linspace(0, 200, 21):
     base_idx = int(base_idx)
     base_timestamp = bag_reader.get_localization_timestamps()[base_idx]
+    base_loc = bag_reader.get_localizations()[base_timestamp]
+
+    nearby_localizations, nearby_location_timestamps, nearby_location_indices = bag_reader.get_nearby_locations(base_loc[:2], 1.5)
+    idx = np.random.randint(0, len(nearby_localizations))
+    alt_loc, alt_timestamp, alt_idx = nearby_localizations[idx], nearby_location_timestamps[idx], nearby_location_indices[idx]
+    
     base_scan = torch.tensor(bag_reader.get_closest_scan_by_time(base_timestamp)[0].ranges).cuda()
+    alt_scan = torch.tensor(bag_reader.get_closest_scan_by_time(alt_timestamp)[0].ranges).cuda()
 
-    for idx, timestamp in enumerate(alt_reader.get_localization_timestamps()):
-      scan = torch.tensor(alt_reader.get_closest_scan_by_time(timestamp)[0].ranges).cuda()
-      conv = scan_conv(base_scan.unsqueeze(0), scan.unsqueeze(0))
-      scores = scan_match(conv)
-      prediction = torch.argmax(torch.nn.functional.softmax(scores))
-      if (prediction):
-        ax.plot([base_trajectory[base_idx, 0], target_trajectory[idx, 0]], [base_trajectory[base_idx, 1], target_trajectory[idx, 1]], [0, 5])
-
+    conv = scan_conv(base_scan.unsqueeze(0), alt_scan.unsqueeze(0))
+    predicted_transform = scan_transform(conv).squeeze()
+    import pdb; pdb.set_trace()
   plt.show()
