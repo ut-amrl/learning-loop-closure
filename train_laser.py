@@ -55,7 +55,7 @@ scan_transform.train()
 conv_optimizer = optim.Adam(scan_conv.parameters(), lr=1e-3, weight_decay=1e-6)
 match_optimizer = optim.Adam(scan_match.parameters(), lr=1e-3, weight_decay=1e-6)
 transform_optimizer = optim.Adam(scan_transform.parameters(), lr=1e-3, weight_decay=1e-6)
-matchLossFunc = torch.nn.CrossEntropyLoss()
+matchLossFunc = torch.nn.CrossEntropyLoss(weight=torch.FloatTensor([50.0, 1.0]).cuda())
 transLossFunc = torch.nn.MSELoss()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
@@ -64,7 +64,7 @@ for epoch in range(training_config['NUM_EPOCH']):
 
     batch_count = len(dataset) // execution_config['BATCH_SIZE']
     print_output("Loaded new training data: {0} batches of size {1}".format(batch_count, execution_config['BATCH_SIZE']))
-    # dataset.load_data()
+    dataset.load_data()
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=execution_config['BATCH_SIZE'],
@@ -74,6 +74,8 @@ for epoch in range(training_config['NUM_EPOCH']):
 
     total = 0
     correct = 0
+    fp = 0
+    fn = 0
 
     for i, data in tqdm(enumerate(dataloader, 0)):
         ((clouds, locations, _), (alt_clouds, alt_locs, _), labels) = data
@@ -100,6 +102,8 @@ for epoch in range(training_config['NUM_EPOCH']):
         loss += transLossFunc.forward(transforms, true_transforms)
 
         correct += torch.sum(predictions == labels)
+        fp += torch.sum(predictions > labels)
+        fn += torch.sum(predictions < labels)
         total += len(labels)
 
         loss.backward()
@@ -109,7 +113,7 @@ for epoch in range(training_config['NUM_EPOCH']):
         total_loss += loss.item()
     
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
-    print_output('Correct: {0} / {1} = {2}'.format(correct, total, float(correct) / total))
+    print_output('Correct: {0} / {1} = {2}; FP: {3}; FN: {4}'.format(correct, total, float(correct) / total, fp, fn))
     helpers.save_model(matcher, out_dir, epoch)
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
