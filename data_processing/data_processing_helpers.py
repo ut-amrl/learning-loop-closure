@@ -170,7 +170,7 @@ def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, c
                 metadata['angle_increment'] = msg.angle_increment
 
             last_scan_time = timestamp
-            scans[timestamp] = scan_to_point_cloud(msg) if convert_to_clouds else msg.ranges
+            scans[timestamp] = scan_to_point_cloud(msg) if convert_to_clouds else msg
         elif (topic == localization_topic and timestamp - last_localization_time > loc_timestep):
             loc = []
             if msg._type == PoseStamped._type:
