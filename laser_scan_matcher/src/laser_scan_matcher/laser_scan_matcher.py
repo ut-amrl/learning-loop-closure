@@ -14,15 +14,15 @@ from helpers import create_laser_networks
 def create_scan_match_helper(scan_conv, scan_match):
   def match_scans(req):
     
-    scan_np = np.array(req.scan.ranges)
-    alt_scan_np = np.array(req.alt_scan.ranges)
+    scan_np = np.array(req.scan.ranges).astype(np.float32)
+    alt_scan_np = np.array(req.alt_scan.ranges).astype(np.float32)
     
     scan = torch.tensor(scan_np).cuda()
     alt_scan = torch.tensor(alt_scan_np).cuda()
 
     conv = scan_conv(scan.unsqueeze(0), alt_scan.unsqueeze(0))
     scores = scan_match(conv)
-    probs = torch.nn.functional.softmax(scores)
+    probs = torch.nn.functional.softmax(scores.squeeze())
 
     return MatchLaserScansResponse(probs[1])
     
