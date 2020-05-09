@@ -1,5 +1,59 @@
 import numpy as np
 
+import argparse
+
+class Configuration:
+  def __init__(self, train=False, laser=True, evaluation=False, data_processing=False):
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--batch_size', default=768, type=int)
+
+    if train:
+      parser.add_argument('--train_set', default='train', help='Which subset of the dataset to use for training')
+      parser.add_argument('--validation_set', default='val', help='Which subset of the dataset to use for validation')
+      parser.add_argument('--num_epoch', default=90, type=int)
+      parser.add_argument('--outf', type=str, default='matcher', help='output folder')
+      parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for optimizer')
+      parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
+      if laser:
+        parser.add_argument('--laser_match_weigh', default=0.8, type=float)
+        parser.add_argument('--laser_trans_weigh', default=0.2, type=float)
+        parser.add_argument('--name', type=str, efault='laser_dataset', help="name for the created dataset/models")
+        parser.add_argument('--train_transform',action='store_true')
+        parser.add_argument('--train_match',action='store_true')
+        parser.add_argument('--lock_conv', action='store_true')
+
+    if laser:
+      parser.add_argument('--bag_file', type=str, required=True, help="bag file")
+      parser.add_argument('--conv_model', type=str, default='', help='pretrained scan conv model to start with')
+      parser.add_argument('--match_model', type=str, default='', help='pretrained scan matcher model to start with')
+      parser.add_argument('--transform_model', type=str, default='', help='pretrained scan transform model to start with')
+
+    if evaluation and not laser:
+      parser.add_argument('--threshold_min', type=float, default=0, help='minimum threshold to test for evaluation')
+      parser.add_argument('--threshold_max', type=float, default=16, help='maximum threshold to test for evaluation')
+      parser.add_argument('--evaluation_set', default='val', help='Which subset of the dataset to use for evaluation')
+
+    if data_processing:
+      parser.add_argument('--lidar_fov', type=float, default=np.pi)
+      parser.add_argument('--lidar_max_range', type=float, default=10)
+      parser.add_argument('--overlap_radius', type=float, default=4)
+      parser.add_argument('--overlap_sample_resolution', type=int, default=10)
+      parser.add_argument('--close_distance_threshold', type=float, default=2.0)
+      parser.add_argument('--far_distance_threshold', type=float, default=3.5)
+      parser.add_argument('--overlap_similarity_threshold', type=float, default=0.7)
+      parser.add_argument('--time_ignore_threshold', type=float, default=1.0)
+      if not laser:
+        parser.add_argument('--augmentation_probability', type=float, default=0.8)
+
+
+    self.parser = parser
+
+  def parse(self):
+    return self.parser.parse_args()
+
+
 execution_config = {
   'BATCH_SIZE': 768,
   'NUM_WORKERS': 8,

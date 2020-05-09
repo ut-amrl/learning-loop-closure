@@ -149,15 +149,15 @@ def create_lcc(embedding_model='', model=''):
     
 def create_laser_networks(conv_model='', match_model='', transform_model=''):
     scan_conv = ScanConvNet()
-    if conv_model != '':
+    if conv_model:
         scan_conv.load_state_dict(torch.load(conv_model))
 
     scan_transform = ScanTransformNet()
-    if transform_model != '':
+    if transform_model:
         scan_transform.load_state_dict(torch.load(transform_model))
 
     scan_match = ScanMatchNet()
-    if match_model != '':
+    if match_model:
         scan_match.load_state_dict(torch.load(match_model))
     
     if torch.cuda.device_count() > 1:
