@@ -386,13 +386,14 @@ class LCCDataset(LCDataset):
         return len(self.labeled_timestamps)
     
 class LCLaserDataset(data.Dataset):
-    def __init__(self, bag_file, name):
+    def __init__(self, bag_file, name, dist_close_ratio):
         super(LCLaserDataset, self).__init__()
         self.bag_file = bag_file
         self.bag = rosbag.Bag(self.bag_file)
         self.name = name
         self.overlaps = {}
         self.data_loaded = False
+        self.dist_close_ratio = dist_close_ratio
 
     def get_scan_by_idx(self, index):
         return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
@@ -404,7 +405,17 @@ class LCLaserDataset(data.Dataset):
         if not self.data_loaded:
             raise Exception("Must load data before accessing")
 
-        return self.data[index]
+        idx, alt_idx, label = self.data[index]
+
+        scan = self.get_scan_by_idx(idx)
+        location = self.get_location_by_idx(idx)
+        timestamp = self.data_reader.localization_timestamps[idx]
+
+        alt_location = self.get_location_by_idx(alt_idx)
+        alt_scan = self.get_scan_by_idx(alt_idx)
+        alt_timestamp = self.data_reader.scan_timestamps[alt_idx]
+
+        return ((scan, location, timestamp), (alt_scan, alt_location, alt_timestamp), label)
 
     def filter_scan_matches(self, timestamp, location, neighbors):
         filtered = list(filter(self.time_filter(timestamp), neighbors))
@@ -459,26 +470,20 @@ class LCLaserDataset(data.Dataset):
             timestamp = self.data_reader.localization_timestamps[index]
             
             dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
-
+            non_neighbors = np.setdiff1d(range(loc_count), dist_neighbors)
+            
             neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
             
             filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
             for sim_idx in filtered_neighbors:
-                sim_location = self.get_location_by_idx(sim_idx)
-                sim_scan = self.get_scan_by_idx(sim_idx)
-                sim_timestamp = self.data_reader.scan_timestamps[sim_idx]
-                
-                self.data.append(((scan, location, timestamp), (sim_scan, sim_location, sim_timestamp), 1))
+                self.data.append(np.array([index, sim_idx, 1]).astype(np.int))
 
-                dist_idx = random.randint(0, loc_count - 1)
-                # We don't want anything that's even remotely nearby to count as "distant"
-                while dist_idx in dist_neighbors:
-                    dist_idx = random.randint(0, loc_count - 1)
-
-                dist_location = self.get_location_by_idx(dist_idx)
-                dist_scan = self.get_scan_by_idx(dist_idx)
-                dist_timestamp = self.data_reader.scan_timestamps[dist_idx]
-                self.data.append(((scan, location, timestamp), (dist_scan, dist_location, dist_timestamp), 0))
+                dist_indices = np.random.choice(non_neighbors, self.dist_close_ratio)
+                dist_pairs = np.zeros((len(dist_indices), 3)).astype(np.int)
+                dist_pairs[:, 0] = index
+                dist_pairs[:, 1] = dist_indices
+                dist_pairs[:, 2] = 0
+                self.data.extend(dist_pairs)
 
         self.data_loaded= True
 

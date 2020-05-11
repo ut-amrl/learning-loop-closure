@@ -7,7 +7,7 @@ class Configuration:
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--num_workers', default=8, type=int)
-    parser.add_argument('--batch_size', default=768, type=int)
+    parser.add_argument('--batch_size', default=1024, type=int)
 
     if train:
       parser.add_argument('--train_set', default='train', help='Which subset of the dataset to use for training')
@@ -23,12 +23,14 @@ class Configuration:
         parser.add_argument('--train_transform',action='store_true')
         parser.add_argument('--train_match',action='store_true')
         parser.add_argument('--lock_conv', action='store_true')
+        parser.add_argument('--dist_close_ratio', default=20, type=int, help='The number of distant examples to choose per "close" example')
 
     if laser:
       parser.add_argument('--bag_file', type=str, required=True, help="bag file")
-      parser.add_argument('--conv_model', type=str, default='', help='pretrained scan conv model to start with')
-      parser.add_argument('--match_model', type=str, default='', help='pretrained scan matcher model to start with')
-      parser.add_argument('--transform_model', type=str, default='', help='pretrained scan transform model to start with')
+      parser.add_argument('--model_dir', type=str, default='', help='directory containing pretrained model to start with')
+      parser.add_argument('--model_epoch', type=str, default='', help='epoch number for pretrained model to start with')
+      parser.add_argument('--lidar_topic', type=str, default='/Cobot/Laser')
+      parser.add_argument('--localization_topic', type=str, default='/Cobot/Localization')
 
     if evaluation and not laser:
       parser.add_argument('--threshold_min', type=float, default=0, help='minimum threshold to test for evaluation')
@@ -49,6 +51,9 @@ class Configuration:
 
 
     self.parser = parser
+
+  def add_argument(self, *args, **kwargs):
+    self.parser.add_argument(*args, **kwargs)
 
   def parse(self):
     return self.parser.parse_args()

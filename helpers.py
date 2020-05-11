@@ -2,6 +2,7 @@ from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddin
 from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset, LCLaserDataset
 import time
 import torch
+import os
 
 log_file = None
 def initialize_logging(start_time, file_prefix='train_'):
@@ -63,9 +64,9 @@ def load_lcc_dataset(root, timestamps):
     print_output("Finished loading data.")
     return dataset
 
-def load_laser_dataset(bag_file, name):
+def load_laser_dataset(bag_file, name, dist_close_ratio):
     print_output("Loading data into memory...", )
-    dataset = LCLaserDataset(bag_file, name)
+    dataset = LCLaserDataset(bag_file, name, dist_close_ratio)
     dataset.load_distances()
     dataset.load_data()
     dataset.cache_distances()
@@ -147,18 +148,18 @@ def create_lcc(embedding_model='', model=''):
     lcc.cuda()
     return lcc
     
-def create_laser_networks(conv_model='', match_model='', transform_model=''):
+def create_laser_networks(model_dir, model_epoch):
     scan_conv = ScanConvNet()
-    if conv_model:
-        scan_conv.load_state_dict(torch.load(conv_model))
+    if model_dir:
+        scan_conv.load_state_dict(torch.load(os.path.join(model_dir, 'model_conv_' + model_epoch + '.pth')))
 
     scan_transform = ScanTransformNet()
-    if transform_model:
-        scan_transform.load_state_dict(torch.load(transform_model))
+    if model_dir:
+        scan_transform.load_state_dict(torch.load(os.path.join(model_dir, 'model_transform_' + model_epoch + '.pth')))
 
     scan_match = ScanMatchNet()
-    if match_model:
-        scan_match.load_state_dict(torch.load(match_model))
+    if model_dir:
+        scan_match.load_state_dict(torch.load(os.path.join(model_dir, 'model_match_' + model_epoch + '.pth')))
     
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")

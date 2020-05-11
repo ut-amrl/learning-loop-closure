@@ -29,7 +29,7 @@ print_output("Random Seed: ", config.manualSeed)
 random.seed(config.manualSeed)
 torch.manual_seed(config.manualSeed)
 
-dataset = helpers.load_laser_dataset(config.bag_file, config.name)
+dataset = helpers.load_laser_dataset(config.bag_file, config.name, config.dist_close_ratio)
 
 out_dir = config.outf + '_' + dataset.name
 
@@ -38,7 +38,7 @@ try:
 except OSError:
     pass
 
-scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.conv_model, config.match_model, config.transform_model)
+scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.model_dir, config.model_epoch)
 scan_conv.train()
 scan_match.train()
 scan_transform.train()
@@ -46,7 +46,7 @@ scan_transform.train()
 conv_optimizer = optim.Adam(scan_conv.parameters(), lr=1e-3, weight_decay=1e-6)
 match_optimizer = optim.Adam(scan_match.parameters(), lr=1e-3, weight_decay=1e-6)
 transform_optimizer = optim.Adam(scan_transform.parameters(), lr=1e-3, weight_decay=1e-6)
-matchLossFunc = torch.nn.CrossEntropyLoss(weight=torch.FloatTensor([40.0, 1.0]).cuda())
+matchLossFunc = torch.nn.CrossEntropyLoss()
 transLossFunc = torch.nn.MSELoss()
 
 print_output("Press 'return' at any time to finish training after the current epoch.")
