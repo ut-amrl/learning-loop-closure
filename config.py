@@ -17,9 +17,9 @@ class Configuration:
       parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for optimizer')
       parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
       if laser:
-        parser.add_argument('--laser_match_weigh', default=0.8, type=float)
-        parser.add_argument('--laser_trans_weigh', default=0.2, type=float)
-        parser.add_argument('--name', type=str, efault='laser_dataset', help="name for the created dataset/models")
+        parser.add_argument('--laser_match_weight', default=0.8, type=float)
+        parser.add_argument('--laser_trans_weight', default=0.2, type=float)
+        parser.add_argument('--name', type=str, default='laser_dataset', help="name for the created dataset/models")
         parser.add_argument('--train_transform',action='store_true')
         parser.add_argument('--train_match',action='store_true')
         parser.add_argument('--lock_conv', action='store_true')

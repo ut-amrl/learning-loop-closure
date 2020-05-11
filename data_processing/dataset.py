@@ -413,7 +413,7 @@ class LCLaserDataset(data.Dataset):
 
     def time_filter(self, timestamp):
         def filter_checker(alt_idx):
-            alt_timestamp = self.data_reader.scan_timestamps[alt_idx]
+            alt_timestamp = self.data_reader.localization_timestamps[alt_idx]
             return abs(float(timestamp) - float(alt_timestamp)) > data_config['TIME_IGNORE_THRESHOLD']
         
         return filter_checker
@@ -421,7 +421,7 @@ class LCLaserDataset(data.Dataset):
     def check_overlap(self, location, timestamp):
         def overlap_checker(alt_idx):
             alt_loc = self.get_location_by_idx(alt_idx)
-            alt_timestamp = self.data_reader.scan_timestamps[alt_idx]
+            alt_timestamp = self.data_reader.localization_timestamps[alt_idx]
             key = (timestamp, alt_timestamp) if timestamp < alt_timestamp else (alt_timestamp, timestamp)
             if key in self.overlaps:
                 return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
@@ -456,7 +456,7 @@ class LCLaserDataset(data.Dataset):
         for index in tqdm(range(loc_count)):
             scan = self.get_scan_by_idx(index)
             location = self.get_location_by_idx(index)
-            timestamp = self.data_reader.scan_timestamps[index]
+            timestamp = self.data_reader.localization_timestamps[index]
             
             dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
 
