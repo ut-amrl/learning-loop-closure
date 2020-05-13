@@ -468,6 +468,9 @@ class LCLaserDataset(data.Dataset):
             scan = self.get_scan_by_idx(index)
             location = self.get_location_by_idx(index)
             timestamp = self.data_reader.localization_timestamps[index]
+
+            if (random.random() < self.augmentation_prob):
+                self.data.append(generate_augmented_match(scan, location, timestamp))
             
             dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
             non_neighbors = np.setdiff1d(range(loc_count), dist_neighbors)
@@ -475,6 +478,7 @@ class LCLaserDataset(data.Dataset):
             neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
             
             filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+
             for sim_idx in filtered_neighbors:
                 self.data.append(np.array([index, sim_idx, 1]).astype(np.int))
 

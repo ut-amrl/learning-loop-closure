@@ -30,7 +30,7 @@ torch.manual_seed(config.manualSeed)
 scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.model_dir, config.model_epoch)
 scan_conv.eval()
 scan_match.eval()
-dataset = helpers.load_laser_dataset(config.bag_file, '', config.dist_close_ratio)
+dataset = helpers.load_laser_dataset(config.bag_file, '', config.dist_close_ratio, config.distance_cache)
 batch_count = len(dataset) // config.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
@@ -39,55 +39,39 @@ dataloader = torch.utils.data.DataLoader(
     num_workers=num_workers,
     drop_last=True)
 
-metrics = np.zeros((len(thresholds), 4)) # True Positive, True Negative, False Positive, False Negative
+metrics = np.zeros((4)) # True Positive, True Negative, False Positive, False Negative
 
 print("Evaluation over {0} batches of size {1}".format(batch_count, config.batch_size))
 
-for i, data in tqdm(enumerate(dataloader, 0)):
-    ((clouds, locations, _), (alt_clouds, alt_locs, _), labels) = data
-    clouds = clouds.cuda()
-    alt_clouds = alt_clouds.cuda()
-    labels = labels.cuda()
-    
-    conv = scan_conv(clouds, alt_clouds)
+with torch.no_grad():
+    for i, data in tqdm(enumerate(dataloader, 0)):
+        ((clouds, locations, _), (alt_clouds, alt_locs, _), labels) = data
+        clouds = clouds.cuda()
+        alt_clouds = alt_clouds.cuda()
+        labels = labels.cuda()
+        
+        conv = scan_conv(clouds, alt_clouds)
 
-    # import pdb; pdb.set_trace()
-    #Compute match prediction
-    scores = scan_match(conv)
-    predictions = torch.argmax(F.softmax(scores), dim=1)
-    pos_predictions = predictions.nonzero()
-    import pdb; pdb.set_trace()
-    metrics[0] += (pos_predictions == labels)
-    metrics[2] += (pos_predictions != labels)
+        # import pdb; pdb.set_trace()
+        #Compute match prediction
+        scores = scan_match(conv)
+        predictions = torch.argmax(torch.nn.functional.softmax(scores, dim=0), dim=1)
+        pos_predictions = (predictions != 0)
+        metrics[0] += torch.sum(pos_predictions == labels)
+        metrics[2] += torch.sum(pos_predictions != labels)
+        neg_predictions = (predictions == 0)
+        metrics[1] += torch.sum(neg_predictions == labels)
+        metrics[3] += torch.sum(neg_predictions != labels)
 
-    metrics[1] += (pos_predictions == labels)
-    metrics[3] += (pos_predictions != labels)
+    print_output("Metrics:")
+    print_output("TP: ", metrics[0])
+    print_output("FP: ", metrics[1])
+    print_output("TN: ", metrics[2])
+    print_output("FN: ", metrics[3])
 
+    acc = (metrics[0] + metrics[1]) / sum(metrics)
+    prec = (metrics[0]) / (metrics[0] + metrics[2])
+    rec = (metrics[0]) / (metrics[0] + metrics[3])
+    f1 = 2 * prec * rec / (prec + rec)
 
-confusion = np.zeros((len(thresholds), 2, 2))
-for i in range(len(thresholds)):
-    
-    confusions[i] = [[threshold_metrics[0], threshold_metrics[2]], [threshold_metrics[3], threshold_metrics[1]]]
-
-import matplotlib as mpl
-if opt.no_vis:
-    mpl.use('Agg')
-from matplotlib import pyplot as plt
-
-plt.plot(roc[:, 2], roc[:, 1], color='r', label="Threshold")
-plt.xlim(0, 1)
-plt.ylim(0, 1)
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.legend()
-
-if not opt.no_vis:
-    plt.show()
-else:
-    plt.savefig('precision_recall_curve.png')
-
-if opt.publish_triplets:
-    name = os.path.basename(opt.dataset)
-    print("Writing triplets_{0}.npy".format(name))
-    np.save('triplets_{0}'.format(name), triplets)
-    np.save('confusions_{0}'.format(name), confusions)
+    print_output('(Acc: %f, Precision: %f, Recall: %f, F1: %f)' % (acc, prec, rec, f1))

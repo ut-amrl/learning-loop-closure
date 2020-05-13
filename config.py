@@ -8,14 +8,14 @@ class Configuration:
 
     parser.add_argument('--num_workers', default=16, type=int)
     parser.add_argument('--batch_size', default=1024, type=int)
-
+    parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
+    
     if train:
       parser.add_argument('--train_set', default='train', help='Which subset of the dataset to use for training')
       parser.add_argument('--validation_set', default='val', help='Which subset of the dataset to use for validation')
       parser.add_argument('--num_epoch', default=60, type=int)
       parser.add_argument('--outf', type=str, default='matcher', help='output folder')
       parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for optimizer')
-      parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
       if laser:
         parser.add_argument('--laser_match_weight', default=0.8, type=float)
         parser.add_argument('--laser_trans_weight', default=0.2, type=float)
