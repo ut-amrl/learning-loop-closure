@@ -461,7 +461,7 @@ class LCLaserDataset(data.Dataset):
             pickle.dump(self.overlaps, f)
 
     def load_data(self):
-        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, 0.075, 0.075)
+        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
         loc_count = len(self.data_reader.localization_timestamps)
         self.data = []
         for index in tqdm(range(loc_count)):

@@ -11,35 +11,27 @@ import evaluation_helpers
 sys.path.append(os.path.join(os.getcwd(), '..'))
 import helpers
 from data_processing.data_processing_helpers import LCBagDataReader, scan_to_point_cloud
-from config import data_generation_config
+from config import data_generation_config, Configuration
 
-parser = argparse.ArgumentParser()
+config = Configuration(False, True)
+config.add_argument('--alt_bag_file', type=str)
+config.add_argument('--time_spacing', type=float, default=1.5)
+config = config.parse()
 
-parser.add_argument('--bag_file', type=str, required=True, help='Bag file to walk through for finding loop closures')
-parser.add_argument('--alt_bag_file', type=str, required=False, help='Second file to walk through for finding loop closures. If not provided, bag_file will be checked against itself')
-parser.add_argument('--time_spacing', type=float, default=1.5, help='Spacing between places to check for LC')
-
-parser.add_argument('--match_model', type=str, required=False)
-parser.add_argument('--conv_model', type=str, required=False)
-parser.add_argument('--transform_model', type=str, required=False)
-
-
-opt = parser.parse_args()
-
-scan_conv, scan_match, scan_transform = helpers.create_laser_networks(opt.conv_model, opt.match_model, opt.transform_model)
+scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.model_dir, config.model_epoch)
 scan_conv.eval()
 scan_match.eval()
 scan_transform.eval()
 convert_to_clouds = False
 
-bag = rosbag.Bag(opt.bag_file)
+bag = rosbag.Bag(config.bag_file)
 
-if opt.alt_bag_file:
-  alt_bag = rosbag.Bag(opt.alt_bag_file)
+if config.alt_bag_file:
+  alt_bag = rosbag.Bag(config.alt_bag_file)
 else:
-  alt_bag = rosbag.Bag(opt.bag_file)
+  alt_bag = rosbag.Bag(config.bag_file)
 
-bag_reader = LCBagDataReader(bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], convert_to_clouds, opt.time_spacing, opt.time_spacing)
+bag_reader = LCBagDataReader(bag, config.lidar_topic, config.localization_topic, convert_to_clouds, config.time_spacing, config.time_spacing)
 
 with torch.no_grad():
   # Walk through the bag and get some transforms, try to recover them
