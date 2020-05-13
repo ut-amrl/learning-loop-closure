@@ -23,7 +23,6 @@ class Configuration:
         parser.add_argument('--train_transform',action='store_true')
         parser.add_argument('--train_match',action='store_true')
         parser.add_argument('--lock_conv', action='store_true')
-        parser.add_argument('--dist_close_ratio', default=40, type=int, help='The number of distant examples to choose per "close" example')
 
     if laser:
       parser.add_argument('--bag_file', type=str, required=True, help="bag file")
@@ -31,6 +30,7 @@ class Configuration:
       parser.add_argument('--model_epoch', type=str, default='', help='epoch number for pretrained model to start with')
       parser.add_argument('--lidar_topic', type=str, default='/Cobot/Laser')
       parser.add_argument('--localization_topic', type=str, default='/Cobot/Localization')
+      parser.add_argument('--dist_close_ratio', default=40, type=int, help='The number of distant examples to choose per "close" example')
 
     if evaluation and not laser:
       parser.add_argument('--threshold_min', type=float, default=0, help='minimum threshold to test for evaluation')
