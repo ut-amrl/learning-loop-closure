@@ -386,14 +386,16 @@ class LCCDataset(LCDataset):
         return len(self.labeled_timestamps)
     
 class LCLaserDataset(data.Dataset):
-    def __init__(self, bag_file, name, dist_close_ratio):
+    def __init__(self, bag_file, name, dist_close_ratio, use_overlap=False):
         super(LCLaserDataset, self).__init__()
         self.bag_file = bag_file
         self.bag = rosbag.Bag(self.bag_file)
         self.name = name
-        self.overlaps = {}
         self.data_loaded = False
         self.dist_close_ratio = dist_close_ratio
+        self.use_overlap = use_overlap
+        if self.use_overlap:
+            self.overlaps = {}
 
     def get_scan_by_idx(self, index):
         return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
@@ -418,8 +420,11 @@ class LCLaserDataset(data.Dataset):
         return ((scan, location, timestamp), (alt_scan, alt_location, alt_timestamp), label)
 
     def filter_scan_matches(self, timestamp, location, neighbors):
-        filtered = list(filter(self.time_filter(timestamp), neighbors))
-        filtered = list(filter(self.check_overlap(location, timestamp), filtered))
+        if self.use_overlap:
+            filtered = list(filter(self.time_filter(timestamp), neighbors))
+            filtered = list(filter(self.check_overlap(location, timestamp), filtered))
+        else:
+            filtered = list(filter(self.transform_filter(location), neighbors))
         return np.array(filtered)
 
     def time_filter(self, timestamp):
@@ -441,6 +446,13 @@ class LCLaserDataset(data.Dataset):
                 self.computed_new_distances = True
                 self.overlaps[key] = overlap
                 return self.overlaps[key] > data_config['OVERLAP_SIMILARITY_THRESHOLD']
+
+        return overlap_checker
+
+    def transform_filter(self, location):
+        def overlap_checker(alt_idx):
+            alt_loc = self.get_location_by_idx(alt_idx)
+            return abs(alt_loc[0] - location[0]) < data_config['CLOSE_DISTANCE_THRESHOLD'] and abs(alt_loc[1] - location[1]) < data_config['CLOSE_DISTANCE_THRESHOLD'] and abs(alt_loc[2] - location[2]) < 1.0 
 
         return overlap_checker
     
