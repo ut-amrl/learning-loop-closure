@@ -473,13 +473,16 @@ class LCLaserDataset(data.Dataset):
             pickle.dump(self.overlaps, f)
 
     def load_data(self):
-        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, 0.075, 0.075)
+        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
         loc_count = len(self.data_reader.localization_timestamps)
         self.data = []
         for index in tqdm(range(loc_count)):
             scan = self.get_scan_by_idx(index)
             location = self.get_location_by_idx(index)
             timestamp = self.data_reader.localization_timestamps[index]
+
+            if (random.random() < self.augmentation_prob):
+                self.data.append(generate_augmented_match(scan, location, timestamp))
             
             dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
             non_neighbors = np.setdiff1d(range(loc_count), dist_neighbors)
@@ -487,6 +490,7 @@ class LCLaserDataset(data.Dataset):
             neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
             
             filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
+
             for sim_idx in filtered_neighbors:
                 self.data.append(np.array([index, sim_idx, 1]).astype(np.int))
 

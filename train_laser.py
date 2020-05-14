@@ -110,6 +110,7 @@ for epoch in range(config.num_epoch):
         
         if config.train_match:
             match_optimizer.step()
+
         if config.train_transform:
             transform_optimizer.step()
         
@@ -117,9 +118,12 @@ for epoch in range(config.num_epoch):
     
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
     print_output('Correct: {0} / {1} = {2}; FP: {3}; FN: {4}'.format(correct, total, float(correct) / total, fp, fn))
-    helpers.save_model(scan_conv, out_dir, epoch, 'conv')
-    helpers.save_model(scan_match, out_dir, epoch, 'match')
-    helpers.save_model(scan_transform, out_dir, epoch, 'transform')
+    if not config.lock_conv:
+        helpers.save_model(scan_conv, out_dir, epoch, 'conv')
+    if config.train_match:
+        helpers.save_model(scan_match, out_dir, epoch, 'match')
+    if config.train_transform:
+        helpers.save_model(scan_transform, out_dir, epoch, 'transform')
     if (len(select.select([sys.stdin], [], [], 0)[0])):
         break
 

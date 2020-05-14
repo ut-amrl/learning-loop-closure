@@ -53,12 +53,16 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(base_trajectory[:, 0], base_trajectory[:, 1], 0, color='blue')
-ax.plot(target_trajectory[:, 0], target_trajectory[:, 1], 5, color='green')
+def setup_plot():
+  fig = plt.figure()
+  ax = fig.add_subplot(111, projection='3d')
+  ax.plot(base_trajectory[:, 0], base_trajectory[:, 1], 0, color='blue')
+  ax.plot(target_trajectory[:, 0], target_trajectory[:, 1], 5, color='green')
+  return ax, fig
 
 def add_matches_for_index(base_idx):
+  tp = 0
+  fp = 0
   base_timestamp = bag_reader.get_localization_timestamps()[base_idx]
   base_scan = torch.tensor(bag_reader.get_closest_scan_by_time(base_timestamp)[0].ranges).cuda()
 
@@ -81,7 +85,9 @@ def add_matches_for_index(base_idx):
         c = 'red'
       ax.plot([base_trajectory[base_idx, 0], target_trajectory[idx, 0]], [base_trajectory[base_idx, 1], target_trajectory[idx, 1]], [0, 5], color=c)
 
-def finish_and_show_plot():
+  return tp, fp
+
+def finish_and_show_plot(ax, fig):
   info_string = "True Positives: {0}\tFalse Positives: {1}".format(tp, fp)
 
   legend_elements = [
@@ -92,22 +98,26 @@ def finish_and_show_plot():
   ax.legend(handles=legend_elements)
   print(info_string)
   # plt.text(10, 10, info_string)
-  plt.show()
+  fig.show()
 
-if interactive:
-  while True:
+if config.interactive:
+  idx = 0
+  while idx < len(bag_reader.get_localization_timestamps()):
     idx = input("Enter index:")
-    fp = 0
-    tp = 0
-    finish_and_show_plot()
+    ax, fig = setup_plot()
+    tp, fp = add_matches_for_index(idx)
+    finish_and_show_plot(ax, fig)
 
 # Now find loop closures along these trajectories
 else:
-  fp = 0
-  tp = 0
+  FP = 0
+  TP = 0
+  ax, fig = setup_plot()
   for base_idx in np.linspace(0, len(bag_reader.get_localization_timestamps()) - 1, 50):
     # if response == 'y':
     base_idx = int(base_idx)
-    add_matches_for_index(base_idx)
+    tp, fp = add_matches_for_index(base_idx)
+    FP += fp
+    TP += tp
 
-  finish_and_show_plot()
+  finish_and_show_plot(ax, fig)
