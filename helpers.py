@@ -64,9 +64,9 @@ def load_lcc_dataset(root, timestamps):
     print_output("Finished loading data.")
     return dataset
 
-def load_laser_dataset(bag_file, name, dist_close_ratio, distance_cache=None, use_overlap=False):
+def load_laser_dataset(bag_file, name, dist_close_ratio, augmentation_prob, distance_cache=None, use_overlap=False):
     print_output("Loading data into memory...", )
-    dataset = LCLaserDataset(bag_file, name, dist_close_ratio)
+    dataset = LCLaserDataset(bag_file, name, dist_close_ratio, augmentation_prob)
     if use_overlap:
         dataset.load_distances(distance_cache)
     dataset.load_data()

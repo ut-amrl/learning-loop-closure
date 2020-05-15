@@ -386,16 +386,21 @@ class LCCDataset(LCDataset):
         return len(self.labeled_timestamps)
     
 class LCLaserDataset(data.Dataset):
-    def __init__(self, bag_file, name, dist_close_ratio, use_overlap=False):
+    def __init__(self, bag_file, name, dist_close_ratio, augmentation_prob, use_overlap=False):
         super(LCLaserDataset, self).__init__()
         self.bag_file = bag_file
         self.bag = rosbag.Bag(self.bag_file)
         self.name = name
         self.data_loaded = False
         self.dist_close_ratio = dist_close_ratio
+        self.augmentation_prob = data_config['AUGMENTATION_PROBABILITY']
         self.use_overlap = use_overlap
+        self.distance_threshold = data_config['CLOSE_DISTANCE_THRESHOLD']
         if self.use_overlap:
             self.overlaps = {}
+
+    def set_distance_threshold(self, close_dist):
+        self.distance_threshold = close_dist
 
     def get_scan_by_idx(self, index):
         return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
@@ -407,6 +412,11 @@ class LCLaserDataset(data.Dataset):
         if not self.data_loaded:
             raise Exception("Must load data before accessing")
 
+        should_augment = False
+        if (index >= len(self.data)):
+            index -= len(self.data)
+            should_augment = True
+
         idx, alt_idx, label = self.data[index]
 
         scan = self.get_scan_by_idx(idx)
@@ -416,6 +426,9 @@ class LCLaserDataset(data.Dataset):
         alt_location = self.get_location_by_idx(alt_idx)
         alt_scan = self.get_scan_by_idx(alt_idx)
         alt_timestamp = self.data_reader.scan_timestamps[alt_idx]
+
+        if should_augment:
+            alt_scan = np.random.normal(0, scale=0.01, size=alt_scan.shape).astype(np.float32) + alt_scan
 
         return ((scan, location, timestamp), (alt_scan, alt_location, alt_timestamp), label)
 
@@ -452,7 +465,7 @@ class LCLaserDataset(data.Dataset):
     def transform_filter(self, location):
         def overlap_checker(alt_idx):
             alt_loc = self.get_location_by_idx(alt_idx)
-            return abs(alt_loc[0] - location[0]) < data_config['CLOSE_DISTANCE_THRESHOLD'] and abs(alt_loc[1] - location[1]) < data_config['CLOSE_DISTANCE_THRESHOLD'] and abs(alt_loc[2] - location[2]) < 1.0 
+            return abs(alt_loc[0] - location[0]) < self.distance_threshold and abs(alt_loc[1] - location[1]) < self.distance_threshold and abs(alt_loc[2] - location[2]) < 1.0 
 
         return overlap_checker
     
@@ -480,17 +493,12 @@ class LCLaserDataset(data.Dataset):
             scan = self.get_scan_by_idx(index)
             location = self.get_location_by_idx(index)
             timestamp = self.data_reader.localization_timestamps[index]
-
-            if (random.random() < self.augmentation_prob):
-                self.data.append(generate_augmented_match(scan, location, timestamp))
             
-            dist_neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
-            non_neighbors = np.setdiff1d(range(loc_count), dist_neighbors)
-            
-            neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['CLOSE_DISTANCE_THRESHOLD'])
-            
+            neighbors = self.data_reader.get_localization_tree().query_ball_point(location[:2], data_config['FAR_DISTANCE_THRESHOLD'])
+            non_neighbors = np.setdiff1d(range(loc_count), neighbors)
+                        
             filtered_neighbors = self.filter_scan_matches(timestamp, location, neighbors[1:])
-
+            
             for sim_idx in filtered_neighbors:
                 self.data.append(np.array([index, sim_idx, 1]).astype(np.int))
 
@@ -505,8 +513,4 @@ class LCLaserDataset(data.Dataset):
 
     
     def __len__(self):
-        return len(self.data)
-
-
-
-
+        return len(self.data) * (1 + self.augmentation_prob)
