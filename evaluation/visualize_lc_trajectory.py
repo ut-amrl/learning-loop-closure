@@ -87,18 +87,18 @@ def add_matches_for_index(base_idx):
 
   return tp, fp
 
-def finish_and_show_plot(ax, fig):
-  info_string = "True Positives: {0}\tFalse Positives: {1}".format(tp, fp)
+def finish_and_show_plot(ax, fig, TP, FP):
+  info_string = "True Positives: {0}\tFalse Positives: {1}".format(TP, FP)
 
   legend_elements = [
-    plt.Line2D([0], [0], color='gray', lw=4, label='Correct Match ({0})'.format(tp)),
-    Line2D([0], [0], color='red', lw=4, label='Incorrect Match ({0})'.format(fp)),
+    plt.Line2D([0], [0], color='gray', lw=4, label='Correct Match ({0})'.format(TP)),
+    Line2D([0], [0], color='red', lw=4, label='Incorrect Match ({0})'.format(FP)),
   ]
 
   ax.legend(handles=legend_elements)
   print(info_string)
   # plt.text(10, 10, info_string)
-  fig.show()
+  plt.show()
 
 if config.interactive:
   idx = 0
@@ -120,4 +120,4 @@ else:
     FP += fp
     TP += tp
 
-  finish_and_show_plot(ax, fig)
+  finish_and_show_plot(ax, fig, TP, FP)

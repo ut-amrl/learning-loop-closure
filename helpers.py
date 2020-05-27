@@ -157,7 +157,11 @@ def create_laser_networks(model_dir, model_epoch):
 
     scan_transform = ScanTransformNet()
     if model_dir:
-        scan_transform.load_state_dict(torch.load(os.path.join(model_dir, 'model_transform_' + model_epoch + '.pth')))
+        transform_path = os.path.join(model_dir, 'model_transform_' + model_epoch + '.pth')
+        if os.path.exists(transform_path):
+            scan_transform.load_state_dict(torch.load(transform_path))
+        else:
+            print("Warning: no `transform` network found for provided model_dir and epoch")
 
     scan_match = ScanMatchNet()
     if model_dir:
