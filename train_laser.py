@@ -14,9 +14,13 @@ from tqdm import tqdm
 import helpers
 from helpers import print_output, initialize_logging
 
-from config import Configuration
+from config import Configuration, data_config
 
 config = Configuration(True, True).parse()
+
+if not (config.train_match or config.train_transform):
+    raise Exception('You must train for either matching or transformation recovery')
+
 start_time = str(int(time.time()))
 initialize_logging(start_time)
 
@@ -29,7 +33,7 @@ print_output("Random Seed: ", config.manualSeed)
 random.seed(config.manualSeed)
 torch.manual_seed(config.manualSeed)
 
-dataset = helpers.load_laser_dataset(config.bag_file, config.name, config.dist_close_ratio)
+dataset = helpers.load_laser_dataset(config.bag_file, config.name, config.dist_close_ratio, config.augmentation_probability)
 
 out_dir = config.outf + '_' + dataset.name
 
@@ -53,9 +57,13 @@ print_output("Press 'return' at any time to finish training after the current ep
 for epoch in range(config.num_epoch):
     total_loss = 0
 
+    if config.curriculum:
+        # Train on smaller perturbations first, the last 10 epochs including all of them
+        dataset.set_distance_threshold(min(float(epoch) / (config.num_epoch - 10) + 0.1, 1.0) * data_config['CLOSE_DISTANCE_THRESHOLD'])
+
+    dataset.load_data()
     batch_count = len(dataset) // config.batch_size
     print_output("Loaded new training data: {0} batches of size {1}".format(batch_count, config.batch_size))
-    dataset.load_data()
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=config.batch_size,
@@ -63,10 +71,7 @@ for epoch in range(config.num_epoch):
         num_workers=num_workers,
         drop_last=True)
 
-    total = 0
-    correct = 0
-    fp = 0
-    fn = 0
+    metrics = np.zeros(4)
 
     for i, data in tqdm(enumerate(dataloader, 0)):
         ((clouds, locations, _), (alt_clouds, alt_locs, _), labels) = data
@@ -86,8 +91,14 @@ for epoch in range(config.num_epoch):
         # import pdb; pdb.set_trace()
         #Compute match prediction
         scores = scan_match(conv)
-        predictions = torch.argmax(F.softmax(scores), dim=1)
-        loss = config.laser_match_weight * matchLossFunc.forward(scores, labels)
+        predictions = torch.argmax(F.softmax(scores, dim=1), dim=1)
+
+        if config.train_match:
+            loss = matchLossFunc.forward(scores, labels)
+            metrics[0] += torch.sum((predictions + labels == 2)) # both prediction and lable are 1
+            metrics[1] += torch.sum((predictions - labels == 1)) # prediction is 1 but label is 0
+            metrics[2] += torch.sum((predictions + labels == 0)) # both prediction and label are 0
+            metrics[3] += torch.sum((predictions - labels == -1)) # prediction is 0, label is 1
 
         if config.train_transform:
             # Compute transforms, but only for things that *should* match
@@ -97,12 +108,7 @@ for epoch in range(config.num_epoch):
             true_transforms = (locations - alt_locs)[match_indices]
             # Clamp angle between -pi and pi
             true_transforms[:, :, 2] = torch.fmod(2 * np.pi + true_transforms[:, :, 2], 2 * np.pi) - np.pi
-            loss += config.laser_trans_weight * transLossFunc.forward(transforms, true_transforms.squeeze(1).cuda())
-
-        correct += torch.sum(predictions == labels)
-        fp += torch.sum(predictions > labels)
-        fn += torch.sum(predictions < labels)
-        total += len(labels)
+            loss = transLossFunc.forward(transforms, true_transforms.squeeze(1).cuda())
 
         loss.backward()
         if not config.lock_conv:
@@ -115,9 +121,18 @@ for epoch in range(config.num_epoch):
             transform_optimizer.step()
         
         total_loss += loss.item()
+
     
     print_output('[Epoch %d] Total loss: %f' % (epoch, total_loss))
-    print_output('Correct: {0} / {1} = {2}; FP: {3}; FN: {4}'.format(correct, total, float(correct) / total, fp, fn))
+
+    if config.train_match:
+        acc = (metrics[0] + metrics[2]) / sum(metrics)
+        prec = (metrics[0]) / (metrics[0] + metrics[1])
+        rec = (metrics[0]) / (metrics[0] + metrics[3])
+        f1 = 2 * prec * rec / (prec + rec)
+        print_output('Metrics: (TP %d, FP %d, TN %d, FN %d)' % (metrics[0], metrics[1], metrics[2], metrics[3]))
+        print_output('(Acc: %f, Precision: %f, Recall: %f, F1: %f)' % (acc, prec, rec, f1))
+        
     if not config.lock_conv:
         helpers.save_model(scan_conv, out_dir, epoch, 'conv')
     if config.train_match:

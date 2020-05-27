@@ -11,18 +11,19 @@ class Configuration:
     parser.add_argument('--distance_cache', type=str, default=None, help='cached overlap info to start with')
     
     if train:
-      parser.add_argument('--train_set', default='train', help='Which subset of the dataset to use for training')
-      parser.add_argument('--validation_set', default='val', help='Which subset of the dataset to use for validation')
-      parser.add_argument('--num_epoch', default=60, type=int)
+      parser.add_argument('--num_epoch', default=45, type=int)
       parser.add_argument('--outf', type=str, default='matcher', help='output folder')
       parser.add_argument('--lr', type=float, default=1e-3, help='learning rate for optimizer')
       if laser:
-        parser.add_argument('--laser_match_weight', default=0.8, type=float)
-        parser.add_argument('--laser_trans_weight', default=0.2, type=float)
         parser.add_argument('--name', type=str, default='laser_dataset', help="name for the created dataset/models")
         parser.add_argument('--train_transform',action='store_true')
         parser.add_argument('--train_match',action='store_true')
         parser.add_argument('--lock_conv', action='store_true')
+        parser.add_argument('--curriculum', action='store_true')
+        parser.add_argument('--augmentation_probability', type=float, default=0.8)
+      else:
+        parser.add_argument('--train_set', default='train', help='Which subset of the dataset to use for training')
+        parser.add_argument('--validation_set', default='val', help='Which subset of the dataset to use for validation')
 
     if laser:
       parser.add_argument('--bag_file', type=str, required=True, help="bag file")
@@ -30,7 +31,7 @@ class Configuration:
       parser.add_argument('--model_epoch', type=str, default='', help='epoch number for pretrained model to start with')
       parser.add_argument('--lidar_topic', type=str, default='/Cobot/Laser')
       parser.add_argument('--localization_topic', type=str, default='/Cobot/Localization')
-      parser.add_argument('--dist_close_ratio', default=40, type=int, help='The number of distant examples to choose per "close" example')
+      parser.add_argument('--dist_close_ratio', default=10, type=int, help='The number of distant examples to choose per "close" example')
 
     if evaluation and not laser:
       parser.add_argument('--threshold_min', type=float, default=0, help='minimum threshold to test for evaluation')

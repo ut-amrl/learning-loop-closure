@@ -30,7 +30,7 @@ torch.manual_seed(config.manualSeed)
 scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.model_dir, config.model_epoch)
 scan_conv.eval()
 scan_match.eval()
-dataset = helpers.load_laser_dataset(config.bag_file, '', config.dist_close_ratio, config.distance_cache)
+dataset = helpers.load_laser_dataset(config.bag_file, '', config.dist_close_ratio, 0, config.distance_cache)
 batch_count = len(dataset) // config.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
@@ -55,13 +55,11 @@ with torch.no_grad():
         # import pdb; pdb.set_trace()
         #Compute match prediction
         scores = scan_match(conv)
-        predictions = torch.argmax(torch.nn.functional.softmax(scores, dim=0), dim=1)
-        pos_predictions = (predictions != 0)
-        metrics[0] += torch.sum(pos_predictions == labels)
-        metrics[2] += torch.sum(pos_predictions != labels)
-        neg_predictions = (predictions == 0)
-        metrics[1] += torch.sum(neg_predictions == labels)
-        metrics[3] += torch.sum(neg_predictions != labels)
+        predictions = torch.argmax(torch.nn.functional.softmax(scores, dim=1), dim=1)
+        metrics[0] += torch.sum((predictions + labels == 2)) # both prediction and lable are 1
+        metrics[1] += torch.sum((predictions - labels == 1)) # prediction is 1 but label is 0
+        metrics[2] += torch.sum((predictions + labels == 0)) # both prediction and label are 0
+        metrics[3] += torch.sum((predictions - labels == -1)) # prediction is 0, label is 1
 
     print_output("Metrics:")
     print_output("TP: ", metrics[0])
@@ -69,8 +67,8 @@ with torch.no_grad():
     print_output("TN: ", metrics[2])
     print_output("FN: ", metrics[3])
 
-    acc = (metrics[0] + metrics[1]) / sum(metrics)
-    prec = (metrics[0]) / (metrics[0] + metrics[2])
+    acc = (metrics[0] + metrics[2]) / sum(metrics)
+    prec = (metrics[0]) / (metrics[0] + metrics[1])
     rec = (metrics[0]) / (metrics[0] + metrics[3])
     f1 = 2 * prec * rec / (prec + rec)
 
