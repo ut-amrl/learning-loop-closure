@@ -12,7 +12,7 @@ import math
 from tqdm import tqdm
 import json
 import pickle
-from data_processing_helpers import compute_overlap, partition_point_cloud, LCBagDataReader
+from data_processing_helpers import compute_overlap, partition_point_cloud, LCBagDataReader, get_scans_from_bag
 from ltf_segmentation.ltf_helpers import discretize_point_cloud
 import rosbag
 
@@ -80,13 +80,16 @@ class MergedDataset(data.Dataset):
         for dataset in self.datasets:
             dataset.load_all_triplets()
 
-    def __getitem__(self, index):
-        max_idx = 0
+    def set_distance_threshold(self, threshold):
         for dataset in self.datasets:
-            max_idx += len(dataset)
-            if index >= max_idx:
+            dataset.set_distance_threshold(threshold)
+
+    def __getitem__(self, index):
+        for dataset in self.datasets:
+            if index >= len(dataset):
+                index -= len(dataset)
                 continue
-            return dataset[index - max_idx]
+            return dataset[index]
 
     def __len__(self):
         return np.sum([len(dataset) for dataset in self.datasets])
@@ -385,17 +388,45 @@ class LCCDataset(LCDataset):
     def __len__(self):
         return len(self.labeled_timestamps)
     
-class LCLaserDataset(data.Dataset):
-    def __init__(self, bag_file, name, dist_close_ratio, augmentation_prob, use_overlap=False):
-        super(LCLaserDataset, self).__init__()
+# Local Uncertainty
+class LUDataset(data.Dataset):
+    def __init__(self, bag_file, stats_file):
         self.bag_file = bag_file
+        self.stats_file = stats_file
         self.bag = rosbag.Bag(self.bag_file)
-        self.name = name
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return len(self.data)
+
+    def load_data(self):
+        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'] ,None, False, data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
+
+        self.data = []
+        with open(self.stats_file, 'r') as f:
+            for line in f.readlines():
+                timestamp, stats = line.strip().split(': ')
+                first, second = stats.strip().split(', ')
+                timestamp = float(timestamp) - self.bag.get_start_time() # correct for the fact that our stats dont offset by bag time
+                scan = self.data_reader.get_closest_scan_by_time(timestamp)[0].ranges
+                self.data.append((np.array(scan).astype(np.float32), np.array([first, second]).astype(np.float32)))
+
+# Loop closure using laser scan
+class LCLaserDataset(data.Dataset):
+    def __init__(self, config, use_overlap=False):
+        super(LCLaserDataset, self).__init__()
+        self.bag_file = config.bag_file
+        self.bag = rosbag.Bag(config.bag_file)
+        self.name = config.name
         self.data_loaded = False
-        self.dist_close_ratio = dist_close_ratio
-        self.augmentation_prob = data_config['AUGMENTATION_PROBABILITY']
+        self.augmentation_prob = config.augmentation_probability
+        self.edge_trimming = config.edge_trimming
         self.use_overlap = use_overlap
+        self.lidar_max_range = config.lidar_max_range
         self.distance_threshold = data_config['CLOSE_DISTANCE_THRESHOLD']
+        self.data_reader = LCBagDataReader(self.bag,  data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
         if self.use_overlap:
             self.overlaps = {}
 
@@ -403,7 +434,10 @@ class LCLaserDataset(data.Dataset):
         self.distance_threshold = close_dist
 
     def get_scan_by_idx(self, index):
-        return np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
+        full_scan = np.asarray(self.data_reader.scans[self.data_reader.scan_timestamps[index]].ranges).astype(np.float32)
+        full_scan[:self.edge_trimming] = self.lidar_max_range
+        full_scan[-self.edge_trimming:] = self.lidar_max_range
+        return full_scan
 
     def get_location_by_idx(self, index):
         return np.asarray(self.data_reader.localizations[self.data_reader.localization_timestamps[index]]).astype(np.float32)
@@ -486,7 +520,6 @@ class LCLaserDataset(data.Dataset):
             pickle.dump(self.overlaps, f)
 
     def load_data(self):
-        self.data_reader = LCBagDataReader(self.bag, data_generation_config['LIDAR_TOPIC'], data_generation_config['LOCALIZATION_TOPIC'], False, data_generation_config['TIME_SPACING'], data_generation_config['TIME_SPACING'])
         loc_count = len(self.data_reader.localization_timestamps)
         self.data = []
         for index in tqdm(range(loc_count)):
@@ -502,15 +535,11 @@ class LCLaserDataset(data.Dataset):
             for sim_idx in filtered_neighbors:
                 self.data.append(np.array([index, sim_idx, 1]).astype(np.int))
 
-                dist_indices = np.random.choice(non_neighbors, self.dist_close_ratio)
-                dist_pairs = np.zeros((len(dist_indices), 3)).astype(np.int)
-                dist_pairs[:, 0] = index
-                dist_pairs[:, 1] = dist_indices
-                dist_pairs[:, 2] = 0
-                self.data.extend(dist_pairs)
+                dist_index = np.random.choice(non_neighbors, 1)[0]
+                self.data.append((index, dist_index, 0))
 
         self.data_loaded= True
 
     
     def __len__(self):
-        return len(self.data) * (1 + self.augmentation_prob)
+        return int(len(self.data) * (1 + self.augmentation_prob))

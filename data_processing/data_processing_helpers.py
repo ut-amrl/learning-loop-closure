@@ -148,6 +148,16 @@ def partition_point_cloud(point_set, threshold):
 
     return partition_array, length
 
+def get_scans_from_bag(bag, lidar_topic):
+    scans = {}
+
+    for topic, msg, t in tqdm(bag.read_messages(topics=[lidar_topic])):
+        timestamp = t.secs + t.nsecs * 1e-9
+        timestamp = '{:.5f}'.format(timestamp)
+        scans[timestamp] = msg
+    print ("Finished processing Bag file: {0} scans localizations".format(len(scans.keys())))
+    return scans
+
 def get_scans_and_localizations_from_bag(bag, lidar_topic, localization_topic, convert_to_clouds=True, scan_timestep=0, loc_timestep=0):
     localizations = {}
     scans = {}
@@ -196,10 +206,11 @@ class LCBagDataReader:
         self.metadata = metadata
         self.localization_timestamps = sorted(self.localizations.keys())
         self.scan_timestamps = sorted(self.scans.keys())
-        self.scan_timestamps = self.scan_timestamps[:len(self.localization_timestamps)]
-        self.localization_timestamps = self.localization_timestamps[:len(self.scan_timestamps)]
-        self.localizationTimeTree = spatial.cKDTree(np.asarray([[t] for t in self.localization_timestamps]))
-        self.localizationTree = spatial.cKDTree(np.asarray([localizations[t][:2] for t in self.localization_timestamps]))
+        if len(self.localization_timestamps) > 0:
+            self.scan_timestamps = self.scan_timestamps[:len(self.localization_timestamps)]
+            self.localization_timestamps = self.localization_timestamps[:len(self.scan_timestamps)]
+            self.localizationTimeTree = spatial.cKDTree(np.asarray([[t] for t in self.localization_timestamps]))
+            self.localizationTree = spatial.cKDTree(np.asarray([localizations[t][:2] for t in self.localization_timestamps]))
         self.scanTimeTree = spatial.cKDTree(np.asarray([[t] for t in self.scan_timestamps]))
 
     def get_scans(self):

@@ -71,7 +71,7 @@ def add_matches_for_index(base_idx):
       scan = torch.tensor(alt_reader.get_closest_scan_by_time(timestamp)[0].ranges).cuda()
       conv = scan_conv(base_scan.unsqueeze(0), scan.unsqueeze(0))
       scores = scan_match(conv)
-      prediction = torch.argmax(torch.nn.functional.softmax(scores))
+      prediction = torch.argmax(torch.nn.functional.softmax(scores, dim=1), dim=1)
 
     if (prediction):
       if np.linalg.norm(base_trajectory[base_idx] - target_trajectory[idx]) < 2.5:

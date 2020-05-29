@@ -1,5 +1,5 @@
-from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet, ScanMatchNet, ScanConvNet, ScanTransformNet
-from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset, LCLaserDataset
+from model import FullNet, EmbeddingNet, LCCNet, DistanceNet, StructuredEmbeddingNet, ScanMatchNet, ScanConvNet, ScanTransformNet, ScanSingleConvNet, ScanUncertaintyNet
+from data_processing.dataset import LCTripletDataset, LCCDataset, LCTripletStructuredDataset, LCLaserDataset, MergedDataset, LUDataset
 import time
 import torch
 import os
@@ -64,9 +64,9 @@ def load_lcc_dataset(root, timestamps):
     print_output("Finished loading data.")
     return dataset
 
-def load_laser_dataset(bag_file, name, dist_close_ratio, augmentation_prob, distance_cache=None, use_overlap=False):
+def load_laser_dataset(config, distance_cache=None, use_overlap=False):
     print_output("Loading data into memory...", )
-    dataset = LCLaserDataset(bag_file, name, dist_close_ratio, augmentation_prob)
+    dataset = LCLaserDataset(config, use_overlap)
     if use_overlap:
         dataset.load_distances(distance_cache)
     dataset.load_data()
@@ -74,6 +74,29 @@ def load_laser_dataset(bag_file, name, dist_close_ratio, augmentation_prob, dist
         dataset.cache_distances()
     print_output("Finished loading data.")
     return dataset
+
+def load_uncertainty_dataset(bag_file, stats_file):
+    print_output("Loading data into memory...", )
+    dataset = LUDataset(bag_file, stats_file)
+    dataset.load_data()
+    print_output("Finished loading data.")
+    return dataset
+
+def load_merged_laser_dataset(config, distance_cache=None, use_overlap=False):
+    print_output("Loading data into memory...", )
+    datasets = []
+    for bag_file in config.bag_files:
+        dataset = LCLaserDataset(config)
+        if use_overlap:
+            dataset.load_distances(distance_cache)
+            dataset.load_data()
+            dataset.cache_distances()
+        datasets.append(dataset)
+    
+    merged = MergedDataset(datasets, name)
+
+    print_output("Finished loading data.")
+    return merged
 
 def create_embedder(embedding_model=''):
     embedder = EmbeddingNet()
@@ -150,7 +173,26 @@ def create_lcc(embedding_model='', model=''):
     lcc.cuda()
     return lcc
     
-def create_laser_networks(model_dir, model_epoch):
+def create_lu_networks(model_dir, model_epoch):
+    scan_conv = ScanSingleConvNet()
+    if model_dir:
+        scan_conv.load_state_dict(torch.load(os.path.join(model_dir, 'model_conv_' + model_epoch + '.pth')))
+
+    scan_uncertainty = ScanUncertaintyNet()
+    if model_dir:
+        scan_uncertainty.load_state_dict(torch.load(os.path.join(model_dir, 'model_uncertainty_' + model_epoch + '.pth')))
+
+    
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        scan_conv = torch.nn.DataParallel(scan_conv)
+        scan_uncertainty = torch.nn.DataParallel(scan_uncertainty)
+
+    scan_conv.cuda()
+    scan_uncertainty.cuda()
+    return scan_conv, scan_uncertainty
+
+def create_laser_networks(model_dir, model_epoch, multi_gpu=True):
     scan_conv = ScanConvNet()
     if model_dir:
         scan_conv.load_state_dict(torch.load(os.path.join(model_dir, 'model_conv_' + model_epoch + '.pth')))
@@ -167,7 +209,7 @@ def create_laser_networks(model_dir, model_epoch):
     if model_dir:
         scan_match.load_state_dict(torch.load(os.path.join(model_dir, 'model_match_' + model_epoch + '.pth')))
     
-    if torch.cuda.device_count() > 1:
+    if multi_gpu and torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         scan_conv = torch.nn.DataParallel(scan_conv)
         scan_match = torch.nn.DataParallel(scan_match)
@@ -180,7 +222,7 @@ def create_laser_networks(model_dir, model_epoch):
 
 def save_model(model, outf, epoch, name_prefix=''):
     to_save = model
-    if torch.cuda.device_count() > 1:
+    if isinstance(model, torch.nn.DataParallel):
         to_save = model.module
     torch.save(to_save.state_dict(), '%s/model_%s_%d.pth' % (outf, name_prefix, epoch))
 

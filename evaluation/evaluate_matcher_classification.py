@@ -30,7 +30,7 @@ torch.manual_seed(config.manualSeed)
 scan_conv, scan_match, scan_transform = helpers.create_laser_networks(config.model_dir, config.model_epoch)
 scan_conv.eval()
 scan_match.eval()
-dataset = helpers.load_laser_dataset(config.bag_file, '', config.dist_close_ratio, 0, config.distance_cache)
+dataset = helpers.load_laser_dataset(config.bag_file, '', 0, config.distance_cache, config.edge_trimming)
 batch_count = len(dataset) // config.batch_size
 dataloader = torch.utils.data.DataLoader(
     dataset,
