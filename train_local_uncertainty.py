@@ -83,7 +83,7 @@ for epoch in range(config.num_epoch):
         uncertainty_optimizer.zero_grad()
         scan_conv.zero_grad()
         scan_uncertainty.zero_grad()
-        
+
         conv = scan_conv(scans)
 
         pred_values = scan_uncertainty(conv)
