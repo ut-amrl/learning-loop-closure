@@ -14,12 +14,10 @@ from helpers import create_lu_networks
 def create_lu_helper(scan_conv, scan_uncertainty):
   def match_scans(req):
     scan_np = np.array(req.scan.ranges).astype(np.float32)
-    alt_scan_np = np.array(req.alt_scan.ranges).astype(np.float32)
     
     scan = torch.tensor(scan_np).cuda()
-    alt_scan = torch.tensor(alt_scan_np).cuda()
     with torch.no_grad():
-      conv = scan_conv(scan.unsqueeze(0), alt_scan.unsqueeze(0))
+      conv = scan_conv(scan.unsqueeze(0).unsqueeze(0))
       condition, scale = scan_uncertainty(conv)[0]
 
       return EstimateLocalUncertaintyResponse(condition, scale)
