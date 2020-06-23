@@ -26,3 +26,7 @@ lib
 .cproject
 pointnet.pytorch
 bags
+laser_scan_matcher/src/laser_scan_matcher/srv/
+laser_scan_matcher/srv_gen/
+local_uncertainty_estimator/src/local_uncertainty_estimator/srv/
+local_uncertainty_estimator/srv_gen/
